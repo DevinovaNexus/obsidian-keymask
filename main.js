@@ -28,7 +28,7 @@ __export(main_exports, {
   default: () => VaultGuardPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian6 = require("obsidian");
+var import_obsidian7 = require("obsidian");
 
 // src/settings.ts
 var import_obsidian2 = require("obsidian");
@@ -1399,6 +1399,9 @@ ${source.trim()}
   );
 }
 
+// src/editor/pasteHandler.ts
+var import_obsidian5 = require("obsidian");
+
 // src/utils/heuristics.ts
 var SENSITIVE_PATTERNS = [
   {
@@ -1651,36 +1654,73 @@ ${token}
 
 // src/editor/pasteHandler.ts
 function registerPasteHandler(plugin) {
+  let isHandlingPaste = false;
+  const processPaste = (rawText, evt, editor) => {
+    if (!plugin.settings.interceptPaste) {
+      return false;
+    }
+    if (!rawText) return false;
+    const detected = detectSensitiveToken(rawText);
+    if (!detected) {
+      return false;
+    }
+    evt.preventDefault();
+    evt.stopPropagation();
+    if (evt.stopImmediatePropagation) {
+      evt.stopImmediatePropagation();
+    }
+    if (isHandlingPaste) return true;
+    isHandlingPaste = true;
+    setTimeout(() => {
+      new InterceptPasteModal(plugin.app, plugin, {
+        editor,
+        pastedText: rawText,
+        detectedToken: detected
+      }).open();
+      setTimeout(() => {
+        isHandlingPaste = false;
+      }, 500);
+    }, 10);
+    return true;
+  };
+  const getPastedText = (evt) => {
+    let text = evt.clipboardData?.getData("text/plain") || "";
+    if (!text) {
+      try {
+        const electron = window.require?.("electron");
+        text = electron?.clipboard?.readText() || "";
+      } catch {
+      }
+    }
+    return text;
+  };
+  plugin.registerDomEvent(
+    document,
+    "paste",
+    (evt) => {
+      const activeView = plugin.app.workspace.getActiveViewOfType(import_obsidian5.MarkdownView);
+      if (!activeView || !activeView.editor) return;
+      const pastedText = getPastedText(evt);
+      if (!pastedText) return;
+      processPaste(pastedText, evt, activeView.editor);
+    },
+    { capture: true }
+  );
   plugin.registerEvent(
     plugin.app.workspace.on(
       "editor-paste",
       (evt, editor, view) => {
-        if (!plugin.settings.interceptPaste) {
-          return;
-        }
-        const clipboardData = evt.clipboardData;
-        if (!clipboardData) return;
-        const pastedText = clipboardData.getData("text/plain");
+        const pastedText = getPastedText(evt);
         if (!pastedText) return;
-        const detected = detectSensitiveToken(pastedText);
-        if (!detected) {
-          return;
-        }
-        evt.preventDefault();
-        evt.stopPropagation();
-        new InterceptPasteModal(plugin.app, plugin, {
-          editor,
-          pastedText,
-          detectedToken: detected
-        }).open();
+        processPaste(pastedText, evt, editor);
       }
     )
   );
 }
 
 // src/modals/insertSecretModal.ts
-var import_obsidian5 = require("obsidian");
-var InsertSecretModal = class extends import_obsidian5.Modal {
+var import_obsidian6 = require("obsidian");
+var InsertSecretModal = class extends import_obsidian6.Modal {
   plugin;
   editor;
   label = "";
@@ -1707,14 +1747,14 @@ var InsertSecretModal = class extends import_obsidian5.Modal {
     });
     this.errorEl = contentEl.createDiv({ cls: "vaultguard-error-message" });
     this.errorEl.style.display = "none";
-    new import_obsidian5.Setting(contentEl).setName("Secret Label (Optional)").setDesc("A non-sensitive descriptor shown on the UI pill (e.g. 'Stripe Live Key', 'Production DB').").addText((text) => {
+    new import_obsidian6.Setting(contentEl).setName("Secret Label (Optional)").setDesc("A non-sensitive descriptor shown on the UI pill (e.g. 'Stripe Live Key', 'Production DB').").addText((text) => {
       text.setPlaceholder("e.g. OpenAI Production Key");
       text.setValue(this.label);
       text.onChange((val) => {
         this.label = val;
       });
     });
-    const secretSetting = new import_obsidian5.Setting(contentEl).setName("Secret Value").setDesc("The confidential credential, API key, or certificate.");
+    const secretSetting = new import_obsidian6.Setting(contentEl).setName("Secret Value").setDesc("The confidential credential, API key, or certificate.");
     const secretWrapper = contentEl.createDiv({ cls: "vaultguard-secret-input-wrapper" });
     this.secretInputEl = secretWrapper.createEl("textarea", {
       cls: "vaultguard-secret-textarea masked",
@@ -1745,7 +1785,7 @@ var InsertSecretModal = class extends import_obsidian5.Modal {
         toggleRevealBtn.textContent = "\u{1F441}\uFE0F Show Plaintext";
       }
     });
-    new import_obsidian5.Setting(contentEl).setName("Storage Format").setDesc("Inline comment for single-line API tokens, or fenced code block for multiline SSH/PEM certificates.").addDropdown((dropdown) => {
+    new import_obsidian6.Setting(contentEl).setName("Storage Format").setDesc("Inline comment for single-line API tokens, or fenced code block for multiline SSH/PEM certificates.").addDropdown((dropdown) => {
       dropdown.addOption("auto", "Auto-Detect (Inline for single line, Code Block for multiline)");
       dropdown.addOption("inline", "Inline Comment (%%vg:v1:...%%)");
       dropdown.addOption("codeblock", "Fenced Code Block (```vaultguard)");
@@ -1810,7 +1850,7 @@ var InsertSecretModal = class extends import_obsidian5.Modal {
 ${token}
 ` : token;
       this.editor.replaceSelection(textToInsert);
-      new import_obsidian5.Notice("\u{1F512} Encrypted secret inserted safely.");
+      new import_obsidian6.Notice("\u{1F512} Encrypted secret inserted safely.");
       this.close();
     } catch (err) {
       this.showError(err.message || "Failed to encrypt secret.");
@@ -1822,7 +1862,7 @@ ${token}
 };
 
 // src/main.ts
-var VaultGuardPlugin = class extends import_obsidian6.Plugin {
+var VaultGuardPlugin = class extends import_obsidian7.Plugin {
   settings = DEFAULT_SETTINGS;
   session;
   statusBarItemEl = null;
@@ -1854,13 +1894,13 @@ var VaultGuardPlugin = class extends import_obsidian6.Plugin {
       } else if (!this.session.isUnlocked()) {
         new UnlockModal(this.app, this, { mode: "unlock" }).open();
       } else {
-        const activeView = this.app.workspace.getActiveViewOfType(import_obsidian6.MarkdownView);
+        const activeView = this.app.workspace.getActiveViewOfType(import_obsidian7.MarkdownView);
         if (activeView && activeView.editor) {
           new InsertSecretModal(this.app, this, {
             editor: activeView.editor
           }).open();
         } else {
-          new import_obsidian6.Notice("\u{1F513} VaultGuard is unlocked. Open a note to insert secrets.");
+          new import_obsidian7.Notice("\u{1F513} VaultGuard is unlocked. Open a note to insert secrets.");
         }
       }
     });
@@ -1882,7 +1922,7 @@ var VaultGuardPlugin = class extends import_obsidian6.Plugin {
       editorCallback: (editor) => {
         const selection = editor.getSelection();
         if (!selection) {
-          new import_obsidian6.Notice("Please select text to encrypt.");
+          new import_obsidian7.Notice("Please select text to encrypt.");
           return;
         }
         new InsertSecretModal(this.app, this, {
@@ -1898,7 +1938,7 @@ var VaultGuardPlugin = class extends import_obsidian6.Plugin {
         if (!this.settings.isInitialized) {
           new UnlockModal(this.app, this, { mode: "init" }).open();
         } else if (this.session.isUnlocked()) {
-          new import_obsidian6.Notice("VaultGuard is already unlocked.");
+          new import_obsidian7.Notice("VaultGuard is already unlocked.");
         } else {
           new UnlockModal(this.app, this, { mode: "unlock" }).open();
         }
@@ -1909,10 +1949,10 @@ var VaultGuardPlugin = class extends import_obsidian6.Plugin {
       name: "Lock Vault",
       callback: () => {
         if (!this.session.isUnlocked()) {
-          new import_obsidian6.Notice("VaultGuard is already locked.");
+          new import_obsidian7.Notice("VaultGuard is already locked.");
         } else {
           this.session.lock();
-          new import_obsidian6.Notice("\u{1F512} VaultGuard locked.");
+          new import_obsidian7.Notice("\u{1F512} VaultGuard locked.");
         }
       }
     });
@@ -1933,7 +1973,7 @@ var VaultGuardPlugin = class extends import_obsidian6.Plugin {
       callback: async () => {
         await VaultGuardClipboard.clearClipboard();
         VaultGuardClipboard.cancelAutoWipe();
-        new import_obsidian6.Notice("\u{1F512} Ephemeral clipboard wiped.");
+        new import_obsidian7.Notice("\u{1F512} Ephemeral clipboard wiped.");
       }
     });
     this.registerEvent(
@@ -1974,7 +2014,7 @@ var VaultGuardPlugin = class extends import_obsidian6.Plugin {
       this.statusBarItemEl.setAttribute("title", "Click to lock vault");
       this.statusBarItemEl.onclick = () => {
         this.session.lock();
-        new import_obsidian6.Notice("\u{1F512} VaultGuard locked.");
+        new import_obsidian7.Notice("\u{1F512} VaultGuard locked.");
       };
     } else {
       this.statusBarItemEl.setText("\u{1F512} VaultGuard: Locked");
