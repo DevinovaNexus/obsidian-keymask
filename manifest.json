@@ -1,0 +1,10 @@
+{
+  "id": "obsidian-vaultguard",
+  "name": "VaultGuard",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Zero-plaintext credential protection & interactive UI masking for sensitive secrets in Obsidian.",
+  "author": "VaultGuard",
+  "authorUrl": "https://github.com/obsidian-vaultguard/vaultguard",
+  "isDesktopOnly": false
+}

@@ -1,0 +1,299 @@
+/* VaultGuard Styles */
+
+/* 1. Masked Inline Pill */
+.vaultguard-pill-wrapper {
+  display: inline-flex;
+  vertical-align: middle;
+  margin: 0 3px;
+}
+
+.vaultguard-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.85em;
+  line-height: 1.5;
+  transition: all 0.15s ease-in-out;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.vaultguard-pill:hover {
+  border-color: var(--interactive-accent);
+  background-color: var(--background-secondary-alt);
+}
+
+.vaultguard-pill-icon {
+  font-size: 1em;
+  cursor: pointer;
+  opacity: 0.85;
+  user-select: none;
+}
+
+.vaultguard-pill-icon:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.vaultguard-pill-label {
+  font-weight: 600;
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background-color: var(--background-modifier-form-field);
+  color: var(--text-muted);
+  padding: 1px 5px;
+  border-radius: 3px;
+  user-select: none;
+}
+
+.vaultguard-pill-value {
+  font-family: var(--font-monospace);
+  font-size: 0.9em;
+  padding: 0 4px;
+  cursor: pointer;
+}
+
+.vaultguard-pill-value.masked {
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.vaultguard-pill-value.revealed {
+  color: var(--interactive-accent);
+  background-color: var(--background-primary);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-weight: 500;
+  user-select: text;
+}
+
+/* 2. Action Buttons */
+.vaultguard-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 0.8em;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.vaultguard-btn:hover {
+  background-color: var(--background-modifier-hover);
+  color: var(--text-normal);
+  border-color: var(--background-modifier-border);
+}
+
+.vaultguard-btn-copy.copied {
+  color: var(--text-success, #22c55e);
+  border-color: var(--text-success, #22c55e);
+  background-color: rgba(34, 197, 94, 0.1);
+}
+
+/* 3. SVG Countdown Progress Ring */
+.vaultguard-timer-ring-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 2px;
+}
+
+.vaultguard-progress-ring {
+  transform-origin: center;
+}
+
+.vaultguard-progress-track {
+  stroke: var(--background-modifier-border);
+}
+
+.vaultguard-progress-indicator {
+  stroke: var(--interactive-accent);
+  transition: stroke-dashoffset 0.9s linear;
+}
+
+.vaultguard-progress-text {
+  font-size: 10px;
+  font-family: var(--font-monospace);
+  font-weight: 700;
+  fill: var(--text-normal);
+}
+
+/* 4. Multi-Line Fenced Code Block Widget */
+.vaultguard-block-wrapper {
+  margin: 12px 0;
+}
+
+.vaultguard-pill.is-codeblock {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+
+.vaultguard-pill.is-codeblock .vaultguard-pill-value.revealed {
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+/* 5. Corrupted Ciphertext Block UI */
+.vaultguard-corrupted-block {
+  border: 1px solid var(--text-error, #ef4444);
+  background-color: rgba(239, 68, 68, 0.08);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 6px 0;
+  color: var(--text-normal);
+}
+
+.vaultguard-corrupted-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text-error, #ef4444);
+}
+
+.vaultguard-corrupted-desc {
+  font-size: 0.85em;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.vaultguard-corrupted-details {
+  margin-top: 6px;
+  font-size: 0.8em;
+}
+
+.vaultguard-corrupted-details summary {
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.vaultguard-corrupted-details pre {
+  margin-top: 4px;
+  background-color: var(--background-primary);
+  padding: 6px;
+  border-radius: 4px;
+  max-height: 120px;
+  overflow-x: auto;
+}
+
+/* 6. Modals & Settings UI */
+.vaultguard-modal {
+  padding: 8px;
+}
+
+.vaultguard-modal h2 {
+  margin-bottom: 8px;
+}
+
+.vaultguard-error-message {
+  color: var(--text-error, #ef4444);
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--text-error, #ef4444);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  margin-bottom: 12px;
+}
+
+.vaultguard-secret-input-wrapper {
+  margin-bottom: 12px;
+}
+
+.vaultguard-secret-textarea {
+  width: 100%;
+  font-family: var(--font-monospace);
+  resize: vertical;
+}
+
+.vaultguard-secret-textarea.masked {
+  -webkit-text-security: disc;
+}
+
+.vaultguard-secret-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.vaultguard-modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.vaultguard-intercept-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.vaultguard-badge-pattern {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: 600;
+}
+
+.vaultguard-preview-code {
+  font-family: var(--font-monospace);
+  color: var(--text-muted);
+}
+
+.vaultguard-status-banner {
+  margin-bottom: 16px;
+}
+
+.vaultguard-status-pill {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.85em;
+}
+
+.vaultguard-status-pill.unlocked {
+  background-color: rgba(34, 197, 94, 0.15);
+  color: var(--text-success, #22c55e);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.vaultguard-status-pill.locked {
+  background-color: rgba(234, 179, 8, 0.15);
+  color: var(--text-warning, #eab308);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.vaultguard-status-pill.unconfigured {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--text-error, #ef4444);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.vaultguard-status-bar-item {
+  cursor: pointer;
+}
