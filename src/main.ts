@@ -75,8 +75,10 @@ export default class VaultGuardPlugin extends Plugin {
       name: "Insert Encrypted Secret",
       hotkeys: [{ modifiers: ["Mod", "Shift"], key: "S" }],
       editorCallback: (editor: Editor) => {
+        const selection = editor.getSelection();
         new InsertSecretModal(this.app, this, {
           editor,
+          initialSecret: selection ? selection : undefined,
         }).open();
       },
     });

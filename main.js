@@ -1462,10 +1462,38 @@ var SENSITIVE_PATTERNS = [
     name: "Database Connection URI with Credentials",
     regex: /\b((?:postgres|postgresql|mysql|mongodb(?:\+srv)?):\/\/[^\s:@/]+:[^\s:@/]+@[^\s/]+(?:\/[^\s]*)?)\b/,
     suggestedLabel: "Database Credentials"
+  },
+  {
+    id: "contextual-password",
+    name: "Password / Secret Credential",
+    // Matches keys like password: ..., secret = "...", auth_token: ...
+    regex: /\b(?:password|passwd|pwd|passphrase|secret|api_key|apikey|auth_token)\s*[:=]\s*["']?([^\s"']{6,})["']?/i,
+    suggestedLabel: "Password"
   }
 ];
+function isLikelyPassword(str) {
+  const trimmed = str.trim();
+  if (trimmed.length < 8 || trimmed.length > 128 || /\s/.test(trimmed)) {
+    return false;
+  }
+  if (/^(?:https?:\/\/|file:\/\/|\/|\.\/|mailto:|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i.test(trimmed)) {
+    return false;
+  }
+  let types = 0;
+  if (/[a-z]/.test(trimmed)) types++;
+  if (/[A-Z]/.test(trimmed)) types++;
+  if (/[0-9]/.test(trimmed)) types++;
+  if (/[^a-zA-Z0-9]/.test(trimmed)) types++;
+  if (types >= 3 && (/[^a-zA-Z0-9]/.test(trimmed) || /[0-9]/.test(trimmed))) {
+    if (/^[A-Z0-9_]+$/.test(trimmed) && !/[a-z]/.test(trimmed) && !/[^A-Z0-9_]/.test(trimmed)) {
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
 function detectSensitiveToken(text) {
-  if (!text || text.length < 16) {
+  if (!text || text.trim().length < 6) {
     return null;
   }
   const sample = text.length > 2e5 ? text.slice(0, 2e5) : text;
@@ -1473,7 +1501,8 @@ function detectSensitiveToken(text) {
     const match = pattern.regex.exec(sample);
     if (match) {
       const matchedText = match[1] || match[0];
-      const startIndex = match.index;
+      const matchSubIndex = match[1] ? match[0].indexOf(match[1]) : 0;
+      const startIndex = match.index + matchSubIndex;
       return {
         patternId: pattern.id,
         patternName: pattern.name,
@@ -1483,6 +1512,18 @@ function detectSensitiveToken(text) {
         endIndex: startIndex + matchedText.length
       };
     }
+  }
+  const trimmed = sample.trim();
+  if (isLikelyPassword(trimmed)) {
+    const startIndex = sample.indexOf(trimmed);
+    return {
+      patternId: "standalone-password",
+      patternName: "Password / Sensitive Secret",
+      suggestedLabel: "Password",
+      matchedText: trimmed,
+      startIndex,
+      endIndex: startIndex + trimmed.length
+    };
   }
   return null;
 }
@@ -1828,8 +1869,10 @@ var VaultGuardPlugin = class extends import_obsidian6.Plugin {
       name: "Insert Encrypted Secret",
       hotkeys: [{ modifiers: ["Mod", "Shift"], key: "S" }],
       editorCallback: (editor) => {
+        const selection = editor.getSelection();
         new InsertSecretModal(this.app, this, {
-          editor
+          editor,
+          initialSecret: selection ? selection : void 0
         }).open();
       }
     });

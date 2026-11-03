@@ -83,10 +83,34 @@ MIIEowIBAAKCAQEA0Y1W9X...
     expect(detected?.matchedText).toBe(dbUri);
   });
 
-  it("should return null for non-sensitive text", () => {
+  it("should detect contextual passwords and secrets (password: ..., secret = ...)", () => {
+    const input1 = "password: MySuperSecretPass#99!";
+    const detected1 = detectSensitiveToken(input1);
+    expect(detected1).not.toBeNull();
+    expect(detected1?.patternId).toBe("contextual-password");
+    expect(detected1?.matchedText).toBe("MySuperSecretPass#99!");
+
+    const input2 = 'api_key = "K8#mQ2$zL9!vP4"';
+    const detected2 = detectSensitiveToken(input2);
+    expect(detected2).not.toBeNull();
+    expect(detected2?.patternId).toBe("contextual-password");
+    expect(detected2?.matchedText).toBe("K8#mQ2$zL9!vP4");
+  });
+
+  it("should detect standalone pasted passwords with mixed character types", () => {
+    const password = "K8#mQ2$zL9!vP4";
+    const detected = detectSensitiveToken(password);
+    expect(detected).not.toBeNull();
+    expect(detected?.patternId).toBe("standalone-password");
+    expect(detected?.matchedText).toBe(password);
+  });
+
+  it("should return null for non-sensitive text and normal identifiers", () => {
     expect(detectSensitiveToken("Just an everyday grocery list and notes.")).toBeNull();
     expect(detectSensitiveToken("https://google.com/search?q=test")).toBeNull();
     expect(detectSensitiveToken("let x = 10;")).toBeNull();
+    expect(detectSensitiveToken("DEFAULT_CONFIG_OPTIONS")).toBeNull();
+    expect(detectSensitiveToken("getUserProfile")).toBeNull();
   });
 
   it("should execute regex scanning well within 15ms budget", () => {

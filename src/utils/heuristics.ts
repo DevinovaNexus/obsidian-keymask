@@ -89,14 +89,57 @@ export const SENSITIVE_PATTERNS: TokenPattern[] = [
     regex: /\b((?:postgres|postgresql|mysql|mongodb(?:\+srv)?):\/\/[^\s:@/]+:[^\s:@/]+@[^\s/]+(?:\/[^\s]*)?)\b/,
     suggestedLabel: "Database Credentials",
   },
+  {
+    id: "contextual-password",
+    name: "Password / Secret Credential",
+    // Matches keys like password: ..., secret = "...", auth_token: ...
+    regex: /\b(?:password|passwd|pwd|passphrase|secret|api_key|apikey|auth_token)\s*[:=]\s*["']?([^\s"']{6,})["']?/i,
+    suggestedLabel: "Password",
+  },
 ];
+
+/**
+ * Checks if a standalone single-token string looks like a password:
+ * - 8 to 128 characters without internal whitespace
+ * - Not a URL or file path
+ * - Mixed character classes (at least 3 of lowercase, uppercase, digits, symbols)
+ */
+export function isLikelyPassword(str: string): boolean {
+  const trimmed = str.trim();
+  if (trimmed.length < 8 || trimmed.length > 128 || /\s/.test(trimmed)) {
+    return false;
+  }
+
+  // Exclude common URLs, emails, and paths
+  if (/^(?:https?:\/\/|file:\/\/|\/|\.\/|mailto:|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i.test(trimmed)) {
+    return false;
+  }
+
+  // Count character categories
+  let types = 0;
+  if (/[a-z]/.test(trimmed)) types++;
+  if (/[A-Z]/.test(trimmed)) types++;
+  if (/[0-9]/.test(trimmed)) types++;
+  if (/[^a-zA-Z0-9]/.test(trimmed)) types++;
+
+  // Must have at least 3 character types, and contain either symbols or digits
+  if (types >= 3 && (/[^a-zA-Z0-9]/.test(trimmed) || /[0-9]/.test(trimmed))) {
+    // Avoid uppercase constants like DEFAULT_CONFIG_OPTIONS
+    if (/^[A-Z0-9_]+$/.test(trimmed) && !/[a-z]/.test(trimmed) && !/[^A-Z0-9_]/.test(trimmed)) {
+      return false;
+    }
+    return true;
+  }
+
+  return false;
+}
 
 /**
  * Scans text for sensitive credential patterns.
  * Returns the first matching detected token, or null if no credentials found.
  */
 export function detectSensitiveToken(text: string): DetectedToken | null {
-  if (!text || text.length < 16) {
+  if (!text || text.trim().length < 6) {
     return null;
   }
 
@@ -104,11 +147,13 @@ export function detectSensitiveToken(text: string): DetectedToken | null {
   // scan first 200KB where credentials usually reside.
   const sample = text.length > 200_000 ? text.slice(0, 200_000) : text;
 
+  // 1. Scan known regex patterns
   for (const pattern of SENSITIVE_PATTERNS) {
     const match = pattern.regex.exec(sample);
     if (match) {
       const matchedText = match[1] || match[0];
-      const startIndex = match.index;
+      const matchSubIndex = match[1] ? match[0].indexOf(match[1]) : 0;
+      const startIndex = match.index + matchSubIndex;
       return {
         patternId: pattern.id,
         patternName: pattern.name,
@@ -118,6 +163,20 @@ export function detectSensitiveToken(text: string): DetectedToken | null {
         endIndex: startIndex + matchedText.length,
       };
     }
+  }
+
+  // 2. Check for standalone pasted password or high-entropy secret
+  const trimmed = sample.trim();
+  if (isLikelyPassword(trimmed)) {
+    const startIndex = sample.indexOf(trimmed);
+    return {
+      patternId: "standalone-password",
+      patternName: "Password / Sensitive Secret",
+      suggestedLabel: "Password",
+      matchedText: trimmed,
+      startIndex,
+      endIndex: startIndex + trimmed.length,
+    };
   }
 
   return null;
