@@ -1409,10 +1409,22 @@ Storage Format: Fenced Code Block`
         filename = `VaultGuard-Export-${dateStr}.csv`;
         mimeType = "text/csv";
       }
-      downloadFile(fileContent, filename, mimeType);
-      new import_obsidian3.Notice(
-        `\u2705 Successfully exported ${entries.length} secret${entries.length > 1 ? "s" : ""} to ${filename}!`
-      );
+      if (import_obsidian3.Platform.isMobile) {
+        const existingFile = this.app.vault.getAbstractFileByPath(filename);
+        if (existingFile instanceof import_obsidian3.TFile) {
+          await this.app.vault.modify(existingFile, fileContent);
+        } else {
+          await this.app.vault.create(filename, fileContent);
+        }
+        new import_obsidian3.Notice(
+          `\u2705 Saved export file "${filename}" to vault root. Open or share it to MacPass/KeePass!`
+        );
+      } else {
+        downloadFile(fileContent, filename, mimeType);
+        new import_obsidian3.Notice(
+          `\u2705 Successfully exported ${entries.length} secret${entries.length > 1 ? "s" : ""} to ${filename}!`
+        );
+      }
       this.close();
     } catch (err) {
       if (this.errorEl) {
@@ -2141,7 +2153,7 @@ var VaultGuardPillWidget = class extends import_view.WidgetType {
   }
   ignoreEvent(event) {
     const target = event.target;
-    if (target.tagName === "BUTTON" || target.closest("button") || target.classList.contains("vaultguard-pill-mask") || target.classList.contains("vaultguard-pill-copy") || target.classList.contains("vaultguard-pill-reveal")) {
+    if (target.tagName === "BUTTON" || target.closest("button") || target.classList.contains("vaultguard-pill-value") || target.classList.contains("vaultguard-pill-mask") || target.classList.contains("vaultguard-pill-copy") || target.classList.contains("vaultguard-pill-reveal") || target.closest(".vaultguard-pill")) {
       return true;
     }
     return false;

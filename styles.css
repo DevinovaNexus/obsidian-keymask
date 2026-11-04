@@ -512,3 +512,33 @@
 .vaultguard-btn-single-encrypt:hover {
   opacity: 0.9;
 }
+
+/* 8. Mobile Responsive Adaptations */
+@media (max-width: 768px) {
+  .vaultguard-audit-modal {
+    width: 95vw !important;
+    padding: 10px !important;
+  }
+
+  .vaultguard-secrets-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .vaultguard-modal input[type="text"],
+  .vaultguard-modal input[type="password"],
+  .vaultguard-secret-textarea {
+    font-size: 16px !important; /* Prevents auto-zoom on iOS WebKit */
+  }
+
+  .vaultguard-audit-action-row {
+    flex-wrap: wrap;
+  }
+
+  .vaultguard-batch-remediate-btn {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 8px;
+  }
+}

@@ -7,7 +7,7 @@
  * 2. Universal Password CSV (.csv) - Supported by Bitwarden, 1Password, etc.
  */
 
-import { App, Modal, Setting, Notice, TFile, TFolder } from "obsidian";
+import { App, Modal, Setting, Notice, TFile, TFolder, Platform } from "obsidian";
 import type VaultGuardPlugin from "../main";
 import {
   parseInline,
@@ -224,14 +224,25 @@ export class ExportSecretsModal extends Modal {
         mimeType = "text/csv";
       }
 
-      // Trigger Browser/App Download
-      downloadFile(fileContent, filename, mimeType);
-
-      new Notice(
-        `✅ Successfully exported ${entries.length} secret${
-          entries.length > 1 ? "s" : ""
-        } to ${filename}!`
-      );
+      // Trigger Save: On mobile, write directly to vault root; on desktop, trigger download
+      if (Platform.isMobile) {
+        const existingFile = this.app.vault.getAbstractFileByPath(filename);
+        if (existingFile instanceof TFile) {
+          await this.app.vault.modify(existingFile, fileContent);
+        } else {
+          await this.app.vault.create(filename, fileContent);
+        }
+        new Notice(
+          `✅ Saved export file "${filename}" to vault root. Open or share it to MacPass/KeePass!`
+        );
+      } else {
+        downloadFile(fileContent, filename, mimeType);
+        new Notice(
+          `✅ Successfully exported ${entries.length} secret${
+            entries.length > 1 ? "s" : ""
+          } to ${filename}!`
+        );
+      }
       this.close();
     } catch (err: any) {
       if (this.errorEl) {

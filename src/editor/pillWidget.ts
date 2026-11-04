@@ -54,14 +54,16 @@ export class VaultGuardPillWidget extends WidgetType {
   }
 
   ignoreEvent(event: Event): boolean {
-    // Allow interactive clicks on buttons, inputs, and masked text inside widget
+    // Allow interactive clicks & touches on buttons, inputs, and masked text inside widget
     const target = event.target as HTMLElement;
     if (
       target.tagName === "BUTTON" ||
       target.closest("button") ||
+      target.classList.contains("vaultguard-pill-value") ||
       target.classList.contains("vaultguard-pill-mask") ||
       target.classList.contains("vaultguard-pill-copy") ||
-      target.classList.contains("vaultguard-pill-reveal")
+      target.classList.contains("vaultguard-pill-reveal") ||
+      target.closest(".vaultguard-pill")
     ) {
       return true;
     }
