@@ -28,10 +28,10 @@ __export(main_exports, {
   default: () => VaultGuardPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian8 = require("obsidian");
+var import_obsidian10 = require("obsidian");
 
 // src/settings.ts
-var import_obsidian3 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 
 // src/modals/unlockModal.ts
 var import_obsidian = require("obsidian");
@@ -888,154 +888,8 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
   }
 };
 
-// src/settings.ts
-var DEFAULT_SETTINGS = {
-  isInitialized: false,
-  salt: "",
-  kdfIterations: 6e5,
-  canaryToken: "",
-  autoLockTimeoutMinutes: 15,
-  lockOnBlur: true,
-  revealTimeoutSeconds: 5,
-  clipboardWipeTimeoutSeconds: 30,
-  interceptPaste: true
-};
-var VaultGuardSettingTab = class extends import_obsidian3.PluginSettingTab {
-  plugin;
-  constructor(app, plugin) {
-    super(app, plugin);
-    this.plugin = plugin;
-  }
-  display() {
-    const { containerEl } = this;
-    containerEl.empty();
-    containerEl.createEl("h2", { text: "VaultGuard Settings" });
-    const statusDiv = containerEl.createDiv({ cls: "vaultguard-status-banner" });
-    const isUnlocked = this.plugin.session.isUnlocked();
-    const isInitialized = this.plugin.settings.isInitialized;
-    if (!isInitialized) {
-      statusDiv.createEl("div", {
-        cls: "vaultguard-status-pill unconfigured",
-        text: "\u26A0\uFE0F Vault Not Initialized"
-      });
-      statusDiv.createEl("p", {
-        cls: "setting-item-description",
-        text: "Please initialize VaultGuard with a master passphrase to secure your credentials."
-      });
-      new import_obsidian3.Setting(containerEl).setName("Initialize Master Passphrase").setDesc("Derive the master AES-256-GCM encryption key and initialize your vault.").addButton(
-        (button) => button.setButtonText("Set Master Passphrase").setCta().onClick(() => {
-          new UnlockModal(this.app, this.plugin, {
-            mode: "init",
-            onSuccess: () => this.display()
-          }).open();
-        })
-      );
-    } else {
-      const statusText = isUnlocked ? "\u{1F513} Vault Unlocked" : "\u{1F512} Vault Locked";
-      const statusCls = isUnlocked ? "unlocked" : "locked";
-      statusDiv.createEl("div", {
-        cls: `vaultguard-status-pill ${statusCls}`,
-        text: statusText
-      });
-      new import_obsidian3.Setting(containerEl).setName(isUnlocked ? "Lock Vault" : "Unlock Vault").setDesc(
-        isUnlocked ? "Purge in-memory decryption key immediately." : "Authenticate with your master passphrase to enable decryption."
-      ).addButton((button) => {
-        if (isUnlocked) {
-          button.setButtonText("Lock Vault Now").setWarning().onClick(() => {
-            this.plugin.session.lock();
-            new import_obsidian3.Notice("VaultGuard locked.");
-            this.display();
-          });
-        } else {
-          button.setButtonText("Unlock Vault").setCta().onClick(() => {
-            new UnlockModal(this.app, this.plugin, {
-              mode: "unlock",
-              onSuccess: () => this.display()
-            }).open();
-          });
-        }
-      });
-      new import_obsidian3.Setting(containerEl).setName("Change Master Passphrase").setDesc("Update master passphrase and re-generate vault verification canary.").addButton(
-        (button) => button.setButtonText("Change Passphrase").onClick(() => {
-          new UnlockModal(this.app, this.plugin, {
-            mode: "change",
-            onSuccess: () => {
-              new import_obsidian3.Notice("Master passphrase changed successfully.");
-              this.display();
-            }
-          }).open();
-        })
-      );
-    }
-    containerEl.createEl("h3", { text: "Session & Key Lifecycle" });
-    new import_obsidian3.Setting(containerEl).setName("Auto-Lock Inactivity Timeout").setDesc("Minutes of idle inactivity before purging the in-memory key (0 to disable).").addSlider(
-      (slider) => slider.setLimits(0, 120, 5).setValue(this.plugin.settings.autoLockTimeoutMinutes).setDynamicTooltip().onChange(async (val) => {
-        this.plugin.settings.autoLockTimeoutMinutes = val;
-        await this.plugin.saveSettings();
-        this.plugin.session.recordActivity();
-      })
-    );
-    new import_obsidian3.Setting(containerEl).setName("Lock on App Blur / Suspension").setDesc(
-      "Instantly lock vault when Obsidian loses window focus or is suspended in the background (recommended for mobile & screen-shares)."
-    ).addToggle(
-      (toggle) => toggle.setValue(this.plugin.settings.lockOnBlur).onChange(async (val) => {
-        this.plugin.settings.lockOnBlur = val;
-        await this.plugin.saveSettings();
-      })
-    );
-    containerEl.createEl("h3", { text: "Interactive Masking & Clipboard" });
-    new import_obsidian3.Setting(containerEl).setName("Click-to-Reveal Timeout").setDesc("Seconds before unmasked secrets automatically snap back to masked state.").addSlider(
-      (slider) => slider.setLimits(3, 30, 1).setValue(this.plugin.settings.revealTimeoutSeconds).setDynamicTooltip().onChange(async (val) => {
-        this.plugin.settings.revealTimeoutSeconds = val;
-        await this.plugin.saveSettings();
-      })
-    );
-    new import_obsidian3.Setting(containerEl).setName("Ephemeral Clipboard Auto-Wipe").setDesc("Seconds before copied secrets are securely wiped from the OS clipboard (15-60s).").addSlider(
-      (slider) => slider.setLimits(15, 60, 5).setValue(this.plugin.settings.clipboardWipeTimeoutSeconds).setDynamicTooltip().onChange(async (val) => {
-        this.plugin.settings.clipboardWipeTimeoutSeconds = val;
-        await this.plugin.saveSettings();
-      })
-    );
-    containerEl.createEl("h3", { text: "Reactive Leak Prevention" });
-    new import_obsidian3.Setting(containerEl).setName("Intercept Sensitive Pastes").setDesc(
-      "Inspect editor paste events for OpenAI/Anthropic keys, AWS tokens, GitHub PATs, and private keys, offering one-click encryption."
-    ).addToggle(
-      (toggle) => toggle.setValue(this.plugin.settings.interceptPaste).onChange(async (val) => {
-        this.plugin.settings.interceptPaste = val;
-        await this.plugin.saveSettings();
-      })
-    );
-    containerEl.createEl("h3", { text: "Vault Security Audit & Leak Scanner" });
-    new import_obsidian3.Setting(containerEl).setName("Audit Notes for Plaintext Secrets").setDesc(
-      "Inspect all existing notes or choose specific folders to detect exposed API keys, credentials, and passwords, and batch encrypt them in-place."
-    ).addButton(
-      (button) => button.setButtonText("Launch Secret Scanner").setCta().onClick(() => {
-        new VaultAuditModal(this.app, this.plugin).open();
-      })
-    );
-    if (isInitialized) {
-      containerEl.createEl("h3", { text: "Advanced / Danger Zone" });
-      new import_obsidian3.Setting(containerEl).setName("Reset VaultGuard Configuration").setDesc(
-        "Warning: Clears the master salt and verification canary. Existing encrypted tokens in notes will become indecipherable unless you know the previous passphrase."
-      ).addButton(
-        (button) => button.setButtonText("Reset Vault Configuration").setWarning().onClick(async () => {
-          const confirm = window.confirm(
-            "Are you sure you want to reset VaultGuard? Any secrets encrypted with the current key cannot be decrypted without the original salt and passphrase!"
-          );
-          if (confirm) {
-            this.plugin.settings.isInitialized = false;
-            this.plugin.settings.salt = "";
-            this.plugin.settings.canaryToken = "";
-            await this.plugin.saveSettings();
-            this.plugin.session.lock();
-            new import_obsidian3.Notice("VaultGuard configuration has been reset.");
-            this.display();
-          }
-        })
-      );
-    }
-  }
-};
+// src/modals/exportSecretsModal.ts
+var import_obsidian3 = require("obsidian");
 
 // src/crypto/engine.ts
 var CANARY_PLAINTEXT = "VAULTGUARD_CANARY_V1";
@@ -1336,6 +1190,583 @@ function parseCodeBlock(raw) {
   }
 }
 
+// src/utils/exporter.ts
+function generateKeePassXML(entries, vaultName) {
+  const escapeXml = (unsafe) => {
+    return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+  };
+  const xmlEntries = entries.map((e) => {
+    return `      <Entry>
+        <String>
+          <Key>Title</Key>
+          <Value>${escapeXml(e.title)}</Value>
+        </String>
+        <String>
+          <Key>UserName</Key>
+          <Value></Value>
+        </String>
+        <String>
+          <Key>Password</Key>
+          <Value>${escapeXml(e.password)}</Value>
+        </String>
+        <String>
+          <Key>URL</Key>
+          <Value>${escapeXml(e.url)}</Value>
+        </String>
+        <String>
+          <Key>Notes</Key>
+          <Value>${escapeXml(e.notes)}</Value>
+        </String>
+      </Entry>`;
+  }).join("\n");
+  return `<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<KeePassFile>
+  <Meta>
+    <Generator>VaultGuard Obsidian Plugin</Generator>
+    <DatabaseName>${escapeXml(vaultName)} Secrets</DatabaseName>
+    <DatabaseDescription>Exported credentials from Obsidian vault: ${escapeXml(vaultName)}</DatabaseDescription>
+  </Meta>
+  <Root>
+    <Group>
+      <Name>VaultGuard</Name>
+${xmlEntries}
+    </Group>
+  </Root>
+</KeePassFile>`;
+}
+function generateCSV(entries) {
+  const escapeCsv = (str) => {
+    return `"${str.replace(/"/g, '""')}"`;
+  };
+  const header = `"Group","Title","Username","Password","URL","Notes"`;
+  const rows = entries.map(
+    (e) => [
+      escapeCsv(e.group),
+      escapeCsv(e.title),
+      escapeCsv(""),
+      escapeCsv(e.password),
+      escapeCsv(e.url),
+      escapeCsv(e.notes)
+    ].join(",")
+  );
+  return [header, ...rows].join("\n");
+}
+
+// src/modals/exportSecretsModal.ts
+var ExportSecretsModal = class extends import_obsidian3.Modal {
+  plugin;
+  format = "xml";
+  selectedFolder = "/";
+  isExporting = false;
+  errorEl = null;
+  statusEl = null;
+  constructor(app, plugin) {
+    super(app);
+    this.plugin = plugin;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.addClass("vaultguard-modal", "vaultguard-export-modal");
+    contentEl.createEl("h2", { text: "\u{1F4E4} Export Secrets to KeePass / MacPass" });
+    contentEl.createEl("p", {
+      cls: "setting-item-description",
+      text: "Decrypt and export your secrets into standard KeePass XML or CSV format. The exported file can be opened directly with MacPass, KeePassXC, KeePass, or imported into 1Password / Bitwarden."
+    });
+    const warningBox = contentEl.createDiv({ cls: "vaultguard-intercept-banner" });
+    warningBox.createEl("span", { cls: "vaultguard-badge-pattern", text: "Security Notice" });
+    warningBox.createEl("span", {
+      cls: "setting-item-description",
+      text: "The generated export file will contain your credentials. Store it in a secure location or import it into MacPass/KeePass immediately, then delete the exported file."
+    });
+    this.errorEl = contentEl.createDiv({ cls: "vaultguard-error-message" });
+    this.errorEl.style.display = "none";
+    new import_obsidian3.Setting(contentEl).setName("Export Format").setDesc("Choose your password manager export specification.").addDropdown((dropdown) => {
+      dropdown.addOption("xml", "KeePass 2.x XML (.xml) - MacPass, KeePassXC, KeePass");
+      dropdown.addOption("csv", "Universal CSV (.csv) - 1Password, Bitwarden, KeePass");
+      dropdown.setValue(this.format);
+      dropdown.onChange((val) => {
+        this.format = val;
+      });
+    });
+    const folders = this.getVaultFolders();
+    new import_obsidian3.Setting(contentEl).setName("Export Scope").setDesc("Choose whether to export secrets from your entire vault or a specific folder.").addDropdown((dropdown) => {
+      dropdown.addOption("/", "Entire Vault (Root)");
+      for (const folder of folders) {
+        dropdown.addOption(folder.path, folder.path);
+      }
+      dropdown.setValue(this.selectedFolder);
+      dropdown.onChange((val) => {
+        this.selectedFolder = val;
+      });
+    });
+    this.statusEl = contentEl.createDiv({ cls: "vaultguard-export-status" });
+    this.statusEl.style.display = "none";
+    const buttonContainer = contentEl.createDiv({ cls: "vaultguard-modal-buttons" });
+    const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });
+    cancelBtn.addEventListener("click", () => this.close());
+    const exportBtn = buttonContainer.createEl("button", {
+      cls: "mod-cta",
+      text: "\u{1F4E4} Decrypt & Export File"
+    });
+    exportBtn.addEventListener("click", () => this.handleExport());
+  }
+  getVaultFolders() {
+    const allFiles = this.app.vault.getAllLoadedFiles();
+    return allFiles.filter((item) => item instanceof import_obsidian3.TFolder && item.path !== "/").sort((a, b) => a.path.localeCompare(b.path));
+  }
+  getTargetMarkdownFiles() {
+    const allFiles = this.app.vault.getMarkdownFiles();
+    if (this.selectedFolder === "/") {
+      return allFiles;
+    }
+    const prefix = this.selectedFolder.endsWith("/") ? this.selectedFolder : this.selectedFolder + "/";
+    return allFiles.filter(
+      (file) => file.path.startsWith(prefix) || file.path === this.selectedFolder
+    );
+  }
+  async handleExport() {
+    if (!this.plugin.settings.isInitialized) {
+      new import_obsidian3.Notice("VaultGuard is not configured with a master passphrase.");
+      return;
+    }
+    if (!this.plugin.session.isUnlocked()) {
+      new UnlockModal(this.app, this.plugin, {
+        mode: "unlock",
+        onSuccess: () => this.handleExport()
+      }).open();
+      return;
+    }
+    this.isExporting = true;
+    if (this.statusEl) {
+      this.statusEl.style.display = "block";
+      this.statusEl.textContent = "Scanning notes and decrypting credentials in memory...";
+    }
+    try {
+      const files = this.getTargetMarkdownFiles();
+      const entries = [];
+      const vaultName = this.app.vault.getName();
+      for (const file of files) {
+        const content = await this.app.vault.read(file);
+        const folderGroup = file.parent?.path && file.parent.path !== "/" ? `VaultGuard/${file.parent.path}` : "VaultGuard";
+        INLINE_SECRET_REGEX.lastIndex = 0;
+        let match;
+        while ((match = INLINE_SECRET_REGEX.exec(content)) !== null) {
+          const rawToken = match[0];
+          const payload = parseInline(rawToken);
+          if (payload) {
+            try {
+              const decrypted = await this.plugin.session.decryptSecret(payload);
+              entries.push({
+                title: payload.label || `Secret (${file.basename})`,
+                password: decrypted,
+                group: folderGroup,
+                url: `obsidian://open?vault=${encodeURIComponent(vaultName)}&file=${encodeURIComponent(file.path)}`,
+                notes: `Source Note: ${file.path}
+Storage Format: Inline Comment`
+              });
+            } catch (e) {
+              console.warn(`VaultGuard: Decryption failed for token in ${file.path}:`, e);
+            }
+          }
+        }
+        CODE_BLOCK_SECRET_REGEX.lastIndex = 0;
+        while ((match = CODE_BLOCK_SECRET_REGEX.exec(content)) !== null) {
+          const rawToken = match[0];
+          const payload = parseCodeBlock(rawToken);
+          if (payload) {
+            try {
+              const decrypted = await this.plugin.session.decryptSecret(payload);
+              entries.push({
+                title: payload.label || `Secret Block (${file.basename})`,
+                password: decrypted,
+                group: folderGroup,
+                url: `obsidian://open?vault=${encodeURIComponent(vaultName)}&file=${encodeURIComponent(file.path)}`,
+                notes: `Source Note: ${file.path}
+Storage Format: Fenced Code Block`
+              });
+            } catch (e) {
+              console.warn(`VaultGuard: Decryption failed for codeblock in ${file.path}:`, e);
+            }
+          }
+        }
+      }
+      if (entries.length === 0) {
+        new import_obsidian3.Notice("No VaultGuard encrypted secrets found in the selected scope.");
+        this.close();
+        return;
+      }
+      let fileContent;
+      let filename;
+      let mimeType;
+      const dateStr = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+      if (this.format === "xml") {
+        fileContent = generateKeePassXML(entries, vaultName);
+        filename = `VaultGuard-Export-${dateStr}.xml`;
+        mimeType = "application/xml";
+      } else {
+        fileContent = generateCSV(entries);
+        filename = `VaultGuard-Export-${dateStr}.csv`;
+        mimeType = "text/csv";
+      }
+      downloadFile(fileContent, filename, mimeType);
+      new import_obsidian3.Notice(
+        `\u2705 Successfully exported ${entries.length} secret${entries.length > 1 ? "s" : ""} to ${filename}!`
+      );
+      this.close();
+    } catch (err) {
+      if (this.errorEl) {
+        this.errorEl.textContent = `Export failed: ${err.message}`;
+        this.errorEl.style.display = "block";
+      }
+    } finally {
+      this.isExporting = false;
+    }
+  }
+  onClose() {
+    this.contentEl.empty();
+  }
+};
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: `${mimeType};charset=utf-8;` });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  setTimeout(() => {
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, 100);
+}
+
+// src/modals/batchDecryptModal.ts
+var import_obsidian4 = require("obsidian");
+var BatchDecryptModal = class extends import_obsidian4.Modal {
+  plugin;
+  selectedFolder = "/";
+  isProcessing = false;
+  statusEl = null;
+  confirmationInput = "";
+  constructor(app, plugin) {
+    super(app);
+    this.plugin = plugin;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.addClass("vaultguard-modal", "vaultguard-decrypt-all-modal");
+    contentEl.createEl("h2", { text: "\u{1F513} Batch Decrypt & Revert to Plaintext" });
+    contentEl.createEl("p", {
+      cls: "setting-item-description",
+      text: "This operation will decrypt all VaultGuard tokens (%%vg:v1:...%%) in your notes back into raw plaintext. Use this if you are planning to disable or remove the VaultGuard plugin and want your notes restored to standard unencrypted Markdown."
+    });
+    const dangerCard = contentEl.createDiv({ cls: "vaultguard-corrupted-block" });
+    dangerCard.createEl("div", {
+      cls: "vaultguard-corrupted-header",
+      text: "\u26A0\uFE0F Plaintext Warning"
+    });
+    dangerCard.createEl("div", {
+      cls: "vaultguard-corrupted-desc",
+      text: "Decrypting all secrets will expose your API keys, credentials, and passwords to note history, cloud sync engines (iCloud, Obsidian Sync, Git), and any third-party plugins. Ensure your environment is secure before proceeding."
+    });
+    const folders = this.getVaultFolders();
+    new import_obsidian4.Setting(contentEl).setName("Scope").setDesc("Choose whether to decrypt the entire vault or a specific folder.").addDropdown((dropdown) => {
+      dropdown.addOption("/", "Entire Vault (Root)");
+      for (const folder of folders) {
+        dropdown.addOption(folder.path, folder.path);
+      }
+      dropdown.setValue(this.selectedFolder);
+      dropdown.onChange((val) => {
+        this.selectedFolder = val;
+      });
+    });
+    new import_obsidian4.Setting(contentEl).setName('Type "DECRYPT" to confirm').setDesc("To prevent accidental unmasking of your entire vault, please type DECRYPT.").addText((text) => {
+      text.setPlaceholder("DECRYPT");
+      text.onChange((val) => {
+        this.confirmationInput = val.trim();
+      });
+    });
+    this.statusEl = contentEl.createDiv({ cls: "vaultguard-export-status" });
+    this.statusEl.style.display = "none";
+    const buttonContainer = contentEl.createDiv({ cls: "vaultguard-modal-buttons" });
+    const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });
+    cancelBtn.addEventListener("click", () => this.close());
+    const decryptBtn = buttonContainer.createEl("button", {
+      cls: "mod-warning",
+      text: "\u{1F513} Decrypt All Notes to Plaintext"
+    });
+    decryptBtn.addEventListener("click", () => this.executeBatchDecryption());
+  }
+  getVaultFolders() {
+    const allFiles = this.app.vault.getAllLoadedFiles();
+    return allFiles.filter((item) => item instanceof import_obsidian4.TFolder && item.path !== "/").sort((a, b) => a.path.localeCompare(b.path));
+  }
+  getTargetMarkdownFiles() {
+    const allFiles = this.app.vault.getMarkdownFiles();
+    if (this.selectedFolder === "/") {
+      return allFiles;
+    }
+    const prefix = this.selectedFolder.endsWith("/") ? this.selectedFolder : this.selectedFolder + "/";
+    return allFiles.filter(
+      (file) => file.path.startsWith(prefix) || file.path === this.selectedFolder
+    );
+  }
+  async executeBatchDecryption() {
+    if (this.confirmationInput !== "DECRYPT") {
+      new import_obsidian4.Notice('Please type "DECRYPT" in uppercase to confirm.');
+      return;
+    }
+    if (!this.plugin.settings.isInitialized) {
+      new import_obsidian4.Notice("VaultGuard is not configured.");
+      return;
+    }
+    if (!this.plugin.session.isUnlocked()) {
+      new UnlockModal(this.app, this.plugin, {
+        mode: "unlock",
+        onSuccess: () => this.executeBatchDecryption()
+      }).open();
+      return;
+    }
+    this.isProcessing = true;
+    if (this.statusEl) {
+      this.statusEl.style.display = "block";
+      this.statusEl.textContent = "Decrypting all tokens in notes...";
+    }
+    try {
+      const files = this.getTargetMarkdownFiles();
+      let decryptedTokensCount = 0;
+      let modifiedFilesCount = 0;
+      for (const file of files) {
+        let content = await this.app.vault.read(file);
+        const replacements = [];
+        INLINE_SECRET_REGEX.lastIndex = 0;
+        let match;
+        while ((match = INLINE_SECRET_REGEX.exec(content)) !== null) {
+          const rawToken = match[0];
+          const payload = parseInline(rawToken);
+          if (payload) {
+            try {
+              const decrypted = await this.plugin.session.decryptSecret(payload);
+              replacements.push({
+                from: match.index,
+                to: match.index + rawToken.length,
+                rawText: rawToken,
+                decryptedText: decrypted
+              });
+            } catch (e) {
+              console.warn(`VaultGuard: Failed decrypting token in ${file.path}:`, e);
+            }
+          }
+        }
+        CODE_BLOCK_SECRET_REGEX.lastIndex = 0;
+        while ((match = CODE_BLOCK_SECRET_REGEX.exec(content)) !== null) {
+          const rawToken = match[0];
+          const payload = parseCodeBlock(rawToken);
+          if (payload) {
+            try {
+              const decrypted = await this.plugin.session.decryptSecret(payload);
+              replacements.push({
+                from: match.index,
+                to: match.index + rawToken.length,
+                rawText: rawToken,
+                decryptedText: decrypted
+              });
+            } catch (e) {
+              console.warn(`VaultGuard: Failed decrypting codeblock in ${file.path}:`, e);
+            }
+          }
+        }
+        if (replacements.length === 0) continue;
+        replacements.sort((a, b) => b.from - a.from);
+        for (const item of replacements) {
+          content = content.slice(0, item.from) + item.decryptedText + content.slice(item.to);
+          decryptedTokensCount++;
+        }
+        await this.app.vault.modify(file, content);
+        modifiedFilesCount++;
+      }
+      new import_obsidian4.Notice(
+        `\u{1F513} Complete: Decrypted ${decryptedTokensCount} secret${decryptedTokensCount > 1 ? "s" : ""} across ${modifiedFilesCount} note${modifiedFilesCount > 1 ? "s" : ""} back to plaintext.`
+      );
+      this.close();
+    } catch (err) {
+      new import_obsidian4.Notice(`Error during batch decryption: ${err.message}`);
+    } finally {
+      this.isProcessing = false;
+    }
+  }
+  onClose() {
+    this.contentEl.empty();
+  }
+};
+
+// src/settings.ts
+var DEFAULT_SETTINGS = {
+  isInitialized: false,
+  salt: "",
+  kdfIterations: 6e5,
+  canaryToken: "",
+  autoLockTimeoutMinutes: 15,
+  lockOnBlur: true,
+  revealTimeoutSeconds: 5,
+  clipboardWipeTimeoutSeconds: 30,
+  interceptPaste: true
+};
+var VaultGuardSettingTab = class extends import_obsidian5.PluginSettingTab {
+  plugin;
+  constructor(app, plugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
+  display() {
+    const { containerEl } = this;
+    containerEl.empty();
+    containerEl.createEl("h2", { text: "VaultGuard Settings" });
+    const statusDiv = containerEl.createDiv({ cls: "vaultguard-status-banner" });
+    const isUnlocked = this.plugin.session.isUnlocked();
+    const isInitialized = this.plugin.settings.isInitialized;
+    if (!isInitialized) {
+      statusDiv.createEl("div", {
+        cls: "vaultguard-status-pill unconfigured",
+        text: "\u26A0\uFE0F Vault Not Initialized"
+      });
+      statusDiv.createEl("p", {
+        cls: "setting-item-description",
+        text: "Please initialize VaultGuard with a master passphrase to secure your credentials."
+      });
+      new import_obsidian5.Setting(containerEl).setName("Initialize Master Passphrase").setDesc("Derive the master AES-256-GCM encryption key and initialize your vault.").addButton(
+        (button) => button.setButtonText("Set Master Passphrase").setCta().onClick(() => {
+          new UnlockModal(this.app, this.plugin, {
+            mode: "init",
+            onSuccess: () => this.display()
+          }).open();
+        })
+      );
+    } else {
+      const statusText = isUnlocked ? "\u{1F513} Vault Unlocked" : "\u{1F512} Vault Locked";
+      const statusCls = isUnlocked ? "unlocked" : "locked";
+      statusDiv.createEl("div", {
+        cls: `vaultguard-status-pill ${statusCls}`,
+        text: statusText
+      });
+      new import_obsidian5.Setting(containerEl).setName(isUnlocked ? "Lock Vault" : "Unlock Vault").setDesc(
+        isUnlocked ? "Purge in-memory decryption key immediately." : "Authenticate with your master passphrase to enable decryption."
+      ).addButton((button) => {
+        if (isUnlocked) {
+          button.setButtonText("Lock Vault Now").setWarning().onClick(() => {
+            this.plugin.session.lock();
+            new import_obsidian5.Notice("VaultGuard locked.");
+            this.display();
+          });
+        } else {
+          button.setButtonText("Unlock Vault").setCta().onClick(() => {
+            new UnlockModal(this.app, this.plugin, {
+              mode: "unlock",
+              onSuccess: () => this.display()
+            }).open();
+          });
+        }
+      });
+      new import_obsidian5.Setting(containerEl).setName("Change Master Passphrase").setDesc("Update master passphrase and re-generate vault verification canary.").addButton(
+        (button) => button.setButtonText("Change Passphrase").onClick(() => {
+          new UnlockModal(this.app, this.plugin, {
+            mode: "change",
+            onSuccess: () => {
+              new import_obsidian5.Notice("Master passphrase changed successfully.");
+              this.display();
+            }
+          }).open();
+        })
+      );
+    }
+    containerEl.createEl("h3", { text: "Session & Key Lifecycle" });
+    new import_obsidian5.Setting(containerEl).setName("Auto-Lock Inactivity Timeout").setDesc("Minutes of idle inactivity before purging the in-memory key (0 to disable).").addSlider(
+      (slider) => slider.setLimits(0, 120, 5).setValue(this.plugin.settings.autoLockTimeoutMinutes).setDynamicTooltip().onChange(async (val) => {
+        this.plugin.settings.autoLockTimeoutMinutes = val;
+        await this.plugin.saveSettings();
+        this.plugin.session.recordActivity();
+      })
+    );
+    new import_obsidian5.Setting(containerEl).setName("Lock on App Blur / Suspension").setDesc(
+      "Instantly lock vault when Obsidian loses window focus or is suspended in the background (recommended for mobile & screen-shares)."
+    ).addToggle(
+      (toggle) => toggle.setValue(this.plugin.settings.lockOnBlur).onChange(async (val) => {
+        this.plugin.settings.lockOnBlur = val;
+        await this.plugin.saveSettings();
+      })
+    );
+    containerEl.createEl("h3", { text: "Interactive Masking & Clipboard" });
+    new import_obsidian5.Setting(containerEl).setName("Click-to-Reveal Timeout").setDesc("Seconds before unmasked secrets automatically snap back to masked state.").addSlider(
+      (slider) => slider.setLimits(3, 30, 1).setValue(this.plugin.settings.revealTimeoutSeconds).setDynamicTooltip().onChange(async (val) => {
+        this.plugin.settings.revealTimeoutSeconds = val;
+        await this.plugin.saveSettings();
+      })
+    );
+    new import_obsidian5.Setting(containerEl).setName("Ephemeral Clipboard Auto-Wipe").setDesc("Seconds before copied secrets are securely wiped from the OS clipboard (15-60s).").addSlider(
+      (slider) => slider.setLimits(15, 60, 5).setValue(this.plugin.settings.clipboardWipeTimeoutSeconds).setDynamicTooltip().onChange(async (val) => {
+        this.plugin.settings.clipboardWipeTimeoutSeconds = val;
+        await this.plugin.saveSettings();
+      })
+    );
+    containerEl.createEl("h3", { text: "Reactive Leak Prevention" });
+    new import_obsidian5.Setting(containerEl).setName("Intercept Sensitive Pastes").setDesc(
+      "Inspect editor paste events for OpenAI/Anthropic keys, AWS tokens, GitHub PATs, and private keys, offering one-click encryption."
+    ).addToggle(
+      (toggle) => toggle.setValue(this.plugin.settings.interceptPaste).onChange(async (val) => {
+        this.plugin.settings.interceptPaste = val;
+        await this.plugin.saveSettings();
+      })
+    );
+    containerEl.createEl("h3", { text: "Vault Security Audit & Leak Scanner" });
+    new import_obsidian5.Setting(containerEl).setName("Audit Notes for Plaintext Secrets").setDesc(
+      "Inspect all existing notes or choose specific folders to detect exposed API keys, credentials, and passwords, and batch encrypt them in-place."
+    ).addButton(
+      (button) => button.setButtonText("Launch Secret Scanner").setCta().onClick(() => {
+        new VaultAuditModal(this.app, this.plugin).open();
+      })
+    );
+    containerEl.createEl("h3", { text: "Data Ownership, Portability & Offboarding" });
+    containerEl.createEl("p", {
+      cls: "setting-item-description",
+      text: "VaultGuard enforces zero vendor lock-in. If you ever plan to disable or remove the plugin, you can export your secrets to an external password manager or restore all your notes back to plaintext."
+    });
+    new import_obsidian5.Setting(containerEl).setName("Export Secrets to KeePass / MacPass").setDesc("Generate an industry-standard KeePass 2.x XML file (.xml) or universal CSV compatible with MacPass, KeePassXC, 1Password, and Bitwarden.").addButton(
+      (button) => button.setButtonText("Export Secrets File").onClick(() => {
+        new ExportSecretsModal(this.app, this.plugin).open();
+      })
+    );
+    new import_obsidian5.Setting(containerEl).setName("Revert Vault to Plaintext (Offboarding)").setDesc("Batch decrypt all VaultGuard tokens in your notes back into raw Markdown text. Use this before disabling or uninstalling VaultGuard if you want your notes unencrypted.").addButton(
+      (button) => button.setButtonText("Revert All to Plaintext").setWarning().onClick(() => {
+        new BatchDecryptModal(this.app, this.plugin).open();
+      })
+    );
+    if (isInitialized) {
+      containerEl.createEl("h3", { text: "Advanced / Danger Zone" });
+      new import_obsidian5.Setting(containerEl).setName("Reset VaultGuard Configuration").setDesc(
+        "Warning: Clears the master salt and verification canary. Existing encrypted tokens in notes will become indecipherable unless you know the previous passphrase."
+      ).addButton(
+        (button) => button.setButtonText("Reset Vault Configuration").setWarning().onClick(async () => {
+          const confirm = window.confirm(
+            "Are you sure you want to reset VaultGuard? Any secrets encrypted with the current key cannot be decrypted without the original salt and passphrase!"
+          );
+          if (confirm) {
+            this.plugin.settings.isInitialized = false;
+            this.plugin.settings.salt = "";
+            this.plugin.settings.canaryToken = "";
+            await this.plugin.saveSettings();
+            this.plugin.session.lock();
+            new import_obsidian5.Notice("VaultGuard configuration has been reset.");
+            this.display();
+          }
+        })
+      );
+    }
+  }
+};
+
 // src/crypto/session.ts
 var VaultGuardSession = class {
   derivedKey = null;
@@ -1548,7 +1979,7 @@ var import_state = require("@codemirror/state");
 var import_view = require("@codemirror/view");
 
 // src/utils/clipboard.ts
-var import_obsidian4 = require("obsidian");
+var import_obsidian6 = require("obsidian");
 var VaultGuardClipboard = class {
   static activeWipeTimer = null;
   static lastSecretCopied = null;
@@ -1661,7 +2092,7 @@ var VaultGuardClipboard = class {
             await this.clearClipboard();
             this.lastSecretCopied = null;
             if (notifyOnWipe) {
-              new import_obsidian4.Notice("\u{1F512} VaultGuard: Ephemeral clipboard cleared for security.");
+              new import_obsidian6.Notice("\u{1F512} VaultGuard: Ephemeral clipboard cleared for security.");
             }
           }
         } catch (e) {
@@ -2087,11 +2518,11 @@ ${source.trim()}
 }
 
 // src/editor/pasteHandler.ts
-var import_obsidian6 = require("obsidian");
+var import_obsidian8 = require("obsidian");
 
 // src/modals/interceptPasteModal.ts
-var import_obsidian5 = require("obsidian");
-var InterceptPasteModal = class extends import_obsidian5.Modal {
+var import_obsidian7 = require("obsidian");
+var InterceptPasteModal = class extends import_obsidian7.Modal {
   plugin;
   editor;
   pastedText;
@@ -2127,7 +2558,7 @@ var InterceptPasteModal = class extends import_obsidian5.Modal {
     });
     this.errorEl = contentEl.createDiv({ cls: "vaultguard-error-message" });
     this.errorEl.style.display = "none";
-    new import_obsidian5.Setting(contentEl).setName("Label for Encrypted Token").setDesc("The display name shown on the masked UI pill.").addText((text) => {
+    new import_obsidian7.Setting(contentEl).setName("Label for Encrypted Token").setDesc("The display name shown on the masked UI pill.").addText((text) => {
       text.setValue(this.customLabel);
       text.onChange((val) => {
         this.customLabel = val;
@@ -2142,7 +2573,7 @@ var InterceptPasteModal = class extends import_obsidian5.Modal {
     });
     pasteRawBtn.addEventListener("click", () => {
       this.editor.replaceSelection(this.pastedText);
-      new import_obsidian5.Notice("\u26A0\uFE0F Pasted unprotected secret in plaintext.");
+      new import_obsidian7.Notice("\u26A0\uFE0F Pasted unprotected secret in plaintext.");
       this.close();
     });
     const encryptBtn = buttonContainer.createEl("button", {
@@ -2191,7 +2622,7 @@ ${token}
         finalTextToInsert = `${before}${token}${after}`;
       }
       this.editor.replaceSelection(finalTextToInsert);
-      new import_obsidian5.Notice("\u{1F512} Credential encrypted and masked in note.");
+      new import_obsidian7.Notice("\u{1F512} Credential encrypted and masked in note.");
       this.close();
     } catch (err) {
       this.showError(err.message || "Encryption failed.");
@@ -2248,7 +2679,7 @@ function registerPasteHandler(plugin) {
     document,
     "paste",
     (evt) => {
-      const activeView = plugin.app.workspace.getActiveViewOfType(import_obsidian6.MarkdownView);
+      const activeView = plugin.app.workspace.getActiveViewOfType(import_obsidian8.MarkdownView);
       if (!activeView || !activeView.editor) return;
       const pastedText = getPastedText(evt);
       if (!pastedText) return;
@@ -2269,8 +2700,8 @@ function registerPasteHandler(plugin) {
 }
 
 // src/modals/insertSecretModal.ts
-var import_obsidian7 = require("obsidian");
-var InsertSecretModal = class extends import_obsidian7.Modal {
+var import_obsidian9 = require("obsidian");
+var InsertSecretModal = class extends import_obsidian9.Modal {
   plugin;
   editor;
   label = "";
@@ -2297,14 +2728,14 @@ var InsertSecretModal = class extends import_obsidian7.Modal {
     });
     this.errorEl = contentEl.createDiv({ cls: "vaultguard-error-message" });
     this.errorEl.style.display = "none";
-    new import_obsidian7.Setting(contentEl).setName("Secret Label (Optional)").setDesc("A non-sensitive descriptor shown on the UI pill (e.g. 'Stripe Live Key', 'Production DB').").addText((text) => {
+    new import_obsidian9.Setting(contentEl).setName("Secret Label (Optional)").setDesc("A non-sensitive descriptor shown on the UI pill (e.g. 'Stripe Live Key', 'Production DB').").addText((text) => {
       text.setPlaceholder("e.g. OpenAI Production Key");
       text.setValue(this.label);
       text.onChange((val) => {
         this.label = val;
       });
     });
-    const secretSetting = new import_obsidian7.Setting(contentEl).setName("Secret Value").setDesc("The confidential credential, API key, or certificate.");
+    const secretSetting = new import_obsidian9.Setting(contentEl).setName("Secret Value").setDesc("The confidential credential, API key, or certificate.");
     const secretWrapper = contentEl.createDiv({ cls: "vaultguard-secret-input-wrapper" });
     this.secretInputEl = secretWrapper.createEl("textarea", {
       cls: "vaultguard-secret-textarea masked",
@@ -2335,7 +2766,7 @@ var InsertSecretModal = class extends import_obsidian7.Modal {
         toggleRevealBtn.textContent = "\u{1F441}\uFE0F Show Plaintext";
       }
     });
-    new import_obsidian7.Setting(contentEl).setName("Storage Format").setDesc("Inline comment for single-line API tokens, or fenced code block for multiline SSH/PEM certificates.").addDropdown((dropdown) => {
+    new import_obsidian9.Setting(contentEl).setName("Storage Format").setDesc("Inline comment for single-line API tokens, or fenced code block for multiline SSH/PEM certificates.").addDropdown((dropdown) => {
       dropdown.addOption("auto", "Auto-Detect (Inline for single line, Code Block for multiline)");
       dropdown.addOption("inline", "Inline Comment (%%vg:v1:...%%)");
       dropdown.addOption("codeblock", "Fenced Code Block (```vaultguard)");
@@ -2400,7 +2831,7 @@ var InsertSecretModal = class extends import_obsidian7.Modal {
 ${token}
 ` : token;
       this.editor.replaceSelection(textToInsert);
-      new import_obsidian7.Notice("\u{1F512} Encrypted secret inserted safely.");
+      new import_obsidian9.Notice("\u{1F512} Encrypted secret inserted safely.");
       this.close();
     } catch (err) {
       this.showError(err.message || "Failed to encrypt secret.");
@@ -2412,7 +2843,7 @@ ${token}
 };
 
 // src/main.ts
-var VaultGuardPlugin = class extends import_obsidian8.Plugin {
+var VaultGuardPlugin = class extends import_obsidian10.Plugin {
   settings = DEFAULT_SETTINGS;
   session;
   statusBarItemEl = null;
@@ -2444,13 +2875,13 @@ var VaultGuardPlugin = class extends import_obsidian8.Plugin {
       } else if (!this.session.isUnlocked()) {
         new UnlockModal(this.app, this, { mode: "unlock" }).open();
       } else {
-        const activeView = this.app.workspace.getActiveViewOfType(import_obsidian8.MarkdownView);
+        const activeView = this.app.workspace.getActiveViewOfType(import_obsidian10.MarkdownView);
         if (activeView && activeView.editor) {
           new InsertSecretModal(this.app, this, {
             editor: activeView.editor
           }).open();
         } else {
-          new import_obsidian8.Notice("\u{1F513} VaultGuard is unlocked. Open a note to insert secrets.");
+          new import_obsidian10.Notice("\u{1F513} VaultGuard is unlocked. Open a note to insert secrets.");
         }
       }
     });
@@ -2479,7 +2910,7 @@ var VaultGuardPlugin = class extends import_obsidian8.Plugin {
       editorCallback: (editor) => {
         const selection = editor.getSelection();
         if (!selection) {
-          new import_obsidian8.Notice("Please select text to encrypt.");
+          new import_obsidian10.Notice("Please select text to encrypt.");
           return;
         }
         new InsertSecretModal(this.app, this, {
@@ -2495,7 +2926,7 @@ var VaultGuardPlugin = class extends import_obsidian8.Plugin {
         if (!this.settings.isInitialized) {
           new UnlockModal(this.app, this, { mode: "init" }).open();
         } else if (this.session.isUnlocked()) {
-          new import_obsidian8.Notice("VaultGuard is already unlocked.");
+          new import_obsidian10.Notice("VaultGuard is already unlocked.");
         } else {
           new UnlockModal(this.app, this, { mode: "unlock" }).open();
         }
@@ -2506,10 +2937,10 @@ var VaultGuardPlugin = class extends import_obsidian8.Plugin {
       name: "Lock Vault",
       callback: () => {
         if (!this.session.isUnlocked()) {
-          new import_obsidian8.Notice("VaultGuard is already locked.");
+          new import_obsidian10.Notice("VaultGuard is already locked.");
         } else {
           this.session.lock();
-          new import_obsidian8.Notice("\u{1F512} VaultGuard locked.");
+          new import_obsidian10.Notice("\u{1F512} VaultGuard locked.");
         }
       }
     });
@@ -2525,12 +2956,26 @@ var VaultGuardPlugin = class extends import_obsidian8.Plugin {
       }
     });
     this.addCommand({
+      id: "export-secrets-keepass",
+      name: "Export Secrets to KeePass / MacPass (XML/CSV)",
+      callback: () => {
+        new ExportSecretsModal(this.app, this).open();
+      }
+    });
+    this.addCommand({
+      id: "batch-decrypt-all-secrets",
+      name: "Batch Decrypt All Notes to Plaintext (Offboarding)",
+      callback: () => {
+        new BatchDecryptModal(this.app, this).open();
+      }
+    });
+    this.addCommand({
       id: "clear-ephemeral-clipboard",
       name: "Clear Ephemeral Clipboard Now",
       callback: async () => {
         await VaultGuardClipboard.clearClipboard();
         VaultGuardClipboard.cancelAutoWipe();
-        new import_obsidian8.Notice("\u{1F512} Ephemeral clipboard wiped.");
+        new import_obsidian10.Notice("\u{1F512} Ephemeral clipboard wiped.");
       }
     });
     this.registerEvent(
@@ -2571,7 +3016,7 @@ var VaultGuardPlugin = class extends import_obsidian8.Plugin {
       this.statusBarItemEl.setAttribute("title", "Click to lock vault");
       this.statusBarItemEl.onclick = () => {
         this.session.lock();
-        new import_obsidian8.Notice("\u{1F512} VaultGuard locked.");
+        new import_obsidian10.Notice("\u{1F512} VaultGuard locked.");
       };
     } else {
       this.statusBarItemEl.setText("\u{1F512} VaultGuard: Locked");

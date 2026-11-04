@@ -18,6 +18,8 @@ import { registerPasteHandler } from "./editor/pasteHandler";
 import { UnlockModal } from "./modals/unlockModal";
 import { InsertSecretModal } from "./modals/insertSecretModal";
 import { VaultAuditModal } from "./modals/vaultAuditModal";
+import { ExportSecretsModal } from "./modals/exportSecretsModal";
+import { BatchDecryptModal } from "./modals/batchDecryptModal";
 import { VaultGuardClipboard } from "./utils/clipboard";
 
 export default class VaultGuardPlugin extends Plugin {
@@ -144,6 +146,22 @@ export default class VaultGuardPlugin extends Plugin {
         } else {
           new UnlockModal(this.app, this, { mode: "change" }).open();
         }
+      },
+    });
+
+    this.addCommand({
+      id: "export-secrets-keepass",
+      name: "Export Secrets to KeePass / MacPass (XML/CSV)",
+      callback: () => {
+        new ExportSecretsModal(this.app, this).open();
+      },
+    });
+
+    this.addCommand({
+      id: "batch-decrypt-all-secrets",
+      name: "Batch Decrypt All Notes to Plaintext (Offboarding)",
+      callback: () => {
+        new BatchDecryptModal(this.app, this).open();
       },
     });
 

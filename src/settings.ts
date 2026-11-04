@@ -6,6 +6,8 @@ import { App, PluginSettingTab, Setting, Notice } from "obsidian";
 import type VaultGuardPlugin from "./main";
 import { UnlockModal } from "./modals/unlockModal";
 import { VaultAuditModal } from "./modals/vaultAuditModal";
+import { ExportSecretsModal } from "./modals/exportSecretsModal";
+import { BatchDecryptModal } from "./modals/batchDecryptModal";
 
 export interface VaultGuardSettings {
   isInitialized: boolean;
@@ -226,7 +228,38 @@ export class VaultGuardSettingTab extends PluginSettingTab {
           })
       );
 
-    // 6. Danger Zone / Vault Reset
+    // 6. Data Ownership, Portability & Offboarding
+    containerEl.createEl("h3", { text: "Data Ownership, Portability & Offboarding" });
+
+    containerEl.createEl("p", {
+      cls: "setting-item-description",
+      text: "VaultGuard enforces zero vendor lock-in. If you ever plan to disable or remove the plugin, you can export your secrets to an external password manager or restore all your notes back to plaintext.",
+    });
+
+    new Setting(containerEl)
+      .setName("Export Secrets to KeePass / MacPass")
+      .setDesc("Generate an industry-standard KeePass 2.x XML file (.xml) or universal CSV compatible with MacPass, KeePassXC, 1Password, and Bitwarden.")
+      .addButton((button) =>
+        button
+          .setButtonText("Export Secrets File")
+          .onClick(() => {
+            new ExportSecretsModal(this.app, this.plugin).open();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("Revert Vault to Plaintext (Offboarding)")
+      .setDesc("Batch decrypt all VaultGuard tokens in your notes back into raw Markdown text. Use this before disabling or uninstalling VaultGuard if you want your notes unencrypted.")
+      .addButton((button) =>
+        button
+          .setButtonText("Revert All to Plaintext")
+          .setWarning()
+          .onClick(() => {
+            new BatchDecryptModal(this.app, this.plugin).open();
+          })
+      );
+
+    // 7. Danger Zone / Vault Reset
     if (isInitialized) {
       containerEl.createEl("h3", { text: "Advanced / Danger Zone" });
 
