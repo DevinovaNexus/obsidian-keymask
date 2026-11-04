@@ -66,6 +66,13 @@ In typical Obsidian setups, secrets such as OpenAI/Anthropic API keys, database 
 - Native modal dialog with masked password input and optional label.
 - Directly encrypts in memory and writes the ciphertext token to note. Plaintext never touches editor buffer or undo/redo stack.
 
+### 6. Vault Secret Audit & Batch Remediation (Vault Scanner)
+- **Target Selection**: Audit the entire vault or select specific folders (with recursive subfolder toggle).
+- **Comprehensive Detection**: Discovers unencrypted OpenAI/Anthropic keys, AWS credentials, GitHub tokens, database URIs, passwords, and private keys.
+- **Exclusion of Already-Encrypted Secrets**: Ignores tokens that are already encrypted with VaultGuard (`%%vg:v1:...%%`).
+- **Interactive Review Table**: Review findings grouped by note with line numbers, masked previews, and editable labels.
+- **Batch Remediation**: One-click **[ 🔒 Encrypt & Mask Selected ]** encrypts all chosen secrets using AES-256-GCM in reverse-offset order to preserve note structure and formatting with zero data loss.
+
 ---
 
 ## 📦 Storage Formats
@@ -96,6 +103,7 @@ data: |
 | :--- | :--- | :--- |
 | `VaultGuard: Insert Encrypted Secret` | `Cmd/Ctrl + Shift + S` | Opens modal to encrypt and insert a new credential |
 | `VaultGuard: Encrypt Selected Text` | Context Menu / Palette | Encrypts currently selected text in active editor |
+| `VaultGuard: Audit Vault for Plaintext Secrets` | Palette / Settings | Scans entire vault or folders and batch-encrypts exposed secrets |
 | `VaultGuard: Unlock Vault` | Ribbon / Status Bar / Palette | Prompts for master passphrase to enable decryption |
 | `VaultGuard: Lock Vault` | Ribbon / Status Bar / Palette | Purges derived encryption key from memory |
 | `VaultGuard: Change Master Passphrase` | Palette / Settings | Re-derives key and updates verification canary |
