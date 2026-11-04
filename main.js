@@ -473,6 +473,7 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
     this.plugin = plugin;
   }
   onOpen() {
+    this.modalEl.addClass("mod-vaultguard-audit");
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("vaultguard-modal", "vaultguard-audit-modal");
@@ -1265,6 +1266,7 @@ var ExportSecretsModal = class extends import_obsidian3.Modal {
     this.plugin = plugin;
   }
   onOpen() {
+    this.modalEl.addClass("mod-vaultguard-modal");
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("vaultguard-modal", "vaultguard-export-modal");
@@ -1467,6 +1469,7 @@ var BatchDecryptModal = class extends import_obsidian4.Modal {
     this.plugin = plugin;
   }
   onOpen() {
+    this.modalEl.addClass("mod-vaultguard-modal");
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("vaultguard-modal", "vaultguard-decrypt-all-modal");

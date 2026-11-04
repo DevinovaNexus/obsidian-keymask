@@ -29,6 +29,7 @@ export class BatchDecryptModal extends Modal {
   }
 
   onOpen(): void {
+    this.modalEl.addClass("mod-vaultguard-modal");
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("vaultguard-modal", "vaultguard-decrypt-all-modal");

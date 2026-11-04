@@ -41,6 +41,7 @@ export class VaultAuditModal extends Modal {
   }
 
   onOpen(): void {
+    this.modalEl.addClass("mod-vaultguard-audit");
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("vaultguard-modal", "vaultguard-audit-modal");
