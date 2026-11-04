@@ -5,6 +5,7 @@
 import { App, PluginSettingTab, Setting, Notice } from "obsidian";
 import type VaultGuardPlugin from "./main";
 import { UnlockModal } from "./modals/unlockModal";
+import { VaultAuditModal } from "./modals/vaultAuditModal";
 
 export interface VaultGuardSettings {
   isInitialized: boolean;
@@ -208,7 +209,24 @@ export class VaultGuardSettingTab extends PluginSettingTab {
           })
       );
 
-    // 5. Danger Zone / Vault Reset
+    // 5. Vault Security Audit & Leak Scanner
+    containerEl.createEl("h3", { text: "Vault Security Audit & Leak Scanner" });
+
+    new Setting(containerEl)
+      .setName("Audit Notes for Plaintext Secrets")
+      .setDesc(
+        "Inspect all existing notes or choose specific folders to detect exposed API keys, credentials, and passwords, and batch encrypt them in-place."
+      )
+      .addButton((button) =>
+        button
+          .setButtonText("Launch Secret Scanner")
+          .setCta()
+          .onClick(() => {
+            new VaultAuditModal(this.app, this.plugin).open();
+          })
+      );
+
+    // 6. Danger Zone / Vault Reset
     if (isInitialized) {
       containerEl.createEl("h3", { text: "Advanced / Danger Zone" });
 

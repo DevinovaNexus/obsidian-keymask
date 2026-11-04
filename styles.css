@@ -297,3 +297,218 @@
 .vaultguard-status-bar-item {
   cursor: pointer;
 }
+
+/* 7. Vault Secret Audit & Leak Scanner UI */
+.vaultguard-audit-modal {
+  width: 90vw !important;
+  max-width: 860px !important;
+}
+
+.vaultguard-audit-controls-card {
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 12px 0 16px 0;
+}
+
+.vaultguard-audit-start-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.vaultguard-start-scan-btn {
+  font-weight: 600;
+  padding: 6px 14px;
+}
+
+.vaultguard-audit-progress-container {
+  margin: 16px 0;
+  text-align: center;
+}
+
+.vaultguard-progress-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  accent-color: var(--interactive-accent);
+}
+
+.vaultguard-progress-label {
+  font-size: 0.85em;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.vaultguard-clean-banner {
+  text-align: center;
+  padding: 32px 16px;
+  background-color: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
+.vaultguard-clean-banner .clean-icon {
+  font-size: 2.5em;
+  margin-bottom: 8px;
+}
+
+.vaultguard-clean-banner h3 {
+  color: var(--text-success, #22c55e);
+  margin-bottom: 4px;
+}
+
+.vaultguard-audit-summary-header {
+  background-color: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 16px 0;
+}
+
+.vaultguard-audit-summary-header h3 {
+  margin: 0 0 4px 0;
+  color: var(--text-warning, #eab308);
+}
+
+.vaultguard-audit-action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.vaultguard-btn-secondary {
+  background: var(--background-modifier-form-field);
+  border: 1px solid var(--background-modifier-border);
+  padding: 4px 10px;
+  font-size: 0.85em;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.vaultguard-batch-remediate-btn {
+  margin-left: auto;
+  font-weight: 600;
+}
+
+.vaultguard-audit-files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.vaultguard-file-card {
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.vaultguard-file-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: var(--background-secondary-alt);
+  border-bottom: 1px solid var(--background-modifier-border);
+  font-weight: 600;
+  font-size: 0.9em;
+}
+
+.vaultguard-file-title {
+  cursor: pointer;
+  color: var(--text-accent);
+}
+
+.vaultguard-file-title:hover {
+  text-decoration: underline;
+}
+
+.vaultguard-file-badge {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--text-error, #ef4444);
+  font-size: 0.8em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.vaultguard-secrets-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85em;
+}
+
+.vaultguard-secrets-table th,
+.vaultguard-secrets-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.vaultguard-secrets-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.8em;
+  text-transform: uppercase;
+}
+
+.vaultguard-cell-line {
+  font-family: var(--font-monospace);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.vaultguard-pattern-tag {
+  background-color: var(--background-modifier-form-field);
+  color: var(--text-normal);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  white-space: nowrap;
+}
+
+.vaultguard-preview-snippet {
+  font-family: var(--font-monospace);
+  font-size: 0.85em;
+  background-color: var(--background-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
+.vaultguard-inline-label-input {
+  font-size: 0.85em;
+  padding: 3px 6px;
+  width: 120px;
+}
+
+.vaultguard-remediated-badge {
+  color: var(--text-success, #22c55e);
+  font-weight: 600;
+  font-size: 0.85em;
+}
+
+.vaultguard-btn-single-encrypt {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 0.8em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.vaultguard-btn-single-encrypt:hover {
+  opacity: 0.9;
+}

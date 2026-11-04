@@ -28,10 +28,10 @@ __export(main_exports, {
   default: () => VaultGuardPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian7 = require("obsidian");
+var import_obsidian8 = require("obsidian");
 
 // src/settings.ts
-var import_obsidian2 = require("obsidian");
+var import_obsidian3 = require("obsidian");
 
 // src/modals/unlockModal.ts
 var import_obsidian = require("obsidian");
@@ -209,6 +209,685 @@ var UnlockModal = class extends import_obsidian.Modal {
   }
 };
 
+// src/modals/vaultAuditModal.ts
+var import_obsidian2 = require("obsidian");
+
+// src/utils/heuristics.ts
+var SENSITIVE_PATTERNS = [
+  {
+    id: "anthropic-api-key",
+    name: "Anthropic API Key",
+    regex: /\b(sk-ant-[a-zA-Z0-9_-]{90,})\b/,
+    suggestedLabel: "Anthropic API Key"
+  },
+  {
+    id: "openai-api-key",
+    name: "OpenAI API Key",
+    // Covers classic sk-... and modern sk-proj-..., excluding sk-ant-
+    regex: /\b(sk-(?!ant-)[a-zA-Z0-9_-]{48,})\b/,
+    suggestedLabel: "OpenAI API Key"
+  },
+  {
+    id: "github-pat",
+    name: "GitHub Personal Access Token",
+    // Supports classic ghp_ tokens (36-40 chars) and fine-grained github_pat_ (82+ chars)
+    regex: /\b(ghp_[a-zA-Z0-9]{30,40}|github_pat_[a-zA-Z0-9_]{80,90})\b/,
+    suggestedLabel: "GitHub Token"
+  },
+  {
+    id: "aws-access-key",
+    name: "AWS Access Key ID",
+    regex: /\b(AKIA[0-9A-Z]{16})\b/,
+    suggestedLabel: "AWS Access Key"
+  },
+  {
+    id: "private-key",
+    name: "Private Cryptographic Key",
+    regex: /(-----BEGIN (?:RSA|EC|OPENSSH|PGP|DSA)? ?PRIVATE KEY-----[\s\S]*?-----END (?:RSA|EC|OPENSSH|PGP|DSA)? ?PRIVATE KEY-----)/,
+    suggestedLabel: "Private Key"
+  },
+  {
+    id: "jwt-bearer",
+    name: "JWT / Bearer Token",
+    regex: /\b(ey[A-Za-z0-9_-]{10,}\.[A-Za-z0-9._-]{10,}(?:\.[A-Za-z0-9._-]+)?)\b/,
+    suggestedLabel: "JWT Token"
+  },
+  {
+    id: "stripe-secret-key",
+    name: "Stripe Secret Key",
+    regex: /\b([rs]k_live_[0-9a-zA-Z]{24,})\b/,
+    suggestedLabel: "Stripe Secret Key"
+  },
+  {
+    id: "slack-token",
+    name: "Slack API Token",
+    regex: /\b(xox[baprs]-[0-9a-zA-Z-]{10,})\b/,
+    suggestedLabel: "Slack Token"
+  },
+  {
+    id: "google-api-key",
+    name: "Google Cloud API Key",
+    regex: /\b(AIza[0-9A-Za-z\\-_]{35})\b/,
+    suggestedLabel: "Google API Key"
+  },
+  {
+    id: "db-connection-uri",
+    name: "Database Connection URI with Credentials",
+    regex: /\b((?:postgres|postgresql|mysql|mongodb(?:\+srv)?):\/\/[^\s:@/]+:[^\s:@/]+@[^\s/]+(?:\/[^\s]*)?)\b/,
+    suggestedLabel: "Database Credentials"
+  },
+  {
+    id: "contextual-password",
+    name: "Password / Secret Credential",
+    // Matches keys like password: ..., secret = "...", auth_token: ...
+    regex: /\b(?:password|passwd|pwd|passphrase|secret|api_key|apikey|auth_token)\s*[:=]\s*["']?([^\s"']{6,})["']?/i,
+    suggestedLabel: "Password"
+  }
+];
+function isLikelyPassword(str) {
+  const trimmed = str.trim();
+  if (trimmed.length < 8 || trimmed.length > 128 || /\s/.test(trimmed)) {
+    return false;
+  }
+  if (/^(?:https?:\/\/|file:\/\/|\/|\.\/|mailto:|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i.test(trimmed)) {
+    return false;
+  }
+  let types = 0;
+  if (/[a-z]/.test(trimmed)) types++;
+  if (/[A-Z]/.test(trimmed)) types++;
+  if (/[0-9]/.test(trimmed)) types++;
+  if (/[^a-zA-Z0-9]/.test(trimmed)) types++;
+  if (types >= 3 && (/[^a-zA-Z0-9]/.test(trimmed) || /[0-9]/.test(trimmed))) {
+    if (/^[A-Z0-9_]+$/.test(trimmed) && !/[a-z]/.test(trimmed) && !/[^A-Z0-9_]/.test(trimmed)) {
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+function detectSensitiveToken(text) {
+  if (!text || text.trim().length < 6) {
+    return null;
+  }
+  const sample = text.length > 2e5 ? text.slice(0, 2e5) : text;
+  for (const pattern of SENSITIVE_PATTERNS) {
+    const match = pattern.regex.exec(sample);
+    if (match) {
+      const matchedText = match[1] || match[0];
+      const matchSubIndex = match[1] ? match[0].indexOf(match[1]) : 0;
+      const startIndex = match.index + matchSubIndex;
+      return {
+        patternId: pattern.id,
+        patternName: pattern.name,
+        suggestedLabel: pattern.suggestedLabel,
+        matchedText,
+        startIndex,
+        endIndex: startIndex + matchedText.length
+      };
+    }
+  }
+  const trimmed = sample.trim();
+  if (isLikelyPassword(trimmed)) {
+    const startIndex = sample.indexOf(trimmed);
+    return {
+      patternId: "standalone-password",
+      patternName: "Password / Sensitive Secret",
+      suggestedLabel: "Password",
+      matchedText: trimmed,
+      startIndex,
+      endIndex: startIndex + trimmed.length
+    };
+  }
+  return null;
+}
+function maskForPreview(token, visibleChars = 4) {
+  if (token.length <= visibleChars * 2) {
+    return "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
+  }
+  const prefix = token.slice(0, visibleChars);
+  const suffix = token.slice(-visibleChars);
+  return `${prefix}\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022${suffix}`;
+}
+function scanTextForSecrets(text) {
+  if (!text || text.trim().length < 6) {
+    return [];
+  }
+  const encryptedRanges = [];
+  const inlineRegex = /%%vg:v1:[\s\S]*?%%/g;
+  let m;
+  while ((m = inlineRegex.exec(text)) !== null) {
+    encryptedRanges.push({ from: m.index, to: m.index + m[0].length });
+  }
+  const blockRegex = /```vaultguard[\s\S]*?```/g;
+  while ((m = blockRegex.exec(text)) !== null) {
+    encryptedRanges.push({ from: m.index, to: m.index + m[0].length });
+  }
+  const isOverlapping = (from, to) => {
+    return encryptedRanges.some((r) => Math.max(from, r.from) < Math.min(to, r.to));
+  };
+  const lineOffsets = [0];
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === "\n") {
+      lineOffsets.push(i + 1);
+    }
+  }
+  const getLineInfo = (offset) => {
+    let low = 0;
+    let high = lineOffsets.length - 1;
+    let lineIdx = 0;
+    while (low <= high) {
+      const mid = low + high >> 1;
+      if (lineOffsets[mid] <= offset) {
+        lineIdx = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+    const lineStart = lineOffsets[lineIdx];
+    const lineEnd = lineIdx + 1 < lineOffsets.length ? lineOffsets[lineIdx + 1] - 1 : text.length;
+    return {
+      lineNumber: lineIdx + 1,
+      lineContent: text.slice(lineStart, lineEnd).trim()
+    };
+  };
+  const results = [];
+  const coveredRanges = [];
+  const isCovered = (from, to) => {
+    return isOverlapping(from, to) || coveredRanges.some((r) => Math.max(from, r.from) < Math.min(to, r.to));
+  };
+  for (const pattern of SENSITIVE_PATTERNS) {
+    const flags = pattern.regex.flags.includes("g") ? pattern.regex.flags : pattern.regex.flags + "g";
+    const globalRegex = new RegExp(pattern.regex.source, flags);
+    let match;
+    while ((match = globalRegex.exec(text)) !== null) {
+      const matchedText = match[1] || match[0];
+      const matchSubIndex = match[1] ? match[0].indexOf(match[1]) : 0;
+      const startIndex = match.index + matchSubIndex;
+      const endIndex = startIndex + matchedText.length;
+      if (isCovered(startIndex, endIndex)) {
+        continue;
+      }
+      coveredRanges.push({ from: startIndex, to: endIndex });
+      const lineInfo = getLineInfo(startIndex);
+      results.push({
+        id: `secret-${startIndex}-${endIndex}`,
+        patternId: pattern.id,
+        patternName: pattern.name,
+        suggestedLabel: pattern.suggestedLabel,
+        matchedText,
+        startIndex,
+        endIndex,
+        lineNumber: lineInfo.lineNumber,
+        lineContent: lineInfo.lineContent,
+        isMultiline: matchedText.includes("\n")
+      });
+    }
+  }
+  for (let lineIdx = 0; lineIdx < lineOffsets.length; lineIdx++) {
+    const lineStart = lineOffsets[lineIdx];
+    const lineEnd = lineIdx + 1 < lineOffsets.length ? lineOffsets[lineIdx + 1] - 1 : text.length;
+    const lineText = text.slice(lineStart, lineEnd);
+    const trimmed = lineText.trim();
+    if (isLikelyPassword(trimmed)) {
+      const wordStart = lineStart + lineText.indexOf(trimmed);
+      const wordEnd = wordStart + trimmed.length;
+      if (!isCovered(wordStart, wordEnd)) {
+        coveredRanges.push({ from: wordStart, to: wordEnd });
+        results.push({
+          id: `secret-${wordStart}-${wordEnd}`,
+          patternId: "standalone-password",
+          patternName: "Password / Sensitive Secret",
+          suggestedLabel: "Password",
+          matchedText: trimmed,
+          startIndex: wordStart,
+          endIndex: wordEnd,
+          lineNumber: lineIdx + 1,
+          lineContent: trimmed,
+          isMultiline: false
+        });
+      }
+    }
+  }
+  results.sort((a, b) => a.startIndex - b.startIndex);
+  return results;
+}
+
+// src/modals/vaultAuditModal.ts
+var VaultAuditModal = class extends import_obsidian2.Modal {
+  plugin;
+  selectedFolder = "/";
+  // "/" represents entire vault
+  includeSubfolders = true;
+  isScanning = false;
+  isRemediating = false;
+  auditResults = [];
+  selectedSecretIds = /* @__PURE__ */ new Set();
+  customLabels = /* @__PURE__ */ new Map();
+  remediatedSecretIds = /* @__PURE__ */ new Set();
+  containerElContent = null;
+  progressContainer = null;
+  resultsContainer = null;
+  constructor(app, plugin) {
+    super(app);
+    this.plugin = plugin;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.addClass("vaultguard-modal", "vaultguard-audit-modal");
+    contentEl.createEl("h2", { text: "\u{1F50D} VaultGuard: Secret Audit & Leak Scanner" });
+    contentEl.createEl("p", {
+      cls: "setting-item-description",
+      text: "Scan your existing notes for exposed plaintext API keys, passwords, connection URIs, and private keys. Once discovered, VaultGuard can encrypt and mask them in-place with zero data loss."
+    });
+    this.containerElContent = contentEl.createDiv({ cls: "vaultguard-audit-body" });
+    this.renderScanControls();
+  }
+  renderScanControls() {
+    if (!this.containerElContent) return;
+    this.containerElContent.empty();
+    const controlsCard = this.containerElContent.createDiv({
+      cls: "vaultguard-audit-controls-card"
+    });
+    const folders = this.getVaultFolders();
+    new import_obsidian2.Setting(controlsCard).setName("Scan Target").setDesc("Choose whether to audit your entire vault or a specific folder.").addDropdown((dropdown) => {
+      dropdown.addOption("/", "Entire Vault (Root)");
+      for (const folder of folders) {
+        dropdown.addOption(folder.path, folder.path);
+      }
+      dropdown.setValue(this.selectedFolder);
+      dropdown.onChange((val) => {
+        this.selectedFolder = val;
+      });
+    });
+    new import_obsidian2.Setting(controlsCard).setName("Include Subfolders").setDesc("Recursively inspect all nested subdirectories inside the selected folder.").addToggle((toggle) => {
+      toggle.setValue(this.includeSubfolders);
+      toggle.onChange((val) => {
+        this.includeSubfolders = val;
+      });
+    });
+    const buttonRow = controlsCard.createDiv({ cls: "vaultguard-audit-start-row" });
+    const startScanBtn = buttonRow.createEl("button", {
+      cls: "mod-cta vaultguard-start-scan-btn",
+      text: "\u{1F50D} Start Secret Audit"
+    });
+    startScanBtn.addEventListener("click", () => {
+      this.runAuditScan();
+    });
+    this.progressContainer = this.containerElContent.createDiv({
+      cls: "vaultguard-audit-progress-container"
+    });
+    this.progressContainer.style.display = "none";
+    this.resultsContainer = this.containerElContent.createDiv({
+      cls: "vaultguard-audit-results-container"
+    });
+  }
+  getVaultFolders() {
+    const allFiles = this.app.vault.getAllLoadedFiles();
+    return allFiles.filter((item) => item instanceof import_obsidian2.TFolder && item.path !== "/").sort((a, b) => a.path.localeCompare(b.path));
+  }
+  getTargetMarkdownFiles() {
+    const allFiles = this.app.vault.getMarkdownFiles();
+    if (this.selectedFolder === "/") {
+      return allFiles;
+    }
+    const folderPrefix = this.selectedFolder.endsWith("/") ? this.selectedFolder : this.selectedFolder + "/";
+    return allFiles.filter((file) => {
+      if (this.includeSubfolders) {
+        return file.path.startsWith(folderPrefix) || file.path === this.selectedFolder;
+      } else {
+        return file.parent?.path === this.selectedFolder;
+      }
+    });
+  }
+  async runAuditScan() {
+    const filesToScan = this.getTargetMarkdownFiles();
+    if (filesToScan.length === 0) {
+      new import_obsidian2.Notice("No Markdown files found in the selected target.");
+      return;
+    }
+    this.isScanning = true;
+    this.auditResults = [];
+    this.selectedSecretIds.clear();
+    this.remediatedSecretIds.clear();
+    if (this.progressContainer) {
+      this.progressContainer.style.display = "block";
+      this.progressContainer.empty();
+    }
+    if (this.resultsContainer) {
+      this.resultsContainer.empty();
+    }
+    const totalFiles = filesToScan.length;
+    let scannedCount = 0;
+    let exposedCount = 0;
+    const progressBar = this.progressContainer?.createEl("progress", {
+      cls: "vaultguard-progress-bar",
+      attr: { max: totalFiles.toString(), value: "0" }
+    });
+    const progressLabel = this.progressContainer?.createDiv({
+      cls: "vaultguard-progress-label",
+      text: `Scanning notes (0/${totalFiles})...`
+    });
+    for (let i = 0; i < totalFiles; i++) {
+      const file = filesToScan[i];
+      try {
+        const content = await this.app.vault.read(file);
+        const findings = scanTextForSecrets(content);
+        if (findings.length > 0) {
+          this.auditResults.push({ file, secrets: findings });
+          exposedCount += findings.length;
+          for (const s of findings) {
+            this.selectedSecretIds.add(s.id);
+            this.customLabels.set(s.id, s.suggestedLabel);
+          }
+        }
+      } catch (e) {
+        console.warn(`VaultGuard: Error reading file ${file.path}:`, e);
+      }
+      scannedCount++;
+      if (progressBar) progressBar.value = scannedCount;
+      if (progressLabel) {
+        progressLabel.textContent = `Scanning note ${scannedCount}/${totalFiles}... (${exposedCount} exposed secrets found)`;
+      }
+      if (i % 10 === 0) {
+        await new Promise((r) => setTimeout(r, 0));
+      }
+    }
+    this.isScanning = false;
+    if (this.progressContainer) {
+      this.progressContainer.style.display = "none";
+    }
+    this.renderAuditResults();
+  }
+  renderAuditResults() {
+    if (!this.resultsContainer) return;
+    this.resultsContainer.empty();
+    const totalSecrets = this.auditResults.reduce(
+      (sum, r) => sum + r.secrets.length,
+      0
+    );
+    if (totalSecrets === 0) {
+      const cleanBanner = this.resultsContainer.createDiv({
+        cls: "vaultguard-clean-banner"
+      });
+      cleanBanner.createEl("div", { cls: "clean-icon", text: "\u{1F389}" });
+      cleanBanner.createEl("h3", { text: "No Exposed Secrets Found!" });
+      cleanBanner.createEl("p", {
+        cls: "setting-item-description",
+        text: "All scanned notes are clean. No plaintext API keys, passwords, or credentials were detected."
+      });
+      return;
+    }
+    const summaryHeader = this.resultsContainer.createDiv({
+      cls: "vaultguard-audit-summary-header"
+    });
+    const summaryText = summaryHeader.createDiv({
+      cls: "vaultguard-audit-summary-text"
+    });
+    summaryText.createEl("h3", {
+      text: `\u26A0\uFE0F Found ${totalSecrets} Exposed Secret${totalSecrets > 1 ? "s" : ""} across ${this.auditResults.length} Note${this.auditResults.length > 1 ? "s" : ""}`
+    });
+    summaryText.createEl("p", {
+      cls: "setting-item-description",
+      text: "Select the secrets you wish to encrypt. VaultGuard will replace the plaintext with authenticated AES-256-GCM ciphertext tokens."
+    });
+    const actionRow = summaryHeader.createDiv({
+      cls: "vaultguard-audit-action-row"
+    });
+    const selectAllBtn = actionRow.createEl("button", {
+      text: "Select All",
+      cls: "vaultguard-btn-secondary"
+    });
+    selectAllBtn.addEventListener("click", () => {
+      for (const res of this.auditResults) {
+        for (const s of res.secrets) {
+          if (!this.remediatedSecretIds.has(s.id)) {
+            this.selectedSecretIds.add(s.id);
+          }
+        }
+      }
+      this.updateSelectionCounts();
+    });
+    const deselectAllBtn = actionRow.createEl("button", {
+      text: "Deselect All",
+      cls: "vaultguard-btn-secondary"
+    });
+    deselectAllBtn.addEventListener("click", () => {
+      this.selectedSecretIds.clear();
+      this.updateSelectionCounts();
+    });
+    const remediateBtn = actionRow.createEl("button", {
+      cls: "mod-cta vaultguard-batch-remediate-btn",
+      text: `\u{1F512} Encrypt & Mask Selected (${this.selectedSecretIds.size})`
+    });
+    remediateBtn.addEventListener("click", () => {
+      this.executeBatchRemediation();
+    });
+    const filesList = this.resultsContainer.createDiv({
+      cls: "vaultguard-audit-files-list"
+    });
+    for (const fileResult of this.auditResults) {
+      const { file, secrets } = fileResult;
+      const fileCard = filesList.createDiv({ cls: "vaultguard-file-card" });
+      const fileHeader = fileCard.createDiv({ cls: "vaultguard-file-header" });
+      const fileTitle = fileHeader.createEl("span", {
+        cls: "vaultguard-file-title clickable-icon",
+        text: `\u{1F4C4} ${file.path}`,
+        attr: { title: "Click to open file in workspace" }
+      });
+      fileTitle.addEventListener("click", () => {
+        this.app.workspace.openLinkText(file.path, "", false);
+      });
+      fileHeader.createEl("span", {
+        cls: "vaultguard-file-badge",
+        text: `${secrets.length} secret${secrets.length > 1 ? "s" : ""}`
+      });
+      const table = fileCard.createEl("table", {
+        cls: "vaultguard-secrets-table"
+      });
+      const thead = table.createEl("thead");
+      const headerRow = thead.createEl("tr");
+      headerRow.createEl("th", { text: "" });
+      headerRow.createEl("th", { text: "Line" });
+      headerRow.createEl("th", { text: "Type" });
+      headerRow.createEl("th", { text: "Masked Value Preview" });
+      headerRow.createEl("th", { text: "Label" });
+      headerRow.createEl("th", { text: "Action" });
+      const tbody = table.createEl("tbody");
+      for (const secret of secrets) {
+        const row = tbody.createEl("tr", { cls: `row-${secret.id}` });
+        const cbCell = row.createEl("td");
+        const checkbox = cbCell.createEl("input", {
+          type: "checkbox",
+          cls: "vaultguard-secret-checkbox"
+        });
+        checkbox.checked = this.selectedSecretIds.has(secret.id);
+        checkbox.disabled = this.remediatedSecretIds.has(secret.id);
+        checkbox.addEventListener("change", () => {
+          if (checkbox.checked) {
+            this.selectedSecretIds.add(secret.id);
+          } else {
+            this.selectedSecretIds.delete(secret.id);
+          }
+          this.updateRemediateButton(remediateBtn);
+        });
+        row.createEl("td", {
+          cls: "vaultguard-cell-line",
+          text: `L${secret.lineNumber}`
+        });
+        const typeCell = row.createEl("td");
+        typeCell.createEl("span", {
+          cls: "vaultguard-pattern-tag",
+          text: secret.patternName
+        });
+        const previewCell = row.createEl("td");
+        previewCell.createEl("code", {
+          cls: "vaultguard-preview-snippet",
+          text: maskForPreview(secret.matchedText)
+        });
+        const labelCell = row.createEl("td");
+        const labelInput = labelCell.createEl("input", {
+          type: "text",
+          cls: "vaultguard-inline-label-input",
+          attr: { placeholder: "Label" }
+        });
+        labelInput.value = this.customLabels.get(secret.id) || secret.suggestedLabel;
+        labelInput.addEventListener("input", () => {
+          this.customLabels.set(secret.id, labelInput.value.trim());
+        });
+        const actionCell = row.createEl("td");
+        if (this.remediatedSecretIds.has(secret.id)) {
+          actionCell.createEl("span", {
+            cls: "vaultguard-remediated-badge",
+            text: "\u2705 Encrypted"
+          });
+        } else {
+          const singleEncryptBtn = actionCell.createEl("button", {
+            cls: "vaultguard-btn-single-encrypt",
+            text: "\u{1F512} Encrypt"
+          });
+          singleEncryptBtn.addEventListener("click", () => {
+            this.remediateSingleSecret(file, secret);
+          });
+        }
+      }
+    }
+  }
+  updateSelectionCounts() {
+    const checkboxes = this.contentEl.querySelectorAll(
+      ".vaultguard-secret-checkbox"
+    );
+    checkboxes.forEach((cb) => {
+      const row = cb.closest("tr");
+      if (row) {
+        const idMatch = row.className.match(/row-(secret-[0-9]+-[0-9]+)/);
+        if (idMatch && idMatch[1]) {
+          cb.checked = this.selectedSecretIds.has(idMatch[1]);
+        }
+      }
+    });
+    const remediateBtn = this.contentEl.querySelector(
+      ".vaultguard-batch-remediate-btn"
+    );
+    if (remediateBtn) {
+      this.updateRemediateButton(remediateBtn);
+    }
+  }
+  updateRemediateButton(btn) {
+    const activeCount = Array.from(this.selectedSecretIds).filter(
+      (id) => !this.remediatedSecretIds.has(id)
+    ).length;
+    btn.textContent = `\u{1F512} Encrypt & Mask Selected (${activeCount})`;
+    btn.disabled = activeCount === 0;
+  }
+  /**
+   * Encrypt a single secret in a note
+   */
+  async remediateSingleSecret(file, secret) {
+    if (!this.checkVaultUnlocked(() => this.remediateSingleSecret(file, secret))) {
+      return;
+    }
+    try {
+      const content = await this.app.vault.read(file);
+      const label = this.customLabels.get(secret.id) || secret.suggestedLabel;
+      const token = await this.plugin.session.encryptSecret(
+        secret.matchedText,
+        label,
+        secret.isMultiline
+      );
+      let updatedContent;
+      if (content.slice(secret.startIndex, secret.endIndex) === secret.matchedText) {
+        updatedContent = content.slice(0, secret.startIndex) + token + content.slice(secret.endIndex);
+      } else {
+        updatedContent = content.replace(secret.matchedText, token);
+      }
+      await this.app.vault.modify(file, updatedContent);
+      this.remediatedSecretIds.add(secret.id);
+      this.selectedSecretIds.delete(secret.id);
+      new import_obsidian2.Notice(`\u{1F512} Encrypted secret in "${file.basename}".`);
+      this.renderAuditResults();
+    } catch (err) {
+      new import_obsidian2.Notice(`Failed to encrypt secret: ${err.message}`);
+    }
+  }
+  /**
+   * Batch encrypt and mask all selected secrets across all files
+   */
+  async executeBatchRemediation() {
+    const activeSelectedIds = Array.from(this.selectedSecretIds).filter(
+      (id) => !this.remediatedSecretIds.has(id)
+    );
+    if (activeSelectedIds.length === 0) {
+      new import_obsidian2.Notice("No secrets selected for encryption.");
+      return;
+    }
+    if (!this.checkVaultUnlocked(() => this.executeBatchRemediation())) {
+      return;
+    }
+    this.isRemediating = true;
+    let encryptedCount = 0;
+    let modifiedFilesCount = 0;
+    try {
+      for (const fileResult of this.auditResults) {
+        const { file, secrets } = fileResult;
+        const toRemediate = secrets.filter(
+          (s) => this.selectedSecretIds.has(s.id) && !this.remediatedSecretIds.has(s.id)
+        );
+        if (toRemediate.length === 0) continue;
+        let content = await this.app.vault.read(file);
+        toRemediate.sort((a, b) => b.startIndex - a.startIndex);
+        for (const secret of toRemediate) {
+          const label = this.customLabels.get(secret.id) || secret.suggestedLabel;
+          const token = await this.plugin.session.encryptSecret(
+            secret.matchedText,
+            label,
+            secret.isMultiline
+          );
+          if (content.slice(secret.startIndex, secret.endIndex) === secret.matchedText) {
+            content = content.slice(0, secret.startIndex) + token + content.slice(secret.endIndex);
+          } else {
+            content = content.replace(secret.matchedText, token);
+          }
+          this.remediatedSecretIds.add(secret.id);
+          this.selectedSecretIds.delete(secret.id);
+          encryptedCount++;
+        }
+        await this.app.vault.modify(file, content);
+        modifiedFilesCount++;
+      }
+      new import_obsidian2.Notice(
+        `\u{1F389} Successfully encrypted and masked ${encryptedCount} secret${encryptedCount > 1 ? "s" : ""} across ${modifiedFilesCount} note${modifiedFilesCount > 1 ? "s" : ""}!`
+      );
+      this.renderAuditResults();
+    } catch (err) {
+      new import_obsidian2.Notice(`Error during batch encryption: ${err.message}`);
+    } finally {
+      this.isRemediating = false;
+    }
+  }
+  checkVaultUnlocked(onSuccess) {
+    if (!this.plugin.settings.isInitialized) {
+      new UnlockModal(this.app, this.plugin, {
+        mode: "init",
+        onSuccess
+      }).open();
+      return false;
+    }
+    if (!this.plugin.session.isUnlocked()) {
+      new UnlockModal(this.app, this.plugin, {
+        mode: "unlock",
+        onSuccess
+      }).open();
+      return false;
+    }
+    return true;
+  }
+  onClose() {
+    this.contentEl.empty();
+  }
+};
+
 // src/settings.ts
 var DEFAULT_SETTINGS = {
   isInitialized: false,
@@ -221,7 +900,7 @@ var DEFAULT_SETTINGS = {
   clipboardWipeTimeoutSeconds: 30,
   interceptPaste: true
 };
-var VaultGuardSettingTab = class extends import_obsidian2.PluginSettingTab {
+var VaultGuardSettingTab = class extends import_obsidian3.PluginSettingTab {
   plugin;
   constructor(app, plugin) {
     super(app, plugin);
@@ -243,7 +922,7 @@ var VaultGuardSettingTab = class extends import_obsidian2.PluginSettingTab {
         cls: "setting-item-description",
         text: "Please initialize VaultGuard with a master passphrase to secure your credentials."
       });
-      new import_obsidian2.Setting(containerEl).setName("Initialize Master Passphrase").setDesc("Derive the master AES-256-GCM encryption key and initialize your vault.").addButton(
+      new import_obsidian3.Setting(containerEl).setName("Initialize Master Passphrase").setDesc("Derive the master AES-256-GCM encryption key and initialize your vault.").addButton(
         (button) => button.setButtonText("Set Master Passphrase").setCta().onClick(() => {
           new UnlockModal(this.app, this.plugin, {
             mode: "init",
@@ -258,13 +937,13 @@ var VaultGuardSettingTab = class extends import_obsidian2.PluginSettingTab {
         cls: `vaultguard-status-pill ${statusCls}`,
         text: statusText
       });
-      new import_obsidian2.Setting(containerEl).setName(isUnlocked ? "Lock Vault" : "Unlock Vault").setDesc(
+      new import_obsidian3.Setting(containerEl).setName(isUnlocked ? "Lock Vault" : "Unlock Vault").setDesc(
         isUnlocked ? "Purge in-memory decryption key immediately." : "Authenticate with your master passphrase to enable decryption."
       ).addButton((button) => {
         if (isUnlocked) {
           button.setButtonText("Lock Vault Now").setWarning().onClick(() => {
             this.plugin.session.lock();
-            new import_obsidian2.Notice("VaultGuard locked.");
+            new import_obsidian3.Notice("VaultGuard locked.");
             this.display();
           });
         } else {
@@ -276,12 +955,12 @@ var VaultGuardSettingTab = class extends import_obsidian2.PluginSettingTab {
           });
         }
       });
-      new import_obsidian2.Setting(containerEl).setName("Change Master Passphrase").setDesc("Update master passphrase and re-generate vault verification canary.").addButton(
+      new import_obsidian3.Setting(containerEl).setName("Change Master Passphrase").setDesc("Update master passphrase and re-generate vault verification canary.").addButton(
         (button) => button.setButtonText("Change Passphrase").onClick(() => {
           new UnlockModal(this.app, this.plugin, {
             mode: "change",
             onSuccess: () => {
-              new import_obsidian2.Notice("Master passphrase changed successfully.");
+              new import_obsidian3.Notice("Master passphrase changed successfully.");
               this.display();
             }
           }).open();
@@ -289,14 +968,14 @@ var VaultGuardSettingTab = class extends import_obsidian2.PluginSettingTab {
       );
     }
     containerEl.createEl("h3", { text: "Session & Key Lifecycle" });
-    new import_obsidian2.Setting(containerEl).setName("Auto-Lock Inactivity Timeout").setDesc("Minutes of idle inactivity before purging the in-memory key (0 to disable).").addSlider(
+    new import_obsidian3.Setting(containerEl).setName("Auto-Lock Inactivity Timeout").setDesc("Minutes of idle inactivity before purging the in-memory key (0 to disable).").addSlider(
       (slider) => slider.setLimits(0, 120, 5).setValue(this.plugin.settings.autoLockTimeoutMinutes).setDynamicTooltip().onChange(async (val) => {
         this.plugin.settings.autoLockTimeoutMinutes = val;
         await this.plugin.saveSettings();
         this.plugin.session.recordActivity();
       })
     );
-    new import_obsidian2.Setting(containerEl).setName("Lock on App Blur / Suspension").setDesc(
+    new import_obsidian3.Setting(containerEl).setName("Lock on App Blur / Suspension").setDesc(
       "Instantly lock vault when Obsidian loses window focus or is suspended in the background (recommended for mobile & screen-shares)."
     ).addToggle(
       (toggle) => toggle.setValue(this.plugin.settings.lockOnBlur).onChange(async (val) => {
@@ -305,20 +984,20 @@ var VaultGuardSettingTab = class extends import_obsidian2.PluginSettingTab {
       })
     );
     containerEl.createEl("h3", { text: "Interactive Masking & Clipboard" });
-    new import_obsidian2.Setting(containerEl).setName("Click-to-Reveal Timeout").setDesc("Seconds before unmasked secrets automatically snap back to masked state.").addSlider(
+    new import_obsidian3.Setting(containerEl).setName("Click-to-Reveal Timeout").setDesc("Seconds before unmasked secrets automatically snap back to masked state.").addSlider(
       (slider) => slider.setLimits(3, 30, 1).setValue(this.plugin.settings.revealTimeoutSeconds).setDynamicTooltip().onChange(async (val) => {
         this.plugin.settings.revealTimeoutSeconds = val;
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian2.Setting(containerEl).setName("Ephemeral Clipboard Auto-Wipe").setDesc("Seconds before copied secrets are securely wiped from the OS clipboard (15-60s).").addSlider(
+    new import_obsidian3.Setting(containerEl).setName("Ephemeral Clipboard Auto-Wipe").setDesc("Seconds before copied secrets are securely wiped from the OS clipboard (15-60s).").addSlider(
       (slider) => slider.setLimits(15, 60, 5).setValue(this.plugin.settings.clipboardWipeTimeoutSeconds).setDynamicTooltip().onChange(async (val) => {
         this.plugin.settings.clipboardWipeTimeoutSeconds = val;
         await this.plugin.saveSettings();
       })
     );
     containerEl.createEl("h3", { text: "Reactive Leak Prevention" });
-    new import_obsidian2.Setting(containerEl).setName("Intercept Sensitive Pastes").setDesc(
+    new import_obsidian3.Setting(containerEl).setName("Intercept Sensitive Pastes").setDesc(
       "Inspect editor paste events for OpenAI/Anthropic keys, AWS tokens, GitHub PATs, and private keys, offering one-click encryption."
     ).addToggle(
       (toggle) => toggle.setValue(this.plugin.settings.interceptPaste).onChange(async (val) => {
@@ -326,9 +1005,17 @@ var VaultGuardSettingTab = class extends import_obsidian2.PluginSettingTab {
         await this.plugin.saveSettings();
       })
     );
+    containerEl.createEl("h3", { text: "Vault Security Audit & Leak Scanner" });
+    new import_obsidian3.Setting(containerEl).setName("Audit Notes for Plaintext Secrets").setDesc(
+      "Inspect all existing notes or choose specific folders to detect exposed API keys, credentials, and passwords, and batch encrypt them in-place."
+    ).addButton(
+      (button) => button.setButtonText("Launch Secret Scanner").setCta().onClick(() => {
+        new VaultAuditModal(this.app, this.plugin).open();
+      })
+    );
     if (isInitialized) {
       containerEl.createEl("h3", { text: "Advanced / Danger Zone" });
-      new import_obsidian2.Setting(containerEl).setName("Reset VaultGuard Configuration").setDesc(
+      new import_obsidian3.Setting(containerEl).setName("Reset VaultGuard Configuration").setDesc(
         "Warning: Clears the master salt and verification canary. Existing encrypted tokens in notes will become indecipherable unless you know the previous passphrase."
       ).addButton(
         (button) => button.setButtonText("Reset Vault Configuration").setWarning().onClick(async () => {
@@ -341,7 +1028,7 @@ var VaultGuardSettingTab = class extends import_obsidian2.PluginSettingTab {
             this.plugin.settings.canaryToken = "";
             await this.plugin.saveSettings();
             this.plugin.session.lock();
-            new import_obsidian2.Notice("VaultGuard configuration has been reset.");
+            new import_obsidian3.Notice("VaultGuard configuration has been reset.");
             this.display();
           }
         })
@@ -861,7 +1548,7 @@ var import_state = require("@codemirror/state");
 var import_view = require("@codemirror/view");
 
 // src/utils/clipboard.ts
-var import_obsidian3 = require("obsidian");
+var import_obsidian4 = require("obsidian");
 var VaultGuardClipboard = class {
   static activeWipeTimer = null;
   static lastSecretCopied = null;
@@ -974,7 +1661,7 @@ var VaultGuardClipboard = class {
             await this.clearClipboard();
             this.lastSecretCopied = null;
             if (notifyOnWipe) {
-              new import_obsidian3.Notice("\u{1F512} VaultGuard: Ephemeral clipboard cleared for security.");
+              new import_obsidian4.Notice("\u{1F512} VaultGuard: Ephemeral clipboard cleared for security.");
             }
           }
         } catch (e) {
@@ -1400,148 +2087,11 @@ ${source.trim()}
 }
 
 // src/editor/pasteHandler.ts
-var import_obsidian5 = require("obsidian");
-
-// src/utils/heuristics.ts
-var SENSITIVE_PATTERNS = [
-  {
-    id: "anthropic-api-key",
-    name: "Anthropic API Key",
-    regex: /\b(sk-ant-[a-zA-Z0-9_-]{90,})\b/,
-    suggestedLabel: "Anthropic API Key"
-  },
-  {
-    id: "openai-api-key",
-    name: "OpenAI API Key",
-    // Covers classic sk-... and modern sk-proj-..., excluding sk-ant-
-    regex: /\b(sk-(?!ant-)[a-zA-Z0-9_-]{48,})\b/,
-    suggestedLabel: "OpenAI API Key"
-  },
-  {
-    id: "github-pat",
-    name: "GitHub Personal Access Token",
-    // Supports classic ghp_ tokens (36-40 chars) and fine-grained github_pat_ (82+ chars)
-    regex: /\b(ghp_[a-zA-Z0-9]{30,40}|github_pat_[a-zA-Z0-9_]{80,90})\b/,
-    suggestedLabel: "GitHub Token"
-  },
-  {
-    id: "aws-access-key",
-    name: "AWS Access Key ID",
-    regex: /\b(AKIA[0-9A-Z]{16})\b/,
-    suggestedLabel: "AWS Access Key"
-  },
-  {
-    id: "private-key",
-    name: "Private Cryptographic Key",
-    regex: /(-----BEGIN (?:RSA|EC|OPENSSH|PGP|DSA)? ?PRIVATE KEY-----[\s\S]*?-----END (?:RSA|EC|OPENSSH|PGP|DSA)? ?PRIVATE KEY-----)/,
-    suggestedLabel: "Private Key"
-  },
-  {
-    id: "jwt-bearer",
-    name: "JWT / Bearer Token",
-    regex: /\b(ey[A-Za-z0-9_-]{10,}\.[A-Za-z0-9._-]{10,}(?:\.[A-Za-z0-9._-]+)?)\b/,
-    suggestedLabel: "JWT Token"
-  },
-  {
-    id: "stripe-secret-key",
-    name: "Stripe Secret Key",
-    regex: /\b([rs]k_live_[0-9a-zA-Z]{24,})\b/,
-    suggestedLabel: "Stripe Secret Key"
-  },
-  {
-    id: "slack-token",
-    name: "Slack API Token",
-    regex: /\b(xox[baprs]-[0-9a-zA-Z-]{10,})\b/,
-    suggestedLabel: "Slack Token"
-  },
-  {
-    id: "google-api-key",
-    name: "Google Cloud API Key",
-    regex: /\b(AIza[0-9A-Za-z\\-_]{35})\b/,
-    suggestedLabel: "Google API Key"
-  },
-  {
-    id: "db-connection-uri",
-    name: "Database Connection URI with Credentials",
-    regex: /\b((?:postgres|postgresql|mysql|mongodb(?:\+srv)?):\/\/[^\s:@/]+:[^\s:@/]+@[^\s/]+(?:\/[^\s]*)?)\b/,
-    suggestedLabel: "Database Credentials"
-  },
-  {
-    id: "contextual-password",
-    name: "Password / Secret Credential",
-    // Matches keys like password: ..., secret = "...", auth_token: ...
-    regex: /\b(?:password|passwd|pwd|passphrase|secret|api_key|apikey|auth_token)\s*[:=]\s*["']?([^\s"']{6,})["']?/i,
-    suggestedLabel: "Password"
-  }
-];
-function isLikelyPassword(str) {
-  const trimmed = str.trim();
-  if (trimmed.length < 8 || trimmed.length > 128 || /\s/.test(trimmed)) {
-    return false;
-  }
-  if (/^(?:https?:\/\/|file:\/\/|\/|\.\/|mailto:|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i.test(trimmed)) {
-    return false;
-  }
-  let types = 0;
-  if (/[a-z]/.test(trimmed)) types++;
-  if (/[A-Z]/.test(trimmed)) types++;
-  if (/[0-9]/.test(trimmed)) types++;
-  if (/[^a-zA-Z0-9]/.test(trimmed)) types++;
-  if (types >= 3 && (/[^a-zA-Z0-9]/.test(trimmed) || /[0-9]/.test(trimmed))) {
-    if (/^[A-Z0-9_]+$/.test(trimmed) && !/[a-z]/.test(trimmed) && !/[^A-Z0-9_]/.test(trimmed)) {
-      return false;
-    }
-    return true;
-  }
-  return false;
-}
-function detectSensitiveToken(text) {
-  if (!text || text.trim().length < 6) {
-    return null;
-  }
-  const sample = text.length > 2e5 ? text.slice(0, 2e5) : text;
-  for (const pattern of SENSITIVE_PATTERNS) {
-    const match = pattern.regex.exec(sample);
-    if (match) {
-      const matchedText = match[1] || match[0];
-      const matchSubIndex = match[1] ? match[0].indexOf(match[1]) : 0;
-      const startIndex = match.index + matchSubIndex;
-      return {
-        patternId: pattern.id,
-        patternName: pattern.name,
-        suggestedLabel: pattern.suggestedLabel,
-        matchedText,
-        startIndex,
-        endIndex: startIndex + matchedText.length
-      };
-    }
-  }
-  const trimmed = sample.trim();
-  if (isLikelyPassword(trimmed)) {
-    const startIndex = sample.indexOf(trimmed);
-    return {
-      patternId: "standalone-password",
-      patternName: "Password / Sensitive Secret",
-      suggestedLabel: "Password",
-      matchedText: trimmed,
-      startIndex,
-      endIndex: startIndex + trimmed.length
-    };
-  }
-  return null;
-}
-function maskForPreview(token, visibleChars = 4) {
-  if (token.length <= visibleChars * 2) {
-    return "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
-  }
-  const prefix = token.slice(0, visibleChars);
-  const suffix = token.slice(-visibleChars);
-  return `${prefix}\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022${suffix}`;
-}
+var import_obsidian6 = require("obsidian");
 
 // src/modals/interceptPasteModal.ts
-var import_obsidian4 = require("obsidian");
-var InterceptPasteModal = class extends import_obsidian4.Modal {
+var import_obsidian5 = require("obsidian");
+var InterceptPasteModal = class extends import_obsidian5.Modal {
   plugin;
   editor;
   pastedText;
@@ -1577,7 +2127,7 @@ var InterceptPasteModal = class extends import_obsidian4.Modal {
     });
     this.errorEl = contentEl.createDiv({ cls: "vaultguard-error-message" });
     this.errorEl.style.display = "none";
-    new import_obsidian4.Setting(contentEl).setName("Label for Encrypted Token").setDesc("The display name shown on the masked UI pill.").addText((text) => {
+    new import_obsidian5.Setting(contentEl).setName("Label for Encrypted Token").setDesc("The display name shown on the masked UI pill.").addText((text) => {
       text.setValue(this.customLabel);
       text.onChange((val) => {
         this.customLabel = val;
@@ -1592,7 +2142,7 @@ var InterceptPasteModal = class extends import_obsidian4.Modal {
     });
     pasteRawBtn.addEventListener("click", () => {
       this.editor.replaceSelection(this.pastedText);
-      new import_obsidian4.Notice("\u26A0\uFE0F Pasted unprotected secret in plaintext.");
+      new import_obsidian5.Notice("\u26A0\uFE0F Pasted unprotected secret in plaintext.");
       this.close();
     });
     const encryptBtn = buttonContainer.createEl("button", {
@@ -1641,7 +2191,7 @@ ${token}
         finalTextToInsert = `${before}${token}${after}`;
       }
       this.editor.replaceSelection(finalTextToInsert);
-      new import_obsidian4.Notice("\u{1F512} Credential encrypted and masked in note.");
+      new import_obsidian5.Notice("\u{1F512} Credential encrypted and masked in note.");
       this.close();
     } catch (err) {
       this.showError(err.message || "Encryption failed.");
@@ -1698,7 +2248,7 @@ function registerPasteHandler(plugin) {
     document,
     "paste",
     (evt) => {
-      const activeView = plugin.app.workspace.getActiveViewOfType(import_obsidian5.MarkdownView);
+      const activeView = plugin.app.workspace.getActiveViewOfType(import_obsidian6.MarkdownView);
       if (!activeView || !activeView.editor) return;
       const pastedText = getPastedText(evt);
       if (!pastedText) return;
@@ -1719,8 +2269,8 @@ function registerPasteHandler(plugin) {
 }
 
 // src/modals/insertSecretModal.ts
-var import_obsidian6 = require("obsidian");
-var InsertSecretModal = class extends import_obsidian6.Modal {
+var import_obsidian7 = require("obsidian");
+var InsertSecretModal = class extends import_obsidian7.Modal {
   plugin;
   editor;
   label = "";
@@ -1747,14 +2297,14 @@ var InsertSecretModal = class extends import_obsidian6.Modal {
     });
     this.errorEl = contentEl.createDiv({ cls: "vaultguard-error-message" });
     this.errorEl.style.display = "none";
-    new import_obsidian6.Setting(contentEl).setName("Secret Label (Optional)").setDesc("A non-sensitive descriptor shown on the UI pill (e.g. 'Stripe Live Key', 'Production DB').").addText((text) => {
+    new import_obsidian7.Setting(contentEl).setName("Secret Label (Optional)").setDesc("A non-sensitive descriptor shown on the UI pill (e.g. 'Stripe Live Key', 'Production DB').").addText((text) => {
       text.setPlaceholder("e.g. OpenAI Production Key");
       text.setValue(this.label);
       text.onChange((val) => {
         this.label = val;
       });
     });
-    const secretSetting = new import_obsidian6.Setting(contentEl).setName("Secret Value").setDesc("The confidential credential, API key, or certificate.");
+    const secretSetting = new import_obsidian7.Setting(contentEl).setName("Secret Value").setDesc("The confidential credential, API key, or certificate.");
     const secretWrapper = contentEl.createDiv({ cls: "vaultguard-secret-input-wrapper" });
     this.secretInputEl = secretWrapper.createEl("textarea", {
       cls: "vaultguard-secret-textarea masked",
@@ -1785,7 +2335,7 @@ var InsertSecretModal = class extends import_obsidian6.Modal {
         toggleRevealBtn.textContent = "\u{1F441}\uFE0F Show Plaintext";
       }
     });
-    new import_obsidian6.Setting(contentEl).setName("Storage Format").setDesc("Inline comment for single-line API tokens, or fenced code block for multiline SSH/PEM certificates.").addDropdown((dropdown) => {
+    new import_obsidian7.Setting(contentEl).setName("Storage Format").setDesc("Inline comment for single-line API tokens, or fenced code block for multiline SSH/PEM certificates.").addDropdown((dropdown) => {
       dropdown.addOption("auto", "Auto-Detect (Inline for single line, Code Block for multiline)");
       dropdown.addOption("inline", "Inline Comment (%%vg:v1:...%%)");
       dropdown.addOption("codeblock", "Fenced Code Block (```vaultguard)");
@@ -1850,7 +2400,7 @@ var InsertSecretModal = class extends import_obsidian6.Modal {
 ${token}
 ` : token;
       this.editor.replaceSelection(textToInsert);
-      new import_obsidian6.Notice("\u{1F512} Encrypted secret inserted safely.");
+      new import_obsidian7.Notice("\u{1F512} Encrypted secret inserted safely.");
       this.close();
     } catch (err) {
       this.showError(err.message || "Failed to encrypt secret.");
@@ -1862,7 +2412,7 @@ ${token}
 };
 
 // src/main.ts
-var VaultGuardPlugin = class extends import_obsidian7.Plugin {
+var VaultGuardPlugin = class extends import_obsidian8.Plugin {
   settings = DEFAULT_SETTINGS;
   session;
   statusBarItemEl = null;
@@ -1894,13 +2444,13 @@ var VaultGuardPlugin = class extends import_obsidian7.Plugin {
       } else if (!this.session.isUnlocked()) {
         new UnlockModal(this.app, this, { mode: "unlock" }).open();
       } else {
-        const activeView = this.app.workspace.getActiveViewOfType(import_obsidian7.MarkdownView);
+        const activeView = this.app.workspace.getActiveViewOfType(import_obsidian8.MarkdownView);
         if (activeView && activeView.editor) {
           new InsertSecretModal(this.app, this, {
             editor: activeView.editor
           }).open();
         } else {
-          new import_obsidian7.Notice("\u{1F513} VaultGuard is unlocked. Open a note to insert secrets.");
+          new import_obsidian8.Notice("\u{1F513} VaultGuard is unlocked. Open a note to insert secrets.");
         }
       }
     });
@@ -1917,12 +2467,19 @@ var VaultGuardPlugin = class extends import_obsidian7.Plugin {
       }
     });
     this.addCommand({
+      id: "audit-vault-secrets",
+      name: "Audit Vault for Plaintext Secrets",
+      callback: () => {
+        new VaultAuditModal(this.app, this).open();
+      }
+    });
+    this.addCommand({
       id: "encrypt-selected-text",
       name: "Encrypt Selected Text",
       editorCallback: (editor) => {
         const selection = editor.getSelection();
         if (!selection) {
-          new import_obsidian7.Notice("Please select text to encrypt.");
+          new import_obsidian8.Notice("Please select text to encrypt.");
           return;
         }
         new InsertSecretModal(this.app, this, {
@@ -1938,7 +2495,7 @@ var VaultGuardPlugin = class extends import_obsidian7.Plugin {
         if (!this.settings.isInitialized) {
           new UnlockModal(this.app, this, { mode: "init" }).open();
         } else if (this.session.isUnlocked()) {
-          new import_obsidian7.Notice("VaultGuard is already unlocked.");
+          new import_obsidian8.Notice("VaultGuard is already unlocked.");
         } else {
           new UnlockModal(this.app, this, { mode: "unlock" }).open();
         }
@@ -1949,10 +2506,10 @@ var VaultGuardPlugin = class extends import_obsidian7.Plugin {
       name: "Lock Vault",
       callback: () => {
         if (!this.session.isUnlocked()) {
-          new import_obsidian7.Notice("VaultGuard is already locked.");
+          new import_obsidian8.Notice("VaultGuard is already locked.");
         } else {
           this.session.lock();
-          new import_obsidian7.Notice("\u{1F512} VaultGuard locked.");
+          new import_obsidian8.Notice("\u{1F512} VaultGuard locked.");
         }
       }
     });
@@ -1973,7 +2530,7 @@ var VaultGuardPlugin = class extends import_obsidian7.Plugin {
       callback: async () => {
         await VaultGuardClipboard.clearClipboard();
         VaultGuardClipboard.cancelAutoWipe();
-        new import_obsidian7.Notice("\u{1F512} Ephemeral clipboard wiped.");
+        new import_obsidian8.Notice("\u{1F512} Ephemeral clipboard wiped.");
       }
     });
     this.registerEvent(
@@ -2014,7 +2571,7 @@ var VaultGuardPlugin = class extends import_obsidian7.Plugin {
       this.statusBarItemEl.setAttribute("title", "Click to lock vault");
       this.statusBarItemEl.onclick = () => {
         this.session.lock();
-        new import_obsidian7.Notice("\u{1F512} VaultGuard locked.");
+        new import_obsidian8.Notice("\u{1F512} VaultGuard locked.");
       };
     } else {
       this.statusBarItemEl.setText("\u{1F512} VaultGuard: Locked");

@@ -23,6 +23,19 @@ export interface DetectedToken {
   endIndex: number;
 }
 
+export interface DiscoveredSecret {
+  id: string;
+  patternId: string;
+  patternName: string;
+  suggestedLabel: string;
+  matchedText: string;
+  startIndex: number;
+  endIndex: number;
+  lineNumber: number;
+  lineContent: string;
+  isMultiline: boolean;
+}
+
 /**
  * Compiled high-performance regex patterns
  */
@@ -193,4 +206,150 @@ export function maskForPreview(token: string, visibleChars = 4): string {
   const prefix = token.slice(0, visibleChars);
   const suffix = token.slice(-visibleChars);
   return `${prefix}••••••••••••${suffix}`;
+}
+
+/**
+ * Scans an entire document for all unencrypted secrets and sensitive credentials.
+ * Automatically excludes ranges that are already encrypted with VaultGuard
+ * (%%vg:v1:...%% and ```vaultguard ... ```).
+ */
+export function scanTextForSecrets(text: string): DiscoveredSecret[] {
+  if (!text || text.trim().length < 6) {
+    return [];
+  }
+
+  // 1. Identify already encrypted ranges so they are never flagged or double-encrypted
+  const encryptedRanges: { from: number; to: number }[] = [];
+
+  const inlineRegex = /%%vg:v1:[\s\S]*?%%/g;
+  let m: RegExpExecArray | null;
+  while ((m = inlineRegex.exec(text)) !== null) {
+    encryptedRanges.push({ from: m.index, to: m.index + m[0].length });
+  }
+
+  const blockRegex = /```vaultguard[\s\S]*?```/g;
+  while ((m = blockRegex.exec(text)) !== null) {
+    encryptedRanges.push({ from: m.index, to: m.index + m[0].length });
+  }
+
+  const isOverlapping = (from: number, to: number): boolean => {
+    return encryptedRanges.some((r) => Math.max(from, r.from) < Math.min(to, r.to));
+  };
+
+  // 2. Pre-index line break positions for fast line number and content resolution
+  const lineOffsets: number[] = [0];
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === "\n") {
+      lineOffsets.push(i + 1);
+    }
+  }
+
+  const getLineInfo = (
+    offset: number
+  ): { lineNumber: number; lineContent: string } => {
+    let low = 0;
+    let high = lineOffsets.length - 1;
+    let lineIdx = 0;
+    while (low <= high) {
+      const mid = (low + high) >> 1;
+      if (lineOffsets[mid] <= offset) {
+        lineIdx = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+    const lineStart = lineOffsets[lineIdx];
+    const lineEnd =
+      lineIdx + 1 < lineOffsets.length
+        ? lineOffsets[lineIdx + 1] - 1
+        : text.length;
+    return {
+      lineNumber: lineIdx + 1,
+      lineContent: text.slice(lineStart, lineEnd).trim(),
+    };
+  };
+
+  const results: DiscoveredSecret[] = [];
+  const coveredRanges: { from: number; to: number }[] = [];
+
+  const isCovered = (from: number, to: number): boolean => {
+    return (
+      isOverlapping(from, to) ||
+      coveredRanges.some((r) => Math.max(from, r.from) < Math.min(to, r.to))
+    );
+  };
+
+  // 3. Scan each pattern across the entire document
+  for (const pattern of SENSITIVE_PATTERNS) {
+    const flags = pattern.regex.flags.includes("g")
+      ? pattern.regex.flags
+      : pattern.regex.flags + "g";
+    const globalRegex = new RegExp(pattern.regex.source, flags);
+
+    let match: RegExpExecArray | null;
+    while ((match = globalRegex.exec(text)) !== null) {
+      const matchedText = match[1] || match[0];
+      const matchSubIndex = match[1] ? match[0].indexOf(match[1]) : 0;
+      const startIndex = match.index + matchSubIndex;
+      const endIndex = startIndex + matchedText.length;
+
+      if (isCovered(startIndex, endIndex)) {
+        continue;
+      }
+
+      coveredRanges.push({ from: startIndex, to: endIndex });
+      const lineInfo = getLineInfo(startIndex);
+
+      results.push({
+        id: `secret-${startIndex}-${endIndex}`,
+        patternId: pattern.id,
+        patternName: pattern.name,
+        suggestedLabel: pattern.suggestedLabel,
+        matchedText,
+        startIndex,
+        endIndex,
+        lineNumber: lineInfo.lineNumber,
+        lineContent: lineInfo.lineContent,
+        isMultiline: matchedText.includes("\n"),
+      });
+    }
+  }
+
+  // 4. Scan individual lines for standalone high-entropy passwords (e.g. KEY=VALUE or standalone lines)
+  for (let lineIdx = 0; lineIdx < lineOffsets.length; lineIdx++) {
+    const lineStart = lineOffsets[lineIdx];
+    const lineEnd =
+      lineIdx + 1 < lineOffsets.length
+        ? lineOffsets[lineIdx + 1] - 1
+        : text.length;
+    const lineText = text.slice(lineStart, lineEnd);
+    const trimmed = lineText.trim();
+
+    if (isLikelyPassword(trimmed)) {
+      const wordStart = lineStart + lineText.indexOf(trimmed);
+      const wordEnd = wordStart + trimmed.length;
+
+      if (!isCovered(wordStart, wordEnd)) {
+        coveredRanges.push({ from: wordStart, to: wordEnd });
+        results.push({
+          id: `secret-${wordStart}-${wordEnd}`,
+          patternId: "standalone-password",
+          patternName: "Password / Sensitive Secret",
+          suggestedLabel: "Password",
+          matchedText: trimmed,
+          startIndex: wordStart,
+          endIndex: wordEnd,
+          lineNumber: lineIdx + 1,
+          lineContent: trimmed,
+          isMultiline: false,
+        });
+      }
+    }
+  }
+
+  // Sort findings by position in document (top to bottom)
+  results.sort((a, b) => a.startIndex - b.startIndex);
+
+  return results;
 }

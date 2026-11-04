@@ -17,6 +17,7 @@ import { registerPostProcessors } from "./editor/postProcessor";
 import { registerPasteHandler } from "./editor/pasteHandler";
 import { UnlockModal } from "./modals/unlockModal";
 import { InsertSecretModal } from "./modals/insertSecretModal";
+import { VaultAuditModal } from "./modals/vaultAuditModal";
 import { VaultGuardClipboard } from "./utils/clipboard";
 
 export default class VaultGuardPlugin extends Plugin {
@@ -80,6 +81,14 @@ export default class VaultGuardPlugin extends Plugin {
           editor,
           initialSecret: selection ? selection : undefined,
         }).open();
+      },
+    });
+
+    this.addCommand({
+      id: "audit-vault-secrets",
+      name: "Audit Vault for Plaintext Secrets",
+      callback: () => {
+        new VaultAuditModal(this.app, this).open();
       },
     });
 

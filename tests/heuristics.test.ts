@@ -6,6 +6,7 @@ import { describe, it, expect } from "vitest";
 import {
   detectSensitiveToken,
   maskForPreview,
+  scanTextForSecrets,
   SENSITIVE_PATTERNS,
 } from "../src/utils/heuristics";
 
@@ -131,5 +132,63 @@ MIIEowIBAAKCAQEA0Y1W9X...
     const preview = maskForPreview(key, 4);
 
     expect(preview).toBe("sk-p••••••••••••7890");
+  });
+
+  describe("Document Batch Secret Scanner (scanTextForSecrets)", () => {
+    it("should discover all unencrypted secrets in a document with line numbers", () => {
+      const doc = `# Project Config
+Here are the project credentials:
+Line 3: OpenAI Key: sk-proj-1234567890abcdef1234567890abcdef1234567890abcdef12
+Line 4: Some notes here.
+Line 5: AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+Line 6: DB URL: postgres://admin:SuperSecretPass99@db.prod.internal.net:5432/main_db
+Line 7: password: MySuperSecretPass#99!
+`;
+
+      const findings = scanTextForSecrets(doc);
+      expect(findings.length).toBe(4);
+
+      expect(findings[0].patternId).toBe("openai-api-key");
+      expect(findings[0].lineNumber).toBe(3);
+
+      expect(findings[1].patternId).toBe("aws-access-key");
+      expect(findings[1].lineNumber).toBe(5);
+
+      expect(findings[2].patternId).toBe("db-connection-uri");
+      expect(findings[2].lineNumber).toBe(6);
+
+      expect(findings[3].patternId).toBe("contextual-password");
+      expect(findings[3].lineNumber).toBe(7);
+      expect(findings[3].matchedText).toBe("MySuperSecretPass#99!");
+    });
+
+    it("should ignore secrets already encrypted with VaultGuard tokens", () => {
+      const doc = `# Secure Document
+Already encrypted token:
+%%vg:v1:label=T1BFTkFJ:iv=UEyGQGybafBD6EBz:data=FVFmaRHX2h7S7e5G1ZHb_HFX4WE:tag=M44gLh8Ajj1UDHzsaXdspw%%
+
+Unencrypted token:
+sk-proj-9999999990abcdef1234567890abcdef1234567890abcdef12
+`;
+
+      const findings = scanTextForSecrets(doc);
+      expect(findings.length).toBe(1);
+      expect(findings[0].matchedText).toBe("sk-proj-9999999990abcdef1234567890abcdef1234567890abcdef12");
+    });
+
+    it("should support safe reverse-order document replacement", () => {
+      let doc = "Key1: sk-proj-1111111110abcdef1234567890abcdef1234567890abcdef12 and Key2: AKIAIOSFODNN7EXAMPLE";
+      const findings = scanTextForSecrets(doc);
+      expect(findings.length).toBe(2);
+
+      // Replace in reverse order (highest index to lowest)
+      const reversed = [...findings].sort((a, b) => b.startIndex - a.startIndex);
+      for (const finding of reversed) {
+        const replacement = `%%vg:v1:mock_encrypted_${finding.patternId}%%`;
+        doc = doc.slice(0, finding.startIndex) + replacement + doc.slice(finding.endIndex);
+      }
+
+      expect(doc).toBe("Key1: %%vg:v1:mock_encrypted_openai-api-key%% and Key2: %%vg:v1:mock_encrypted_aws-access-key%%");
+    });
   });
 });
