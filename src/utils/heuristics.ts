@@ -36,6 +36,113 @@ export interface DiscoveredSecret {
   isMultiline: boolean;
 }
 
+export interface SecretSnippet {
+  before: string;
+  matchedMasked: string;
+  after: string;
+  fullSnippet: string;
+}
+
+/**
+ * Common words and placeholders that often follow "password:" or "secret:" in documentation,
+ * tutorials, or security analysis reports, but are not actual leaked credentials.
+ */
+export const NON_PASSWORD_WORDS = new Set([
+  "committed",
+  "plaintext",
+  "none",
+  "null",
+  "undefined",
+  "required",
+  "optional",
+  "redacted",
+  "hidden",
+  "placeholder",
+  "removed",
+  "missing",
+  "encrypted",
+  "masked",
+  "blank",
+  "unknown",
+  "needed",
+  "protected",
+  "disabled",
+  "enabled",
+  "true",
+  "false",
+  "string",
+  "number",
+  "boolean",
+  "integer",
+  "example",
+  "sample",
+]);
+
+/**
+ * Checks if a matched credential candidate from contextual-password is an obvious
+ * documentation placeholder or status word rather than a real leaked secret.
+ */
+export function isFalsePositiveSecret(str: string): boolean {
+  if (!str) return true;
+  const clean = str.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (NON_PASSWORD_WORDS.has(clean)) return true;
+  // <placeholder>, [placeholder], {placeholder}
+  if (/^<[^>]+>$/.test(str) || /^\[[^\]]+\]$/.test(str) || /^\{[^\}]+\}$/.test(str)) return true;
+  // Env var expansions: $VAR, ${VAR}
+  if (/^\$\{?[A-Za-z0-9_]+\}?$/.test(str)) return true;
+  // Code expressions: process.env.X, env('X'), os.environ[...]
+  if (/^(?:process\.env|os\.environ|env\(|getenv)/i.test(str)) return true;
+  return false;
+}
+
+/**
+ * Extracts a concise, localized context snippet centered directly around the secret.
+ * Prevents huge single-line documents (e.g. LLM transcript turns) from displaying
+ * thousands of irrelevant characters from the beginning of the line.
+ */
+export function extractSecretSnippet(
+  lineContent: string,
+  matchedText: string,
+  radius = 45
+): SecretSnippet {
+  const masked = maskForPreview(matchedText);
+  if (!lineContent) {
+    return {
+      before: "",
+      matchedMasked: masked,
+      after: "",
+      fullSnippet: masked,
+    };
+  }
+
+  const idx = lineContent.indexOf(matchedText);
+  if (idx === -1) {
+    const fallbackBefore = lineContent.slice(0, 50).trim();
+    return {
+      before: fallbackBefore ? fallbackBefore + " ... " : "",
+      matchedMasked: masked,
+      after: "",
+      fullSnippet: `${fallbackBefore} [${masked}]`,
+    };
+  }
+
+  const start = Math.max(0, idx - radius);
+  const end = Math.min(lineContent.length, idx + matchedText.length + radius);
+
+  const rawBefore = lineContent.slice(start, idx).replace(/\s+/g, " ");
+  const rawAfter = lineContent.slice(idx + matchedText.length, end).replace(/\s+/g, " ");
+
+  const before = (start > 0 ? "... " : "") + rawBefore;
+  const after = rawAfter + (end < lineContent.length ? " ..." : "");
+
+  return {
+    before,
+    matchedMasked: masked,
+    after,
+    fullSnippet: `${before}${masked}${after}`,
+  };
+}
+
 /**
  * Compiled high-performance regex patterns
  */
@@ -164,16 +271,20 @@ export function detectSensitiveToken(text: string): DetectedToken | null {
   for (const pattern of SENSITIVE_PATTERNS) {
     const match = pattern.regex.exec(sample);
     if (match) {
-      const matchedText = match[1] || match[0];
-      const matchSubIndex = match[1] ? match[0].indexOf(match[1]) : 0;
-      const startIndex = match.index + matchSubIndex;
+      const rawMatch = match[1] || match[0];
+      const cleanMatch = rawMatch.replace(/^[`"']+|[`"']+$/g, "");
+      if (pattern.id === "contextual-password" && isFalsePositiveSecret(cleanMatch)) {
+        continue;
+      }
+      const matchSubIndex = match[1] ? match[0].indexOf(rawMatch) : 0;
+      const startIndex = match.index + matchSubIndex + rawMatch.indexOf(cleanMatch);
       return {
         patternId: pattern.id,
         patternName: pattern.name,
         suggestedLabel: pattern.suggestedLabel,
-        matchedText,
+        matchedText: cleanMatch,
         startIndex,
-        endIndex: startIndex + matchedText.length,
+        endIndex: startIndex + cleanMatch.length,
       };
     }
   }
@@ -299,6 +410,11 @@ export function scanTextForSecrets(text: string): DiscoveredSecret[] {
 
       // Ignore if it's already an encrypted VaultGuard token
       if (matchedText.startsWith("%%vg:v1:") || matchedText.startsWith("vg:v1:")) {
+        continue;
+      }
+
+      // Filter out common false-positive words and documentation placeholders
+      if (pattern.id === "contextual-password" && isFalsePositiveSecret(matchedText)) {
         continue;
       }
 

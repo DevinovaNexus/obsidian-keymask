@@ -7,6 +7,8 @@ import {
   detectSensitiveToken,
   maskForPreview,
   scanTextForSecrets,
+  isFalsePositiveSecret,
+  extractSecretSnippet,
   SENSITIVE_PATTERNS,
 } from "../src/utils/heuristics";
 
@@ -189,6 +191,45 @@ sk-proj-9999999990abcdef1234567890abcdef1234567890abcdef12
       }
 
       expect(doc).toBe("Key1: %%vg:v1:mock_encrypted_openai-api-key%% and Key2: %%vg:v1:mock_encrypted_aws-access-key%%");
+    });
+
+    it("should filter out non-password words and documentation placeholders", () => {
+      expect(isFalsePositiveSecret("Committed")).toBe(true);
+      expect(isFalsePositiveSecret("plaintext")).toBe(true);
+      expect(isFalsePositiveSecret("none")).toBe(true);
+      expect(isFalsePositiveSecret("null")).toBe(true);
+      expect(isFalsePositiveSecret("<password>")).toBe(true);
+      expect(isFalsePositiveSecret("${PASSWORD}")).toBe(true);
+      expect(isFalsePositiveSecret("process.env.API_KEY")).toBe(true);
+
+      expect(isFalsePositiveSecret("SuperSecret99!")).toBe(false);
+      expect(isFalsePositiveSecret("anudeep@123")).toBe(false);
+      expect(isFalsePositiveSecret("8(V6VeCc][*c)<)P")).toBe(false);
+
+      const doc = `
+# Security Analysis
+Password: Committed in plaintext
+Password: none
+Password: <enter-password-here>
+password: SuperSecret99!
+`;
+      const findings = scanTextForSecrets(doc);
+      expect(findings.length).toBe(1);
+      expect(findings[0].matchedText).toBe("SuperSecret99!");
+    });
+
+    it("should extract localized snippet centered on secret for long lines", () => {
+      const longPrefix = "A".repeat(5000);
+      const longSuffix = "B".repeat(5000);
+      const secret = "SuperSecret99!";
+      const line = `${longPrefix} password: ${secret} ${longSuffix}`;
+
+      const snippet = extractSecretSnippet(line, secret, 20);
+      expect(snippet.before.startsWith("... ")).toBe(true);
+      expect(snippet.after.endsWith(" ...")).toBe(true);
+      expect(snippet.matchedMasked).toBe("Supe••••••••••••t99!");
+      expect(snippet.before.length).toBeLessThan(40);
+      expect(snippet.after.length).toBeLessThan(40);
     });
   });
 });

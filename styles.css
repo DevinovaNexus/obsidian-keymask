@@ -456,9 +456,7 @@
   flex-direction: column;
   gap: 14px;
   margin-top: 16px;
-  max-height: 480px;
-  overflow-y: auto;
-  padding-right: 4px;
+  width: 100%;
 }
 
 .vaultguard-file-card {
@@ -466,35 +464,76 @@
   border: 1px solid var(--background-modifier-border);
   border-radius: 8px;
   overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.vaultguard-file-card:hover {
+  border-color: var(--background-modifier-border-hover);
 }
 
 .vaultguard-file-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: 10px 14px;
   background-color: var(--background-secondary-alt);
   border-bottom: 1px solid var(--background-modifier-border);
-  font-weight: 600;
-  font-size: 0.9em;
+  cursor: pointer;
+  user-select: none;
+  gap: 12px;
+  transition: background-color 0.15s ease;
+}
+
+.vaultguard-file-header:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.vaultguard-file-card.is-collapsed .vaultguard-file-header {
+  border-bottom: none;
+}
+
+.vaultguard-file-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .vaultguard-file-title {
-  cursor: pointer;
-  color: var(--text-accent);
+  font-weight: 600;
+  font-size: 0.95em;
+  color: var(--text-normal);
 }
 
-.vaultguard-file-title:hover {
-  text-decoration: underline;
+.vaultguard-file-path {
+  font-size: 0.78em;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vaultguard-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.vaultguard-chevron-icon {
+  font-size: 0.75em;
+  color: var(--text-muted);
+  padding: 2px 4px;
 }
 
 .vaultguard-file-badge {
   background-color: rgba(239, 68, 68, 0.15);
   color: var(--text-error, #ef4444);
   font-size: 0.8em;
-  padding: 1px 6px;
+  padding: 2px 8px;
   border-radius: 4px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 /* Card-based Finding Items */
@@ -508,7 +547,7 @@
   background: var(--background-modifier-form-field);
   color: var(--text-normal);
   border: 1px solid var(--background-modifier-border);
-  padding: 2px 8px;
+  padding: 3px 10px;
   font-size: 0.8em;
   border-radius: 4px;
   cursor: pointer;
@@ -602,27 +641,36 @@
 .vaultguard-snippet-box {
   background-color: var(--background-secondary-alt);
   border: 1px solid var(--background-modifier-border);
-  border-radius: 4px;
-  padding: 6px 10px;
+  border-radius: 5px;
+  padding: 8px 12px;
   font-family: var(--font-monospace);
   font-size: 0.85em;
-  overflow-x: auto;
+  line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-all;
   cursor: pointer;
   color: var(--text-muted);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .vaultguard-snippet-box:hover {
-  background-color: var(--background-secondary);
+  background-color: var(--background-primary-alt);
+  border-color: var(--interactive-accent);
+}
+
+.vaultguard-snippet-context {
+  color: var(--text-muted);
+  opacity: 0.88;
 }
 
 .vaultguard-secret-highlight {
-  background-color: rgba(239, 68, 68, 0.25);
+  background-color: rgba(239, 68, 68, 0.22);
   color: var(--text-error, #ef4444);
-  font-weight: 600;
-  padding: 1px 4px;
+  font-weight: 700;
+  padding: 1px 6px;
   border-radius: 3px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
 }
 
 .vaultguard-item-bottom-row {

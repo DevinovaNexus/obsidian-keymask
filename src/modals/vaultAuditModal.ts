@@ -12,6 +12,7 @@ import {
   DiscoveredSecret,
   maskForPreview,
   scanTextForSecrets,
+  extractSecretSnippet,
 } from "../utils/heuristics";
 import { UnlockModal } from "./unlockModal";
 
@@ -283,6 +284,35 @@ export class VaultAuditModal extends Modal {
       this.updateSelectionCounts();
     });
 
+    // Expand All / Collapse All
+    const expandAllBtn = actionRow.createEl("button", {
+      text: "▾ Expand All",
+      cls: "vaultguard-btn-secondary",
+    });
+    expandAllBtn.addEventListener("click", () => {
+      this.contentEl.querySelectorAll<HTMLElement>(".vaultguard-file-card").forEach((card) => {
+        card.removeClass("is-collapsed");
+        const chevron = card.querySelector<HTMLElement>(".vaultguard-chevron-icon");
+        if (chevron) chevron.textContent = "▼";
+        const findings = card.querySelector<HTMLElement>(".vaultguard-file-findings");
+        if (findings) findings.style.display = "flex";
+      });
+    });
+
+    const collapseAllBtn = actionRow.createEl("button", {
+      text: "▸ Collapse All",
+      cls: "vaultguard-btn-secondary",
+    });
+    collapseAllBtn.addEventListener("click", () => {
+      this.contentEl.querySelectorAll<HTMLElement>(".vaultguard-file-card").forEach((card) => {
+        card.addClass("is-collapsed");
+        const chevron = card.querySelector<HTMLElement>(".vaultguard-chevron-icon");
+        if (chevron) chevron.textContent = "▶";
+        const findings = card.querySelector<HTMLElement>(".vaultguard-file-findings");
+        if (findings) findings.style.display = "none";
+      });
+    });
+
     // Primary Remediation Button
     const remediateBtn = actionRow.createEl("button", {
       cls: "mod-cta vaultguard-batch-remediate-btn",
@@ -302,19 +332,22 @@ export class VaultAuditModal extends Modal {
 
       const fileCard = filesList.createDiv({ cls: "vaultguard-file-card" });
 
-      // File Title Bar
+      // File Title Bar with clean Basename, Path, Badge, and Action buttons
       const fileHeader = fileCard.createDiv({ cls: "vaultguard-file-header" });
 
-      const fileTitle = fileHeader.createEl("span", {
-        cls: "vaultguard-file-title clickable-icon",
-        text: `📄 ${file.path}`,
-        attr: { title: "Click to open note in editor" },
+      const fileInfo = fileHeader.createDiv({ cls: "vaultguard-file-info" });
+      const fileTitle = fileInfo.createEl("span", {
+        cls: "vaultguard-file-title",
+        text: `📄 ${file.basename}`,
       });
-      fileTitle.addEventListener("click", () => {
-        this.openNoteAtLine(file, 1);
-      });
+      if (file.parent && file.parent.path !== "/") {
+        fileInfo.createEl("span", {
+          cls: "vaultguard-file-path",
+          text: `📁 ${file.path}`,
+        });
+      }
 
-      const headerRight = fileHeader.createDiv({ cls: "vaultguard-header-right" });
+      const headerRight = fileHeader.createDiv({ cls: "vaultguard-header-actions" });
       headerRight.createEl("span", {
         cls: "vaultguard-file-badge",
         text: `${secrets.length} secret${secrets.length > 1 ? "s" : ""}`,
@@ -323,14 +356,38 @@ export class VaultAuditModal extends Modal {
       const openNoteBtn = headerRight.createEl("button", {
         cls: "vaultguard-btn-open-file",
         text: "↗ Open Note",
+        attr: { title: "Open this note in editor" },
       });
       openNoteBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         this.openNoteAtLine(file, 1);
       });
 
+      const chevronIcon = headerRight.createEl("span", {
+        cls: "vaultguard-chevron-icon",
+        text: "▼",
+      });
+
       // Findings List inside fileCard
       const findingsList = fileCard.createDiv({ cls: "vaultguard-file-findings" });
+
+      // Header click toggles collapse / expand
+      fileHeader.addEventListener("click", (e) => {
+        const target = e.target as HTMLElement;
+        if (target === openNoteBtn || target.closest(".vaultguard-btn-open-file")) {
+          return;
+        }
+        const isCollapsed = fileCard.hasClass("is-collapsed");
+        if (isCollapsed) {
+          fileCard.removeClass("is-collapsed");
+          chevronIcon.textContent = "▼";
+          findingsList.style.display = "flex";
+        } else {
+          fileCard.addClass("is-collapsed");
+          chevronIcon.textContent = "▶";
+          findingsList.style.display = "none";
+        }
+      });
 
       for (const secret of secrets) {
         const itemCard = findingsList.createDiv({
@@ -364,7 +421,7 @@ export class VaultAuditModal extends Modal {
           attr: { title: "Click to jump to line in note" },
         });
         lineBadge.addEventListener("click", () => {
-          this.openNoteAtLine(file, secret.lineNumber);
+          this.openNoteAtLine(file, secret.lineNumber, secret.matchedText);
         });
 
         leftGroup.createEl("span", {
@@ -377,11 +434,11 @@ export class VaultAuditModal extends Modal {
         const jumpBtn = rightGroup.createEl("button", {
           cls: "vaultguard-btn-jump",
           text: "↗ Jump to Line",
-          attr: { title: "Open note and scroll to this line" },
+          attr: { title: "Open note and scroll directly to this secret" },
         });
         jumpBtn.addEventListener("click", (e) => {
           e.stopPropagation();
-          this.openNoteAtLine(file, secret.lineNumber);
+          this.openNoteAtLine(file, secret.lineNumber, secret.matchedText);
         });
 
         if (this.remediatedSecretIds.has(secret.id)) {
@@ -400,36 +457,27 @@ export class VaultAuditModal extends Modal {
           });
         }
 
-        // Context Snippet Box (Middle Row): shows the vulnerable line with the secret highlighted!
+        // Context Snippet Box (Middle Row): shows exact localized radius around the secret
         const snippetBox = itemCard.createDiv({
           cls: "vaultguard-snippet-box clickable-icon",
-          attr: { title: "Click to open note at this line" },
+          attr: { title: "Click to jump to this secret in editor" },
         });
         snippetBox.addEventListener("click", () => {
-          this.openNoteAtLine(file, secret.lineNumber);
+          this.openNoteAtLine(file, secret.lineNumber, secret.matchedText);
         });
 
         const codeSnippet = snippetBox.createEl("code");
-        const previewMasked = maskForPreview(secret.matchedText);
+        const snippet = extractSecretSnippet(secret.lineContent, secret.matchedText, 40);
 
-        if (secret.lineContent && secret.lineContent.includes(secret.matchedText)) {
-          const idx = secret.lineContent.indexOf(secret.matchedText);
-          const before = secret.lineContent.slice(0, idx);
-          const after = secret.lineContent.slice(idx + secret.matchedText.length);
-          codeSnippet.createSpan({ text: before });
-          codeSnippet.createEl("mark", {
-            cls: "vaultguard-secret-highlight",
-            text: previewMasked,
-          });
-          codeSnippet.createSpan({ text: after });
-        } else {
-          codeSnippet.createEl("mark", {
-            cls: "vaultguard-secret-highlight",
-            text: previewMasked,
-          });
-          if (secret.lineContent) {
-            codeSnippet.createSpan({ text: ` (${secret.lineContent.slice(0, 80)})` });
-          }
+        if (snippet.before) {
+          codeSnippet.createSpan({ text: snippet.before, cls: "vaultguard-snippet-context" });
+        }
+        codeSnippet.createEl("mark", {
+          cls: "vaultguard-secret-highlight",
+          text: snippet.matchedMasked,
+        });
+        if (snippet.after) {
+          codeSnippet.createSpan({ text: snippet.after, cls: "vaultguard-snippet-context" });
         }
 
         // Bottom Row: Custom label input
@@ -453,22 +501,60 @@ export class VaultAuditModal extends Modal {
   }
 
   /**
-   * Opens the file in Obsidian editor and jumps directly to the specified line
+   * Opens the file in Obsidian editor and jumps directly to the specified line and secret
    */
-  private async openNoteAtLine(file: TFile, lineNumber: number): Promise<void> {
+  private async openNoteAtLine(
+    file: TFile,
+    lineNumber: number,
+    secretText?: string
+  ): Promise<void> {
     try {
+      // Close the modal so the user immediately sees the note in the editor
+      this.close();
+
       const leaf = this.app.workspace.getLeaf(false);
       await leaf.openFile(file);
-      const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-      if (view && view.editor) {
-        const lineIndex = Math.max(0, lineNumber - 1);
-        view.editor.setCursor({ line: lineIndex, ch: 0 });
-        view.editor.scrollIntoView(
-          { from: { line: lineIndex, ch: 0 }, to: { line: lineIndex, ch: 0 } },
-          true
-        );
-      }
-      new Notice(`📄 Opened "${file.basename}" at Line ${lineNumber}.`);
+      this.app.workspace.setActiveLeaf(leaf, { focus: true });
+
+      setTimeout(() => {
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (view && view.editor) {
+          const lineIndex = Math.max(0, lineNumber - 1);
+          const lineText = view.editor.getLine(lineIndex) || "";
+
+          let ch = -1;
+          if (secretText) {
+            ch = lineText.indexOf(secretText);
+          }
+
+          if (ch >= 0 && secretText) {
+            view.editor.setSelection(
+              { line: lineIndex, ch },
+              { line: lineIndex, ch: ch + secretText.length }
+            );
+            view.editor.scrollIntoView(
+              {
+                from: { line: lineIndex, ch },
+                to: { line: lineIndex, ch: ch + secretText.length },
+              },
+              true
+            );
+          } else {
+            view.editor.setCursor({ line: lineIndex, ch: 0 });
+            view.editor.scrollIntoView(
+              {
+                from: { line: lineIndex, ch: 0 },
+                to: { line: lineIndex, ch: 0 },
+              },
+              true
+            );
+          }
+        }
+      }, 75);
+
+      new Notice(
+        `📍 Jumped to Line ${lineNumber} in "${file.basename}". Reopen Audit via Settings or Command Palette.`
+      );
     } catch (e: any) {
       new Notice(`Could not open file: ${e.message}`);
     }
