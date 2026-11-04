@@ -401,10 +401,15 @@ function scanTextForSecrets(text) {
     const globalRegex = new RegExp(pattern.regex.source, flags);
     let match;
     while ((match = globalRegex.exec(text)) !== null) {
-      const matchedText = match[1] || match[0];
-      const matchSubIndex = match[1] ? match[0].indexOf(match[1]) : 0;
-      const startIndex = match.index + matchSubIndex;
-      const endIndex = startIndex + matchedText.length;
+      let matchedText = match[1] || match[0];
+      const cleanMatch = matchedText.replace(/^[`"']+|[`"']+$/g, "");
+      const matchSubIndex = match[1] ? match[0].indexOf(matchedText) : 0;
+      const startIndex = match.index + matchSubIndex + matchedText.indexOf(cleanMatch);
+      const endIndex = startIndex + cleanMatch.length;
+      matchedText = cleanMatch;
+      if (matchedText.startsWith("%%vg:v1:") || matchedText.startsWith("vg:v1:")) {
+        continue;
+      }
       if (isCovered(startIndex, endIndex)) {
         continue;
       }
@@ -422,31 +427,6 @@ function scanTextForSecrets(text) {
         lineContent: lineInfo.lineContent,
         isMultiline: matchedText.includes("\n")
       });
-    }
-  }
-  for (let lineIdx = 0; lineIdx < lineOffsets.length; lineIdx++) {
-    const lineStart = lineOffsets[lineIdx];
-    const lineEnd = lineIdx + 1 < lineOffsets.length ? lineOffsets[lineIdx + 1] - 1 : text.length;
-    const lineText = text.slice(lineStart, lineEnd);
-    const trimmed = lineText.trim();
-    if (isLikelyPassword(trimmed)) {
-      const wordStart = lineStart + lineText.indexOf(trimmed);
-      const wordEnd = wordStart + trimmed.length;
-      if (!isCovered(wordStart, wordEnd)) {
-        coveredRanges.push({ from: wordStart, to: wordEnd });
-        results.push({
-          id: `secret-${wordStart}-${wordEnd}`,
-          patternId: "standalone-password",
-          patternName: "Password / Sensitive Secret",
-          suggestedLabel: "Password",
-          matchedText: trimmed,
-          startIndex: wordStart,
-          endIndex: wordEnd,
-          lineNumber: lineIdx + 1,
-          lineContent: trimmed,
-          isMultiline: false
-        });
-      }
     }
   }
   results.sort((a, b) => a.startIndex - b.startIndex);
@@ -675,31 +655,32 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
       const fileTitle = fileHeader.createEl("span", {
         cls: "vaultguard-file-title clickable-icon",
         text: `\u{1F4C4} ${file.path}`,
-        attr: { title: "Click to open file in workspace" }
+        attr: { title: "Click to open note in editor" }
       });
       fileTitle.addEventListener("click", () => {
-        this.app.workspace.openLinkText(file.path, "", false);
+        this.openNoteAtLine(file, 1);
       });
-      fileHeader.createEl("span", {
+      const headerRight = fileHeader.createDiv({ cls: "vaultguard-header-right" });
+      headerRight.createEl("span", {
         cls: "vaultguard-file-badge",
         text: `${secrets.length} secret${secrets.length > 1 ? "s" : ""}`
       });
-      const table = fileCard.createEl("table", {
-        cls: "vaultguard-secrets-table"
+      const openNoteBtn = headerRight.createEl("button", {
+        cls: "vaultguard-btn-open-file",
+        text: "\u2197 Open Note"
       });
-      const thead = table.createEl("thead");
-      const headerRow = thead.createEl("tr");
-      headerRow.createEl("th", { text: "" });
-      headerRow.createEl("th", { text: "Line" });
-      headerRow.createEl("th", { text: "Type" });
-      headerRow.createEl("th", { text: "Masked Value Preview" });
-      headerRow.createEl("th", { text: "Label" });
-      headerRow.createEl("th", { text: "Action" });
-      const tbody = table.createEl("tbody");
+      openNoteBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.openNoteAtLine(file, 1);
+      });
+      const findingsList = fileCard.createDiv({ cls: "vaultguard-file-findings" });
       for (const secret of secrets) {
-        const row = tbody.createEl("tr", { cls: `row-${secret.id}` });
-        const cbCell = row.createEl("td");
-        const checkbox = cbCell.createEl("input", {
+        const itemCard = findingsList.createDiv({
+          cls: `vaultguard-secret-item row-${secret.id}`
+        });
+        const topRow = itemCard.createDiv({ cls: "vaultguard-item-top-row" });
+        const leftGroup = topRow.createDiv({ cls: "vaultguard-item-left" });
+        const checkbox = leftGroup.createEl("input", {
           type: "checkbox",
           cls: "vaultguard-secret-checkbox"
         });
@@ -713,46 +694,107 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
           }
           this.updateRemediateButton(remediateBtn);
         });
-        row.createEl("td", {
-          cls: "vaultguard-cell-line",
-          text: `L${secret.lineNumber}`
+        const lineBadge = leftGroup.createEl("span", {
+          cls: "vaultguard-cell-line clickable-icon",
+          text: `\u{1F4CD} Line ${secret.lineNumber}`,
+          attr: { title: "Click to jump to line in note" }
         });
-        const typeCell = row.createEl("td");
-        typeCell.createEl("span", {
+        lineBadge.addEventListener("click", () => {
+          this.openNoteAtLine(file, secret.lineNumber);
+        });
+        leftGroup.createEl("span", {
           cls: "vaultguard-pattern-tag",
           text: secret.patternName
         });
-        const previewCell = row.createEl("td");
-        previewCell.createEl("code", {
-          cls: "vaultguard-preview-snippet",
-          text: maskForPreview(secret.matchedText)
+        const rightGroup = topRow.createDiv({ cls: "vaultguard-item-right" });
+        const jumpBtn = rightGroup.createEl("button", {
+          cls: "vaultguard-btn-jump",
+          text: "\u2197 Jump to Line",
+          attr: { title: "Open note and scroll to this line" }
         });
-        const labelCell = row.createEl("td");
-        const labelInput = labelCell.createEl("input", {
+        jumpBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          this.openNoteAtLine(file, secret.lineNumber);
+        });
+        if (this.remediatedSecretIds.has(secret.id)) {
+          rightGroup.createEl("span", {
+            cls: "vaultguard-remediated-badge",
+            text: "\u2705 Encrypted"
+          });
+        } else {
+          const singleEncryptBtn = rightGroup.createEl("button", {
+            cls: "vaultguard-btn-single-encrypt",
+            text: "\u{1F512} Encrypt"
+          });
+          singleEncryptBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            this.remediateSingleSecret(file, secret);
+          });
+        }
+        const snippetBox = itemCard.createDiv({
+          cls: "vaultguard-snippet-box clickable-icon",
+          attr: { title: "Click to open note at this line" }
+        });
+        snippetBox.addEventListener("click", () => {
+          this.openNoteAtLine(file, secret.lineNumber);
+        });
+        const codeSnippet = snippetBox.createEl("code");
+        const previewMasked = maskForPreview(secret.matchedText);
+        if (secret.lineContent && secret.lineContent.includes(secret.matchedText)) {
+          const idx = secret.lineContent.indexOf(secret.matchedText);
+          const before = secret.lineContent.slice(0, idx);
+          const after = secret.lineContent.slice(idx + secret.matchedText.length);
+          codeSnippet.createSpan({ text: before });
+          codeSnippet.createEl("mark", {
+            cls: "vaultguard-secret-highlight",
+            text: previewMasked
+          });
+          codeSnippet.createSpan({ text: after });
+        } else {
+          codeSnippet.createEl("mark", {
+            cls: "vaultguard-secret-highlight",
+            text: previewMasked
+          });
+          if (secret.lineContent) {
+            codeSnippet.createSpan({ text: ` (${secret.lineContent.slice(0, 80)})` });
+          }
+        }
+        const bottomRow = itemCard.createDiv({ cls: "vaultguard-item-bottom-row" });
+        bottomRow.createEl("span", {
+          cls: "vaultguard-label-caption",
+          text: "Pill Label:"
+        });
+        const labelInput = bottomRow.createEl("input", {
           type: "text",
           cls: "vaultguard-inline-label-input",
-          attr: { placeholder: "Label" }
+          attr: { placeholder: "Label for masked pill" }
         });
         labelInput.value = this.customLabels.get(secret.id) || secret.suggestedLabel;
         labelInput.addEventListener("input", () => {
           this.customLabels.set(secret.id, labelInput.value.trim());
         });
-        const actionCell = row.createEl("td");
-        if (this.remediatedSecretIds.has(secret.id)) {
-          actionCell.createEl("span", {
-            cls: "vaultguard-remediated-badge",
-            text: "\u2705 Encrypted"
-          });
-        } else {
-          const singleEncryptBtn = actionCell.createEl("button", {
-            cls: "vaultguard-btn-single-encrypt",
-            text: "\u{1F512} Encrypt"
-          });
-          singleEncryptBtn.addEventListener("click", () => {
-            this.remediateSingleSecret(file, secret);
-          });
-        }
       }
+    }
+  }
+  /**
+   * Opens the file in Obsidian editor and jumps directly to the specified line
+   */
+  async openNoteAtLine(file, lineNumber) {
+    try {
+      const leaf = this.app.workspace.getLeaf(false);
+      await leaf.openFile(file);
+      const view = this.app.workspace.getActiveViewOfType(import_obsidian2.MarkdownView);
+      if (view && view.editor) {
+        const lineIndex = Math.max(0, lineNumber - 1);
+        view.editor.setCursor({ line: lineIndex, ch: 0 });
+        view.editor.scrollIntoView(
+          { from: { line: lineIndex, ch: 0 }, to: { line: lineIndex, ch: 0 } },
+          true
+        );
+      }
+      new import_obsidian2.Notice(`\u{1F4C4} Opened "${file.basename}" at Line ${lineNumber}.`);
+    } catch (e) {
+      new import_obsidian2.Notice(`Could not open file: ${e.message}`);
     }
   }
   updateSelectionCounts() {

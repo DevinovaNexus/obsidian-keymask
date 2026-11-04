@@ -289,10 +289,18 @@ export function scanTextForSecrets(text: string): DiscoveredSecret[] {
 
     let match: RegExpExecArray | null;
     while ((match = globalRegex.exec(text)) !== null) {
-      const matchedText = match[1] || match[0];
-      const matchSubIndex = match[1] ? match[0].indexOf(match[1]) : 0;
-      const startIndex = match.index + matchSubIndex;
-      const endIndex = startIndex + matchedText.length;
+      let matchedText = match[1] || match[0];
+      // Clean wrapping quotes or markdown backticks
+      const cleanMatch = matchedText.replace(/^[`"']+|[`"']+$/g, "");
+      const matchSubIndex = match[1] ? match[0].indexOf(matchedText) : 0;
+      const startIndex = match.index + matchSubIndex + (matchedText.indexOf(cleanMatch));
+      const endIndex = startIndex + cleanMatch.length;
+      matchedText = cleanMatch;
+
+      // Ignore if it's already an encrypted VaultGuard token
+      if (matchedText.startsWith("%%vg:v1:") || matchedText.startsWith("vg:v1:")) {
+        continue;
+      }
 
       if (isCovered(startIndex, endIndex)) {
         continue;
@@ -313,38 +321,6 @@ export function scanTextForSecrets(text: string): DiscoveredSecret[] {
         lineContent: lineInfo.lineContent,
         isMultiline: matchedText.includes("\n"),
       });
-    }
-  }
-
-  // 4. Scan individual lines for standalone high-entropy passwords (e.g. KEY=VALUE or standalone lines)
-  for (let lineIdx = 0; lineIdx < lineOffsets.length; lineIdx++) {
-    const lineStart = lineOffsets[lineIdx];
-    const lineEnd =
-      lineIdx + 1 < lineOffsets.length
-        ? lineOffsets[lineIdx + 1] - 1
-        : text.length;
-    const lineText = text.slice(lineStart, lineEnd);
-    const trimmed = lineText.trim();
-
-    if (isLikelyPassword(trimmed)) {
-      const wordStart = lineStart + lineText.indexOf(trimmed);
-      const wordEnd = wordStart + trimmed.length;
-
-      if (!isCovered(wordStart, wordEnd)) {
-        coveredRanges.push({ from: wordStart, to: wordEnd });
-        results.push({
-          id: `secret-${wordStart}-${wordEnd}`,
-          patternId: "standalone-password",
-          patternName: "Password / Sensitive Secret",
-          suggestedLabel: "Password",
-          matchedText: trimmed,
-          startIndex: wordStart,
-          endIndex: wordEnd,
-          lineNumber: lineIdx + 1,
-          lineContent: trimmed,
-          isMultiline: false,
-        });
-      }
     }
   }
 

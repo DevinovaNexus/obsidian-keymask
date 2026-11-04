@@ -497,54 +497,155 @@
   font-weight: 500;
 }
 
-.vaultguard-secrets-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85em;
+/* Card-based Finding Items */
+.vaultguard-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.vaultguard-secrets-table th,
-.vaultguard-secrets-table td {
-  padding: 8px 10px;
-  text-align: left;
-  border-bottom: 1px solid var(--background-modifier-border);
-}
-
-.vaultguard-secrets-table th {
-  color: var(--text-muted);
-  font-weight: 600;
+.vaultguard-btn-open-file {
+  background: var(--background-modifier-form-field);
+  color: var(--text-normal);
+  border: 1px solid var(--background-modifier-border);
+  padding: 2px 8px;
   font-size: 0.8em;
-  text-transform: uppercase;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.vaultguard-btn-open-file:hover {
+  background: var(--background-modifier-hover);
+}
+
+.vaultguard-file-findings {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 14px;
+  gap: 12px;
+}
+
+.vaultguard-secret-item {
+  background-color: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.15s ease;
+}
+
+.vaultguard-secret-item:hover {
+  border-color: var(--interactive-accent);
+}
+
+.vaultguard-item-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.vaultguard-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vaultguard-item-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .vaultguard-cell-line {
   font-family: var(--font-monospace);
-  color: var(--text-muted);
-  white-space: nowrap;
+  font-weight: 600;
+  font-size: 0.85em;
+  color: var(--text-accent);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: var(--background-modifier-form-field);
+}
+
+.vaultguard-cell-line:hover {
+  text-decoration: underline;
 }
 
 .vaultguard-pattern-tag {
-  background-color: var(--background-modifier-form-field);
-  color: var(--text-normal);
-  padding: 2px 6px;
+  background-color: rgba(239, 68, 68, 0.12);
+  color: var(--text-error, #ef4444);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  padding: 2px 8px;
   border-radius: 4px;
   font-size: 0.8em;
+  font-weight: 600;
   white-space: nowrap;
 }
 
-.vaultguard-preview-snippet {
+.vaultguard-btn-jump {
+  background: transparent;
+  color: var(--text-accent);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.8em;
+  cursor: pointer;
+}
+
+.vaultguard-btn-jump:hover {
+  background: var(--background-modifier-hover);
+}
+
+.vaultguard-snippet-box {
+  background-color: var(--background-secondary-alt);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  padding: 6px 10px;
   font-family: var(--font-monospace);
   font-size: 0.85em;
-  background-color: var(--background-primary);
-  padding: 2px 6px;
-  border-radius: 4px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.vaultguard-snippet-box:hover {
+  background-color: var(--background-secondary);
+}
+
+.vaultguard-secret-highlight {
+  background-color: rgba(239, 68, 68, 0.25);
+  color: var(--text-error, #ef4444);
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.vaultguard-item-bottom-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.vaultguard-label-caption {
+  font-size: 0.85em;
   color: var(--text-muted);
 }
 
 .vaultguard-inline-label-input {
   font-size: 0.85em;
-  padding: 3px 6px;
-  width: 120px;
+  padding: 3px 8px;
+  width: 220px;
+  background-color: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  color: var(--text-normal);
 }
 
 .vaultguard-remediated-badge {
@@ -558,7 +659,7 @@
   color: var(--text-on-accent);
   border: none;
   border-radius: 4px;
-  padding: 3px 8px;
+  padding: 3px 10px;
   font-size: 0.8em;
   font-weight: 600;
   cursor: pointer;

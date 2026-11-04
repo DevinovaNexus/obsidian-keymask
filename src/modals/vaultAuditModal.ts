@@ -6,7 +6,7 @@
  * Provides interactive review and one-click batch encryption & masking.
  */
 
-import { App, Modal, Setting, Notice, TFile, TFolder } from "obsidian";
+import { App, Modal, Setting, Notice, TFile, TFolder, MarkdownView } from "obsidian";
 import type VaultGuardPlugin from "../main";
 import {
   DiscoveredSecret,
@@ -308,38 +308,41 @@ export class VaultAuditModal extends Modal {
       const fileTitle = fileHeader.createEl("span", {
         cls: "vaultguard-file-title clickable-icon",
         text: `📄 ${file.path}`,
-        attr: { title: "Click to open file in workspace" },
+        attr: { title: "Click to open note in editor" },
       });
       fileTitle.addEventListener("click", () => {
-        this.app.workspace.openLinkText(file.path, "", false);
+        this.openNoteAtLine(file, 1);
       });
 
-      fileHeader.createEl("span", {
+      const headerRight = fileHeader.createDiv({ cls: "vaultguard-header-right" });
+      headerRight.createEl("span", {
         cls: "vaultguard-file-badge",
         text: `${secrets.length} secret${secrets.length > 1 ? "s" : ""}`,
       });
 
-      // Secrets List in this file
-      const table = fileCard.createEl("table", {
-        cls: "vaultguard-secrets-table",
+      const openNoteBtn = headerRight.createEl("button", {
+        cls: "vaultguard-btn-open-file",
+        text: "↗ Open Note",
       });
-      const thead = table.createEl("thead");
-      const headerRow = thead.createEl("tr");
-      headerRow.createEl("th", { text: "" }); // Checkbox
-      headerRow.createEl("th", { text: "Line" });
-      headerRow.createEl("th", { text: "Type" });
-      headerRow.createEl("th", { text: "Masked Value Preview" });
-      headerRow.createEl("th", { text: "Label" });
-      headerRow.createEl("th", { text: "Action" });
+      openNoteBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.openNoteAtLine(file, 1);
+      });
 
-      const tbody = table.createEl("tbody");
+      // Findings List inside fileCard
+      const findingsList = fileCard.createDiv({ cls: "vaultguard-file-findings" });
 
       for (const secret of secrets) {
-        const row = tbody.createEl("tr", { cls: `row-${secret.id}` });
+        const itemCard = findingsList.createDiv({
+          cls: `vaultguard-secret-item row-${secret.id}`,
+        });
 
-        // 1. Checkbox
-        const cbCell = row.createEl("td");
-        const checkbox = cbCell.createEl("input", {
+        // Top Row: Checkbox, Line badge, Type tag, Jump button, Encrypt button
+        const topRow = itemCard.createDiv({ cls: "vaultguard-item-top-row" });
+
+        const leftGroup = topRow.createDiv({ cls: "vaultguard-item-left" });
+
+        const checkbox = leftGroup.createEl("input", {
           type: "checkbox",
           cls: "vaultguard-secret-checkbox",
         });
@@ -355,55 +358,119 @@ export class VaultAuditModal extends Modal {
           this.updateRemediateButton(remediateBtn);
         });
 
-        // 2. Line Number
-        row.createEl("td", {
-          cls: "vaultguard-cell-line",
-          text: `L${secret.lineNumber}`,
+        const lineBadge = leftGroup.createEl("span", {
+          cls: "vaultguard-cell-line clickable-icon",
+          text: `📍 Line ${secret.lineNumber}`,
+          attr: { title: "Click to jump to line in note" },
+        });
+        lineBadge.addEventListener("click", () => {
+          this.openNoteAtLine(file, secret.lineNumber);
         });
 
-        // 3. Secret Pattern Badge
-        const typeCell = row.createEl("td");
-        typeCell.createEl("span", {
+        leftGroup.createEl("span", {
           cls: "vaultguard-pattern-tag",
           text: secret.patternName,
         });
 
-        // 4. Masked Preview
-        const previewCell = row.createEl("td");
-        previewCell.createEl("code", {
-          cls: "vaultguard-preview-snippet",
-          text: maskForPreview(secret.matchedText),
+        const rightGroup = topRow.createDiv({ cls: "vaultguard-item-right" });
+
+        const jumpBtn = rightGroup.createEl("button", {
+          cls: "vaultguard-btn-jump",
+          text: "↗ Jump to Line",
+          attr: { title: "Open note and scroll to this line" },
+        });
+        jumpBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          this.openNoteAtLine(file, secret.lineNumber);
         });
 
-        // 5. Label Input
-        const labelCell = row.createEl("td");
-        const labelInput = labelCell.createEl("input", {
-          type: "text",
-          cls: "vaultguard-inline-label-input",
-          attr: { placeholder: "Label" },
-        });
-        labelInput.value = this.customLabels.get(secret.id) || secret.suggestedLabel;
-        labelInput.addEventListener("input", () => {
-          this.customLabels.set(secret.id, labelInput.value.trim());
-        });
-
-        // 6. Action / Remediated Status
-        const actionCell = row.createEl("td");
         if (this.remediatedSecretIds.has(secret.id)) {
-          actionCell.createEl("span", {
+          rightGroup.createEl("span", {
             cls: "vaultguard-remediated-badge",
             text: "✅ Encrypted",
           });
         } else {
-          const singleEncryptBtn = actionCell.createEl("button", {
+          const singleEncryptBtn = rightGroup.createEl("button", {
             cls: "vaultguard-btn-single-encrypt",
             text: "🔒 Encrypt",
           });
-          singleEncryptBtn.addEventListener("click", () => {
+          singleEncryptBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
             this.remediateSingleSecret(file, secret);
           });
         }
+
+        // Context Snippet Box (Middle Row): shows the vulnerable line with the secret highlighted!
+        const snippetBox = itemCard.createDiv({
+          cls: "vaultguard-snippet-box clickable-icon",
+          attr: { title: "Click to open note at this line" },
+        });
+        snippetBox.addEventListener("click", () => {
+          this.openNoteAtLine(file, secret.lineNumber);
+        });
+
+        const codeSnippet = snippetBox.createEl("code");
+        const previewMasked = maskForPreview(secret.matchedText);
+
+        if (secret.lineContent && secret.lineContent.includes(secret.matchedText)) {
+          const idx = secret.lineContent.indexOf(secret.matchedText);
+          const before = secret.lineContent.slice(0, idx);
+          const after = secret.lineContent.slice(idx + secret.matchedText.length);
+          codeSnippet.createSpan({ text: before });
+          codeSnippet.createEl("mark", {
+            cls: "vaultguard-secret-highlight",
+            text: previewMasked,
+          });
+          codeSnippet.createSpan({ text: after });
+        } else {
+          codeSnippet.createEl("mark", {
+            cls: "vaultguard-secret-highlight",
+            text: previewMasked,
+          });
+          if (secret.lineContent) {
+            codeSnippet.createSpan({ text: ` (${secret.lineContent.slice(0, 80)})` });
+          }
+        }
+
+        // Bottom Row: Custom label input
+        const bottomRow = itemCard.createDiv({ cls: "vaultguard-item-bottom-row" });
+        bottomRow.createEl("span", {
+          cls: "vaultguard-label-caption",
+          text: "Pill Label:",
+        });
+        const labelInput = bottomRow.createEl("input", {
+          type: "text",
+          cls: "vaultguard-inline-label-input",
+          attr: { placeholder: "Label for masked pill" },
+        });
+        labelInput.value =
+          this.customLabels.get(secret.id) || secret.suggestedLabel;
+        labelInput.addEventListener("input", () => {
+          this.customLabels.set(secret.id, labelInput.value.trim());
+        });
       }
+    }
+  }
+
+  /**
+   * Opens the file in Obsidian editor and jumps directly to the specified line
+   */
+  private async openNoteAtLine(file: TFile, lineNumber: number): Promise<void> {
+    try {
+      const leaf = this.app.workspace.getLeaf(false);
+      await leaf.openFile(file);
+      const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+      if (view && view.editor) {
+        const lineIndex = Math.max(0, lineNumber - 1);
+        view.editor.setCursor({ line: lineIndex, ch: 0 });
+        view.editor.scrollIntoView(
+          { from: { line: lineIndex, ch: 0 }, to: { line: lineIndex, ch: 0 } },
+          true
+        );
+      }
+      new Notice(`📄 Opened "${file.basename}" at Line ${lineNumber}.`);
+    } catch (e: any) {
+      new Notice(`Could not open file: ${e.message}`);
     }
   }
 
