@@ -1252,10 +1252,34 @@
   border-radius: 6px;
 }
 
+/* 7e. Confirmation Modal */
+.vaultguard-confirm-modal {
+  max-width: 480px;
+}
+
+.vaultguard-confirm-message {
+  padding: 8px 0 16px 0;
+  font-size: 0.95em;
+  color: var(--text-normal);
+  line-height: 1.5;
+}
+
+.vaultguard-btn-danger {
+  background-color: var(--text-error, #ef4444) !important;
+  color: #fff !important;
+  border-color: var(--text-error, #ef4444) !important;
+  font-weight: 600;
+}
+
+.vaultguard-btn-danger:hover {
+  opacity: 0.9;
+}
+
 /* 8. Mobile Responsive Adaptations */
 @media (max-width: 768px) {
   .modal.mod-vaultguard-audit,
-  .modal:has(.vaultguard-audit-modal) {
+  .modal:has(.vaultguard-audit-modal),
+  .modal.mod-vaultguard-modal {
     width: 95vw !important;
     max-width: 95vw !important;
   }
@@ -1285,7 +1309,8 @@
 
   .vaultguard-modal input[type="text"],
   .vaultguard-modal input[type="password"],
-  .vaultguard-secret-textarea {
+  .vaultguard-secret-textarea,
+  .vaultguard-full-input {
     font-size: 16px !important; /* Prevents auto-zoom on iOS WebKit */
   }
 
@@ -1297,5 +1322,79 @@
     width: 100%;
     margin-left: 0;
     margin-top: 8px;
+  }
+
+  /* Mobile Whole-File Security Card */
+  .vaultguard-whole-file-banner {
+    padding: 10px 6px !important;
+  }
+
+  .vaultguard-file-card-full {
+    padding: 14px 12px !important;
+    gap: 12px !important;
+    margin: 6px 0 !important;
+  }
+
+  .vaultguard-file-card-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  .vaultguard-file-header-left {
+    width: 100% !important;
+  }
+
+  .vaultguard-file-header-right {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+  }
+
+  .vaultguard-file-card-toolbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  .vaultguard-toolbar-left,
+  .vaultguard-toolbar-right {
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  .vaultguard-btn-action,
+  .vaultguard-btn-revert {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 10px 14px !important;
+    font-size: 0.9em !important;
+    min-height: 42px !important; /* Touch target accessibility */
+    box-sizing: border-box !important;
+  }
+
+  .vaultguard-file-preview-content {
+    max-height: 280px !important;
+    padding: 12px 14px !important;
+    font-size: 0.84em !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .vaultguard-file-preview-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .vaultguard-preview-actions {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  .vaultguard-target-stats-row {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
   }
 }

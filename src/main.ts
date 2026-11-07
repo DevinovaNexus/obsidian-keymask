@@ -21,6 +21,7 @@ import { EncryptFileModal } from "./modals/encryptFileModal";
 import { VaultAuditModal } from "./modals/vaultAuditModal";
 import { ExportSecretsModal } from "./modals/exportSecretsModal";
 import { BatchDecryptModal } from "./modals/batchDecryptModal";
+import { confirmAction } from "./modals/confirmModal";
 import { VaultGuardClipboard } from "./utils/clipboard";
 import {
   isWholeFileEncrypted,
@@ -423,7 +424,13 @@ export default class VaultGuardPlugin extends Plugin {
       return;
     }
 
-    if (!confirm(`Revert note "${file.basename}" back to unencrypted plaintext Markdown?`)) {
+    const confirmed = await confirmAction(this.app, {
+      title: "Decrypt Note to Plaintext",
+      message: `Permanently decrypt note "${file.basename}" back to unencrypted plaintext Markdown?`,
+      confirmText: "Decrypt Note",
+      danger: true,
+    });
+    if (!confirmed) {
       return;
     }
 

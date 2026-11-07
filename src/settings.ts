@@ -8,6 +8,7 @@ import { UnlockModal } from "./modals/unlockModal";
 import { VaultAuditModal } from "./modals/vaultAuditModal";
 import { ExportSecretsModal } from "./modals/exportSecretsModal";
 import { BatchDecryptModal } from "./modals/batchDecryptModal";
+import { confirmAction } from "./modals/confirmModal";
 
 export interface VaultGuardSettings {
   isInitialized: boolean;
@@ -273,10 +274,13 @@ export class VaultGuardSettingTab extends PluginSettingTab {
             .setButtonText("Reset Vault Configuration")
             .setWarning()
             .onClick(async () => {
-              const confirm = window.confirm(
-                "Are you sure you want to reset VaultGuard? Any secrets encrypted with the current key cannot be decrypted without the original salt and passphrase!"
-              );
-              if (confirm) {
+              const confirmed = await confirmAction(this.app, {
+                title: "Reset VaultGuard Configuration",
+                message: "Are you sure you want to reset VaultGuard? Any secrets encrypted with the current key cannot be decrypted without the original salt and passphrase!",
+                confirmText: "Reset Configuration",
+                danger: true,
+              });
+              if (confirmed) {
                 this.plugin.settings.isInitialized = false;
                 this.plugin.settings.salt = "";
                 this.plugin.settings.canaryToken = "";

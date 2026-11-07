@@ -14,6 +14,7 @@ import { Notice, setIcon, TFile } from "obsidian";
 import type VaultGuardPlugin from "../main";
 import { SecretPayload } from "../crypto/serializer";
 import { UnlockModal } from "../modals/unlockModal";
+import { confirmAction } from "../modals/confirmModal";
 import { VaultGuardClipboard } from "../utils/clipboard";
 
 export interface PillOptions {
@@ -655,7 +656,13 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
       return;
     }
 
-    if (!confirm(`Permanently decrypt "${noteTitle}" and restore unencrypted plaintext Markdown?`)) {
+    const confirmed = await confirmAction(plugin.app, {
+      title: "Decrypt Note to Plaintext",
+      message: `Permanently decrypt "${noteTitle}" and restore unencrypted plaintext Markdown?`,
+      confirmText: "Decrypt Note",
+      danger: true,
+    });
+    if (!confirmed) {
       return;
     }
 

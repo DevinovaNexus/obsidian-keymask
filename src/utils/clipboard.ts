@@ -151,16 +151,44 @@ export class VaultGuardClipboard {
       }
     }
 
-    // Fallback if not written via Electron
+    // Fallback if not written via Electron (Mobile / standard browser)
     if (!writtenViaElectron) {
+      let copied = false;
+
       if (
         typeof navigator !== "undefined" &&
         navigator.clipboard &&
         navigator.clipboard.writeText
       ) {
-        await navigator.clipboard.writeText(secret);
-      } else {
-        throw new Error("Unable to access clipboard in this environment.");
+        try {
+          await navigator.clipboard.writeText(secret);
+          copied = true;
+        } catch (clipErr) {
+          console.warn("VaultGuard: navigator.clipboard.writeText rejected on mobile, trying execCommand fallback", clipErr);
+        }
+      }
+
+      if (!copied) {
+        // Fallback for iOS/mobile webviews where navigator.clipboard requires direct sync user gesture
+        try {
+          const textArea = document.createElement("textarea");
+          textArea.value = secret;
+          textArea.style.position = "fixed";
+          textArea.style.left = "-9999px";
+          textArea.style.top = "-9999px";
+          textArea.setAttribute("readonly", "");
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          textArea.setSelectionRange(0, secret.length);
+          const success = document.execCommand("copy");
+          document.body.removeChild(textArea);
+          if (!success) {
+            throw new Error("execCommand copy returned false");
+          }
+        } catch (execErr) {
+          throw new Error("Unable to access clipboard in this environment.");
+        }
       }
     }
 
