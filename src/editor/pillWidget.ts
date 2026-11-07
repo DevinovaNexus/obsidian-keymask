@@ -10,7 +10,7 @@
  */
 
 import { WidgetType } from "@codemirror/view";
-import { Notice } from "obsidian";
+import { Notice, setIcon } from "obsidian";
 import type VaultGuardPlugin from "../main";
 import { SecretPayload } from "../crypto/serializer";
 import { UnlockModal } from "../modals/unlockModal";
@@ -411,7 +411,8 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
   // Top header with Shield Icon, Title, Badge, and Label
   const header = card.createDiv({ cls: "vaultguard-file-card-header" });
   const headerLeft = header.createDiv({ cls: "vaultguard-file-header-left" });
-  headerLeft.createEl("span", { cls: "vaultguard-shield-icon", text: "🛡️" });
+  const shieldIcon = headerLeft.createDiv({ cls: "vaultguard-shield-icon" });
+  setIcon(shieldIcon, "shield-check");
 
   const titleGroup = headerLeft.createDiv({ cls: "vaultguard-file-title-group" });
   titleGroup.createEl("div", {
@@ -431,28 +432,30 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
     text: plugin.session.isUnlocked() ? "🔓 Unlocked" : "🔒 Locked",
   });
 
-  // Action Buttons Toolbar
+  // Action Buttons Toolbar: Left group for reading/copying, Right group for offboarding
   const toolbar = card.createDiv({ cls: "vaultguard-file-card-toolbar" });
+  const toolbarLeft = toolbar.createDiv({ cls: "vaultguard-toolbar-left" });
+  const toolbarRight = toolbar.createDiv({ cls: "vaultguard-toolbar-right" });
 
-  const revealBtn = toolbar.createEl("button", {
+  const revealBtn = toolbarLeft.createEl("button", {
     cls: "vaultguard-btn-action mod-cta",
     text: "👁️ Reveal Note",
   });
 
-  const copyDecryptedBtn = toolbar.createEl("button", {
+  const copyDecryptedBtn = toolbarLeft.createEl("button", {
     cls: "vaultguard-btn-action",
     text: "📋 Copy Decrypted Note",
     attr: { title: "Copy decrypted note to clipboard (ephemeral 30s auto-wipe)" },
   });
 
-  const copyEncryptedBtn = toolbar.createEl("button", {
+  const copyEncryptedBtn = toolbarLeft.createEl("button", {
     cls: "vaultguard-btn-action",
     text: "📦 Copy Encrypted",
     attr: { title: "Copy raw ciphertext block to clipboard" },
   });
 
-  const revertBtn = toolbar.createEl("button", {
-    cls: "vaultguard-btn-action mod-warning",
+  const revertBtn = toolbarRight.createEl("button", {
+    cls: "vaultguard-btn-revert",
     text: "🔓 Revert to Plaintext",
     attr: { title: "Permanently decrypt note back to raw Markdown" },
   });
@@ -462,20 +465,30 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
   previewContainer.style.display = "none";
 
   const previewHeader = previewContainer.createDiv({ cls: "vaultguard-file-preview-header" });
-  previewHeader.createEl("span", {
+  const previewHeaderLeft = previewHeader.createDiv({ cls: "vaultguard-preview-header-left" });
+  const previewIcon = previewHeaderLeft.createSpan({ cls: "vaultguard-preview-icon" });
+  setIcon(previewIcon, "file-text");
+  previewHeaderLeft.createEl("span", {
     cls: "vaultguard-preview-title",
-    text: "📖 Decrypted Note Content",
+    text: "Decrypted Note Content",
   });
 
   const previewActions = previewHeader.createDiv({ cls: "vaultguard-preview-actions" });
   const timerRingSpan = previewActions.createSpan({ cls: "vaultguard-timer-ring-container" });
   const hideBtn = previewActions.createEl("button", {
-    cls: "vaultguard-btn-small",
+    cls: "vaultguard-btn-small vaultguard-btn-hide-preview",
     text: "🙈 Hide Note",
   });
 
   const previewContent = previewContainer.createEl("pre", {
     cls: "vaultguard-file-preview-content",
+  });
+
+  const previewFooter = previewContainer.createDiv({ cls: "vaultguard-file-preview-footer" });
+  const lockIcon = previewFooter.createSpan({ cls: "vaultguard-footer-icon" });
+  setIcon(lockIcon, "lock");
+  previewFooter.createEl("span", {
+    text: "In-memory zero-trace preview • Not written to disk • Auto-locks on blur or timeout",
   });
 
   let isRevealed = false;
@@ -494,6 +507,8 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
     timerRingSpan.empty();
     timerRingSpan.style.display = "none";
     revealBtn.textContent = "👁️ Reveal Note";
+    revealBtn.classList.remove("mod-active");
+    revealBtn.classList.add("mod-cta");
   };
 
   const revealNote = async () => {
@@ -513,6 +528,8 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
       previewContent.textContent = plaintext;
       previewContainer.style.display = "block";
       revealBtn.textContent = "🙈 Hide Note";
+      revealBtn.classList.remove("mod-cta");
+      revealBtn.classList.add("mod-active");
 
       renderCountdownRing(timerRingSpan, secondsRemaining, timeoutSeconds);
       timerRingSpan.style.display = "inline-flex";

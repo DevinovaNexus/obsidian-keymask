@@ -2,9 +2,10 @@
  * VaultGuard Whole-File Encryption Modal
  *
  * Prompts user to confirm full-file encryption with an optional custom label.
+ * Enterprise-grade typography, alignment, and full-width inputs.
  */
 
-import { App, Modal, Setting, Notice, TFile } from "obsidian";
+import { App, Modal, Notice, TFile, setIcon } from "obsidian";
 import type VaultGuardPlugin from "../main";
 
 export interface EncryptFileModalOptions {
@@ -30,44 +31,86 @@ export class EncryptFileModal extends Modal {
   }
 
   onOpen(): void {
-    this.modalEl.addClass("mod-vaultguard-modal");
+    this.modalEl.addClass("mod-vaultguard-modal", "vaultguard-encrypt-file-modal");
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("vaultguard-modal");
 
-    contentEl.createEl("h2", {
-      text: "🔒 Encrypt Entire Note",
-    });
+    // Modal Header with SVG Icon
+    const headerEl = contentEl.createDiv({ cls: "vaultguard-modal-header" });
+    const headerIcon = headerEl.createDiv({ cls: "vaultguard-modal-header-icon" });
+    setIcon(headerIcon, "shield-check");
+    headerEl.createEl("h2", { text: "Encrypt Entire Note" });
 
     const lines = this.content.split("\n").length;
     const chars = this.content.length;
 
-    // Info card describing the operation
-    const infoCard = contentEl.createDiv({ cls: "vaultguard-intercept-banner" });
-    infoCard.createEl("div", {
-      cls: "vaultguard-badge-pattern",
-      text: "Authenticated AES-256-GCM",
-    });
-    infoCard.createEl("p", {
-      cls: "setting-item-description",
-      text: `Target: "${this.file.basename}" • ${lines} lines • ${chars.toLocaleString()} characters`,
-    });
-    infoCard.createEl("p", {
-      cls: "setting-item-description",
-      text: "The entire contents of this note will be encrypted into an authenticated ciphertext container. Zero plaintext will remain at rest or in sync history.",
+    // Structured Target File Details Card
+    const targetCard = contentEl.createDiv({ cls: "vaultguard-file-target-card" });
+
+    // Row 1: Target note name + Security algorithm badge
+    const targetTop = targetCard.createDiv({ cls: "vaultguard-target-top" });
+    const targetTitleGroup = targetTop.createDiv({ cls: "vaultguard-target-title-group" });
+    const targetFileIcon = targetTitleGroup.createSpan({ cls: "vaultguard-target-icon" });
+    setIcon(targetFileIcon, "file-text");
+    targetTitleGroup.createEl("span", {
+      cls: "vaultguard-target-filename",
+      text: `${this.file.basename}.md`,
     });
 
-    // Label setting
-    new Setting(contentEl)
-      .setName("Note Security Label")
-      .setDesc("A public descriptive title displayed while the file is locked.")
-      .addText((text) => {
-        text.setValue(this.label);
-        text.setPlaceholder("e.g. Confidential Journal, Server Runbook");
-        text.onChange((val) => {
-          this.label = val.trim();
-        });
+    targetTop.createEl("span", {
+      cls: "vaultguard-target-algo-pill",
+      text: "AES-256-GCM",
+    });
+
+    // Row 2: File Stats (Lines, Characters, Folder Path)
+    const statsRow = targetCard.createDiv({ cls: "vaultguard-target-stats-row" });
+    statsRow.createEl("span", {
+      cls: "vaultguard-stat-item",
+      text: `📊 ${lines} ${lines === 1 ? "line" : "lines"}`,
+    });
+    statsRow.createEl("span", { cls: "vaultguard-stat-bullet", text: "•" });
+    statsRow.createEl("span", {
+      cls: "vaultguard-stat-item",
+      text: `🔤 ${chars.toLocaleString()} characters`,
+    });
+    if (this.file.parent && this.file.parent.path !== "/") {
+      statsRow.createEl("span", { cls: "vaultguard-stat-bullet", text: "•" });
+      statsRow.createEl("span", {
+        cls: "vaultguard-stat-item",
+        text: `📁 ${this.file.parent.path}`,
       });
+    }
+
+    // Row 3: Security guarantee notice
+    const noteNotice = targetCard.createDiv({ cls: "vaultguard-target-notice" });
+    noteNotice.createEl("p", {
+      text: "The complete contents of this note will be converted into an authenticated ciphertext container. Zero plaintext will remain on disk or in sync history.",
+    });
+
+    // Full-Width Security Label Input Field
+    const labelGroup = contentEl.createDiv({ cls: "vaultguard-form-field-group" });
+    const labelHeader = labelGroup.createDiv({ cls: "vaultguard-field-header" });
+    labelHeader.createEl("label", {
+      cls: "vaultguard-field-label",
+      text: "Note Security Label",
+    });
+    labelHeader.createEl("span", {
+      cls: "vaultguard-field-hint",
+      text: "Public title shown while note is locked",
+    });
+
+    const labelInput = labelGroup.createEl("input", {
+      type: "text",
+      cls: "vaultguard-full-input",
+      attr: {
+        placeholder: "e.g. Confidential Journal, Recovery Keys, Server Runbook",
+      },
+    });
+    labelInput.value = this.label;
+    labelInput.addEventListener("input", () => {
+      this.label = labelInput.value.trim();
+    });
 
     // Action buttons
     const btnContainer = contentEl.createDiv({ cls: "vaultguard-modal-buttons" });
@@ -79,8 +122,8 @@ export class EncryptFileModal extends Modal {
     cancelBtn.addEventListener("click", () => this.close());
 
     const encryptBtn = btnContainer.createEl("button", {
-      text: "🔒 Encrypt Entire File",
-      cls: "mod-cta",
+      text: "🔒 Encrypt Entire Note",
+      cls: "mod-cta vaultguard-btn-primary-action",
     });
     encryptBtn.addEventListener("click", async () => {
       await this.executeEncryption();

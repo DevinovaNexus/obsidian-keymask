@@ -2625,7 +2625,8 @@ function createWholeFileCardElement(options) {
   }
   const header = card.createDiv({ cls: "vaultguard-file-card-header" });
   const headerLeft = header.createDiv({ cls: "vaultguard-file-header-left" });
-  headerLeft.createEl("span", { cls: "vaultguard-shield-icon", text: "\u{1F6E1}\uFE0F" });
+  const shieldIcon = headerLeft.createDiv({ cls: "vaultguard-shield-icon" });
+  (0, import_obsidian7.setIcon)(shieldIcon, "shield-check");
   const titleGroup = headerLeft.createDiv({ cls: "vaultguard-file-title-group" });
   titleGroup.createEl("div", {
     cls: "vaultguard-file-card-title",
@@ -2641,40 +2642,51 @@ function createWholeFileCardElement(options) {
     text: plugin.session.isUnlocked() ? "\u{1F513} Unlocked" : "\u{1F512} Locked"
   });
   const toolbar = card.createDiv({ cls: "vaultguard-file-card-toolbar" });
-  const revealBtn = toolbar.createEl("button", {
+  const toolbarLeft = toolbar.createDiv({ cls: "vaultguard-toolbar-left" });
+  const toolbarRight = toolbar.createDiv({ cls: "vaultguard-toolbar-right" });
+  const revealBtn = toolbarLeft.createEl("button", {
     cls: "vaultguard-btn-action mod-cta",
     text: "\u{1F441}\uFE0F Reveal Note"
   });
-  const copyDecryptedBtn = toolbar.createEl("button", {
+  const copyDecryptedBtn = toolbarLeft.createEl("button", {
     cls: "vaultguard-btn-action",
     text: "\u{1F4CB} Copy Decrypted Note",
     attr: { title: "Copy decrypted note to clipboard (ephemeral 30s auto-wipe)" }
   });
-  const copyEncryptedBtn = toolbar.createEl("button", {
+  const copyEncryptedBtn = toolbarLeft.createEl("button", {
     cls: "vaultguard-btn-action",
     text: "\u{1F4E6} Copy Encrypted",
     attr: { title: "Copy raw ciphertext block to clipboard" }
   });
-  const revertBtn = toolbar.createEl("button", {
-    cls: "vaultguard-btn-action mod-warning",
+  const revertBtn = toolbarRight.createEl("button", {
+    cls: "vaultguard-btn-revert",
     text: "\u{1F513} Revert to Plaintext",
     attr: { title: "Permanently decrypt note back to raw Markdown" }
   });
   const previewContainer = card.createDiv({ cls: "vaultguard-file-preview-container" });
   previewContainer.style.display = "none";
   const previewHeader = previewContainer.createDiv({ cls: "vaultguard-file-preview-header" });
-  previewHeader.createEl("span", {
+  const previewHeaderLeft = previewHeader.createDiv({ cls: "vaultguard-preview-header-left" });
+  const previewIcon = previewHeaderLeft.createSpan({ cls: "vaultguard-preview-icon" });
+  (0, import_obsidian7.setIcon)(previewIcon, "file-text");
+  previewHeaderLeft.createEl("span", {
     cls: "vaultguard-preview-title",
-    text: "\u{1F4D6} Decrypted Note Content"
+    text: "Decrypted Note Content"
   });
   const previewActions = previewHeader.createDiv({ cls: "vaultguard-preview-actions" });
   const timerRingSpan = previewActions.createSpan({ cls: "vaultguard-timer-ring-container" });
   const hideBtn = previewActions.createEl("button", {
-    cls: "vaultguard-btn-small",
+    cls: "vaultguard-btn-small vaultguard-btn-hide-preview",
     text: "\u{1F648} Hide Note"
   });
   const previewContent = previewContainer.createEl("pre", {
     cls: "vaultguard-file-preview-content"
+  });
+  const previewFooter = previewContainer.createDiv({ cls: "vaultguard-file-preview-footer" });
+  const lockIcon = previewFooter.createSpan({ cls: "vaultguard-footer-icon" });
+  (0, import_obsidian7.setIcon)(lockIcon, "lock");
+  previewFooter.createEl("span", {
+    text: "In-memory zero-trace preview \u2022 Not written to disk \u2022 Auto-locks on blur or timeout"
   });
   let isRevealed = false;
   let countdownTimer = null;
@@ -2691,6 +2703,8 @@ function createWholeFileCardElement(options) {
     timerRingSpan.empty();
     timerRingSpan.style.display = "none";
     revealBtn.textContent = "\u{1F441}\uFE0F Reveal Note";
+    revealBtn.classList.remove("mod-active");
+    revealBtn.classList.add("mod-cta");
   };
   const revealNote = async () => {
     if (!plugin.session.isUnlocked()) {
@@ -2707,6 +2721,8 @@ function createWholeFileCardElement(options) {
       previewContent.textContent = plaintext;
       previewContainer.style.display = "block";
       revealBtn.textContent = "\u{1F648} Hide Note";
+      revealBtn.classList.remove("mod-cta");
+      revealBtn.classList.add("mod-active");
       renderCountdownRing(timerRingSpan, secondsRemaining, timeoutSeconds);
       timerRingSpan.style.display = "inline-flex";
       if (countdownTimer !== null) clearInterval(countdownTimer);
@@ -3293,34 +3309,70 @@ var EncryptFileModal = class extends import_obsidian11.Modal {
     this.onSuccess = options.onSuccess;
   }
   onOpen() {
-    this.modalEl.addClass("mod-vaultguard-modal");
+    this.modalEl.addClass("mod-vaultguard-modal", "vaultguard-encrypt-file-modal");
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("vaultguard-modal");
-    contentEl.createEl("h2", {
-      text: "\u{1F512} Encrypt Entire Note"
-    });
+    const headerEl = contentEl.createDiv({ cls: "vaultguard-modal-header" });
+    const headerIcon = headerEl.createDiv({ cls: "vaultguard-modal-header-icon" });
+    (0, import_obsidian11.setIcon)(headerIcon, "shield-check");
+    headerEl.createEl("h2", { text: "Encrypt Entire Note" });
     const lines = this.content.split("\n").length;
     const chars = this.content.length;
-    const infoCard = contentEl.createDiv({ cls: "vaultguard-intercept-banner" });
-    infoCard.createEl("div", {
-      cls: "vaultguard-badge-pattern",
-      text: "Authenticated AES-256-GCM"
+    const targetCard = contentEl.createDiv({ cls: "vaultguard-file-target-card" });
+    const targetTop = targetCard.createDiv({ cls: "vaultguard-target-top" });
+    const targetTitleGroup = targetTop.createDiv({ cls: "vaultguard-target-title-group" });
+    const targetFileIcon = targetTitleGroup.createSpan({ cls: "vaultguard-target-icon" });
+    (0, import_obsidian11.setIcon)(targetFileIcon, "file-text");
+    targetTitleGroup.createEl("span", {
+      cls: "vaultguard-target-filename",
+      text: `${this.file.basename}.md`
     });
-    infoCard.createEl("p", {
-      cls: "setting-item-description",
-      text: `Target: "${this.file.basename}" \u2022 ${lines} lines \u2022 ${chars.toLocaleString()} characters`
+    targetTop.createEl("span", {
+      cls: "vaultguard-target-algo-pill",
+      text: "AES-256-GCM"
     });
-    infoCard.createEl("p", {
-      cls: "setting-item-description",
-      text: "The entire contents of this note will be encrypted into an authenticated ciphertext container. Zero plaintext will remain at rest or in sync history."
+    const statsRow = targetCard.createDiv({ cls: "vaultguard-target-stats-row" });
+    statsRow.createEl("span", {
+      cls: "vaultguard-stat-item",
+      text: `\u{1F4CA} ${lines} ${lines === 1 ? "line" : "lines"}`
     });
-    new import_obsidian11.Setting(contentEl).setName("Note Security Label").setDesc("A public descriptive title displayed while the file is locked.").addText((text) => {
-      text.setValue(this.label);
-      text.setPlaceholder("e.g. Confidential Journal, Server Runbook");
-      text.onChange((val) => {
-        this.label = val.trim();
+    statsRow.createEl("span", { cls: "vaultguard-stat-bullet", text: "\u2022" });
+    statsRow.createEl("span", {
+      cls: "vaultguard-stat-item",
+      text: `\u{1F524} ${chars.toLocaleString()} characters`
+    });
+    if (this.file.parent && this.file.parent.path !== "/") {
+      statsRow.createEl("span", { cls: "vaultguard-stat-bullet", text: "\u2022" });
+      statsRow.createEl("span", {
+        cls: "vaultguard-stat-item",
+        text: `\u{1F4C1} ${this.file.parent.path}`
       });
+    }
+    const noteNotice = targetCard.createDiv({ cls: "vaultguard-target-notice" });
+    noteNotice.createEl("p", {
+      text: "The complete contents of this note will be converted into an authenticated ciphertext container. Zero plaintext will remain on disk or in sync history."
+    });
+    const labelGroup = contentEl.createDiv({ cls: "vaultguard-form-field-group" });
+    const labelHeader = labelGroup.createDiv({ cls: "vaultguard-field-header" });
+    labelHeader.createEl("label", {
+      cls: "vaultguard-field-label",
+      text: "Note Security Label"
+    });
+    labelHeader.createEl("span", {
+      cls: "vaultguard-field-hint",
+      text: "Public title shown while note is locked"
+    });
+    const labelInput = labelGroup.createEl("input", {
+      type: "text",
+      cls: "vaultguard-full-input",
+      attr: {
+        placeholder: "e.g. Confidential Journal, Recovery Keys, Server Runbook"
+      }
+    });
+    labelInput.value = this.label;
+    labelInput.addEventListener("input", () => {
+      this.label = labelInput.value.trim();
     });
     const btnContainer = contentEl.createDiv({ cls: "vaultguard-modal-buttons" });
     const cancelBtn = btnContainer.createEl("button", {
@@ -3329,8 +3381,8 @@ var EncryptFileModal = class extends import_obsidian11.Modal {
     });
     cancelBtn.addEventListener("click", () => this.close());
     const encryptBtn = btnContainer.createEl("button", {
-      text: "\u{1F512} Encrypt Entire File",
-      cls: "mod-cta"
+      text: "\u{1F512} Encrypt Entire Note",
+      cls: "mod-cta vaultguard-btn-primary-action"
     });
     encryptBtn.addEventListener("click", async () => {
       await this.executeEncryption();
