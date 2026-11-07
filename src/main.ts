@@ -5,7 +5,7 @@
  * Core Entry Point
  */
 
-import { Editor, MarkdownView, Notice, Plugin } from "obsidian";
+import { Editor, MarkdownView, Notice, Plugin, TFile } from "obsidian";
 import {
   DEFAULT_SETTINGS,
   VaultGuardSettings,
@@ -17,10 +17,15 @@ import { registerPostProcessors } from "./editor/postProcessor";
 import { registerPasteHandler } from "./editor/pasteHandler";
 import { UnlockModal } from "./modals/unlockModal";
 import { InsertSecretModal } from "./modals/insertSecretModal";
+import { EncryptFileModal } from "./modals/encryptFileModal";
 import { VaultAuditModal } from "./modals/vaultAuditModal";
 import { ExportSecretsModal } from "./modals/exportSecretsModal";
 import { BatchDecryptModal } from "./modals/batchDecryptModal";
 import { VaultGuardClipboard } from "./utils/clipboard";
+import {
+  isWholeFileEncrypted,
+  extractWholeFilePayload,
+} from "./crypto/serializer";
 
 export default class VaultGuardPlugin extends Plugin {
   settings: VaultGuardSettings = DEFAULT_SETTINGS;
@@ -175,6 +180,58 @@ export default class VaultGuardPlugin extends Plugin {
       },
     });
 
+    this.addCommand({
+      id: "encrypt-entire-note",
+      name: "Encrypt Entire Current Note",
+      callback: async () => {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile || activeFile.extension !== "md") {
+          new Notice("Please open a Markdown note first.");
+          return;
+        }
+        await this.encryptEntireFile(activeFile);
+      },
+    });
+
+    this.addCommand({
+      id: "decrypt-entire-note",
+      name: "Decrypt Entire Current Note to Plaintext",
+      callback: async () => {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile || activeFile.extension !== "md") {
+          new Notice("Please open a Markdown note first.");
+          return;
+        }
+        await this.decryptEntireFile(activeFile);
+      },
+    });
+
+    this.addCommand({
+      id: "copy-note-encrypted",
+      name: "Copy Note (Encrypted Ciphertext)",
+      callback: async () => {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile || activeFile.extension !== "md") {
+          new Notice("Please open a Markdown note first.");
+          return;
+        }
+        await this.copyEncryptedFile(activeFile);
+      },
+    });
+
+    this.addCommand({
+      id: "copy-note-decrypted",
+      name: "Copy Note (Decrypted Plaintext)",
+      callback: async () => {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile || activeFile.extension !== "md") {
+          new Notice("Please open a Markdown note first.");
+          return;
+        }
+        await this.copyDecryptedFile(activeFile);
+      },
+    });
+
     // 4. Editor Context Menu
     this.registerEvent(
       this.app.workspace.on("editor-menu", (menu, editor) => {
@@ -189,6 +246,58 @@ export default class VaultGuardPlugin extends Plugin {
                   editor,
                   initialSecret: selection,
                 }).open();
+              });
+          });
+        }
+
+        const activeFile = this.app.workspace.getActiveFile();
+        if (activeFile && activeFile.extension === "md") {
+          menu.addItem((item) => {
+            item
+              .setTitle("VaultGuard: Encrypt Entire Note")
+              .setIcon("shield")
+              .onClick(async () => {
+                await this.encryptEntireFile(activeFile);
+              });
+          });
+          menu.addItem((item) => {
+            item
+              .setTitle("VaultGuard: Copy Note (Encrypted)")
+              .setIcon("copy")
+              .onClick(async () => {
+                await this.copyEncryptedFile(activeFile);
+              });
+          });
+        }
+      })
+    );
+
+    // 5. File Explorer Context Menu
+    this.registerEvent(
+      this.app.workspace.on("file-menu", (menu, file) => {
+        if (file instanceof TFile && file.extension === "md") {
+          menu.addItem((item) => {
+            item
+              .setTitle("VaultGuard: Encrypt Entire Note")
+              .setIcon("lock")
+              .onClick(async () => {
+                await this.encryptEntireFile(file);
+              });
+          });
+          menu.addItem((item) => {
+            item
+              .setTitle("VaultGuard: Decrypt Note to Plaintext")
+              .setIcon("unlock")
+              .onClick(async () => {
+                await this.decryptEntireFile(file);
+              });
+          });
+          menu.addItem((item) => {
+            item
+              .setTitle("VaultGuard: Copy Encrypted Content")
+              .setIcon("copy")
+              .onClick(async () => {
+                await this.copyEncryptedFile(file);
               });
           });
         }
@@ -236,6 +345,119 @@ export default class VaultGuardPlugin extends Plugin {
       this.statusBarItemEl.onclick = () => {
         new UnlockModal(this.app, this, { mode: "unlock" }).open();
       };
+    }
+  }
+
+  async encryptEntireFile(file: TFile): Promise<void> {
+    if (!this.settings.isInitialized) {
+      new UnlockModal(this.app, this, { mode: "init" }).open();
+      return;
+    }
+    if (!this.session.isUnlocked()) {
+      new UnlockModal(this.app, this, {
+        mode: "unlock",
+        onSuccess: () => this.encryptEntireFile(file),
+      }).open();
+      return;
+    }
+
+    const content = await this.app.vault.read(file);
+    if (isWholeFileEncrypted(content)) {
+      new Notice(`Note "${file.basename}" is already fully encrypted with VaultGuard.`);
+      return;
+    }
+
+    new EncryptFileModal(this.app, this, {
+      file,
+      content,
+    }).open();
+  }
+
+  async decryptEntireFile(file: TFile): Promise<void> {
+    if (!this.settings.isInitialized) {
+      new UnlockModal(this.app, this, { mode: "init" }).open();
+      return;
+    }
+    if (!this.session.isUnlocked()) {
+      new UnlockModal(this.app, this, {
+        mode: "unlock",
+        onSuccess: () => this.decryptEntireFile(file),
+      }).open();
+      return;
+    }
+
+    const content = await this.app.vault.read(file);
+    const payload = extractWholeFilePayload(content);
+    if (!payload) {
+      new Notice(`Note "${file.basename}" is not an encrypted note.`);
+      return;
+    }
+
+    if (!confirm(`Revert note "${file.basename}" back to unencrypted plaintext Markdown?`)) {
+      return;
+    }
+
+    try {
+      const plaintext = await this.session.decryptSecret(payload);
+      await this.app.vault.modify(file, plaintext);
+      new Notice(`🔓 Note "${file.basename}" decrypted back to plaintext.`);
+    } catch (err: any) {
+      new Notice(`Failed to decrypt note: ${err.message}`);
+    }
+  }
+
+  async copyEncryptedFile(file: TFile): Promise<void> {
+    const content = await this.app.vault.read(file);
+    if (isWholeFileEncrypted(content)) {
+      await navigator.clipboard.writeText(content);
+      new Notice(`📦 Copied encrypted note ciphertext to clipboard.`);
+    } else {
+      if (!this.settings.isInitialized) {
+        new UnlockModal(this.app, this, { mode: "init" }).open();
+        return;
+      }
+      if (!this.session.isUnlocked()) {
+        new UnlockModal(this.app, this, {
+          mode: "unlock",
+          onSuccess: () => this.copyEncryptedFile(file),
+        }).open();
+        return;
+      }
+      try {
+        const encrypted = await this.session.encryptSecret(content, file.basename, true, true);
+        await navigator.clipboard.writeText(encrypted);
+        new Notice(`📦 Encrypted note and copied ciphertext to clipboard.`);
+      } catch (err: any) {
+        new Notice(`Failed to encrypt note: ${err.message}`);
+      }
+    }
+  }
+
+  async copyDecryptedFile(file: TFile): Promise<void> {
+    const content = await this.app.vault.read(file);
+    const payload = extractWholeFilePayload(content);
+    if (!payload) {
+      await navigator.clipboard.writeText(content);
+      new Notice(`📋 Copied note content to clipboard.`);
+      return;
+    }
+
+    if (!this.session.isUnlocked()) {
+      new UnlockModal(this.app, this, {
+        mode: "unlock",
+        onSuccess: () => this.copyDecryptedFile(file),
+      }).open();
+      return;
+    }
+
+    try {
+      const plaintext = await this.session.decryptSecret(payload);
+      await VaultGuardClipboard.writeSecret(plaintext, {
+        timeoutSeconds: this.settings.clipboardWipeTimeoutSeconds,
+      });
+      new Notice(`📋 Decrypted note copied (auto-wipes in ${this.settings.clipboardWipeTimeoutSeconds}s).`);
+    } catch (err: any) {
+      new Notice(`Failed to decrypt note: ${err.message}`);
     }
   }
 

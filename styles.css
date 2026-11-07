@@ -718,6 +718,164 @@
   opacity: 0.9;
 }
 
+/* 7b. Whole-File Encrypted Security Card UI */
+.vaultguard-file-card-full {
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  padding: 18px 22px;
+  margin: 16px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.vaultguard-file-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  padding-bottom: 12px;
+}
+
+.vaultguard-file-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vaultguard-shield-icon {
+  font-size: 1.8em;
+  line-height: 1;
+}
+
+.vaultguard-file-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vaultguard-file-card-title {
+  font-size: 1.1em;
+  font-weight: 700;
+  color: var(--text-normal);
+}
+
+.vaultguard-file-card-subtitle {
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.vaultguard-status-badge {
+  font-size: 0.8em;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background-color: var(--background-modifier-form-field);
+  color: var(--text-muted);
+}
+
+.vaultguard-file-card-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vaultguard-btn-action {
+  background-color: var(--background-modifier-form-field);
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-normal);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.88em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.vaultguard-btn-action:hover {
+  background-color: var(--background-modifier-hover);
+  border-color: var(--interactive-accent);
+}
+
+.vaultguard-btn-action.mod-cta {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+  font-weight: 600;
+}
+
+.vaultguard-btn-action.mod-cta:hover {
+  opacity: 0.9;
+}
+
+.vaultguard-btn-action.mod-warning {
+  color: var(--text-error, #ef4444);
+}
+
+.vaultguard-btn-action.mod-warning:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: var(--text-error, #ef4444);
+}
+
+.vaultguard-file-preview-container {
+  background-color: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.vaultguard-file-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background-color: var(--background-secondary-alt);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.vaultguard-preview-title {
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--text-normal);
+}
+
+.vaultguard-preview-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vaultguard-btn-small {
+  background: var(--background-modifier-form-field);
+  border: 1px solid var(--background-modifier-border);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  cursor: pointer;
+}
+
+.vaultguard-btn-small:hover {
+  background: var(--background-modifier-hover);
+}
+
+.vaultguard-file-preview-content {
+  margin: 0;
+  padding: 14px 18px;
+  font-family: var(--font-monospace);
+  font-size: 0.88em;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 480px;
+  overflow-y: auto;
+  color: var(--text-normal);
+}
+
 /* 8. Mobile Responsive Adaptations */
 @media (max-width: 768px) {
   .modal.mod-vaultguard-audit,

@@ -215,7 +215,8 @@ export class VaultGuardSession {
   public async encryptSecret(
     plaintext: string,
     label?: string,
-    asCodeBlock: boolean = false
+    asCodeBlock: boolean = false,
+    isFile: boolean = false
   ): Promise<string> {
     if (!this.derivedKey) {
       throw new Error("Vault is locked. Unlock before encrypting.");
@@ -223,8 +224,8 @@ export class VaultGuardSession {
 
     const encrypted = await encrypt(plaintext, this.derivedKey);
 
-    if (asCodeBlock || plaintext.includes("\n")) {
-      return serializeCodeBlock({ label, encrypted });
+    if (asCodeBlock || isFile || plaintext.includes("\n")) {
+      return serializeCodeBlock({ label, encrypted, isFile });
     } else {
       return serializeInline({ label, encrypted });
     }

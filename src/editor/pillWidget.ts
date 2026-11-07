@@ -10,6 +10,7 @@
  */
 
 import { WidgetType } from "@codemirror/view";
+import { Notice } from "obsidian";
 import type VaultGuardPlugin from "../main";
 import { SecretPayload } from "../crypto/serializer";
 import { UnlockModal } from "../modals/unlockModal";
@@ -77,6 +78,11 @@ export class VaultGuardPillWidget extends WidgetType {
  */
 export function createPillElement(options: PillOptions): HTMLElement {
   const { plugin, payload, rawText, isCodeBlock } = options;
+
+  // Whole-file encrypted note card display
+  if (payload && payload.isFilePayload) {
+    return createWholeFileCardElement(options);
+  }
 
   const container = document.createElement(isCodeBlock ? "div" : "span");
   container.className = isCodeBlock
@@ -383,4 +389,238 @@ export function renderCorruptedBlock(
   rawCode.createEl("code", { text: rawText });
 
   container.appendChild(corruptEl);
+}
+
+/**
+ * Renders an interactive full-width security card for Whole-File Encrypted notes.
+ * Provides in-place revelation, ephemeral copying of decrypted note,
+ * direct copying of raw ciphertext, and one-click de-escalation back to plaintext.
+ */
+export function createWholeFileCardElement(options: PillOptions): HTMLElement {
+  const { plugin, payload, rawText } = options;
+
+  const card = document.createElement("div");
+  card.className = "vaultguard-file-card-full";
+
+  // Check for corrupted or invalid payload
+  if (!payload) {
+    renderCorruptedBlock(card, "Invalid whole-file encrypted syntax", rawText);
+    return card;
+  }
+
+  // Top header with Shield Icon, Title, Badge, and Label
+  const header = card.createDiv({ cls: "vaultguard-file-card-header" });
+  const headerLeft = header.createDiv({ cls: "vaultguard-file-header-left" });
+  headerLeft.createEl("span", { cls: "vaultguard-shield-icon", text: "🛡️" });
+
+  const titleGroup = headerLeft.createDiv({ cls: "vaultguard-file-title-group" });
+  titleGroup.createEl("div", {
+    cls: "vaultguard-file-card-title",
+    text: "VaultGuard: Fully Encrypted Note",
+  });
+  titleGroup.createEl("div", {
+    cls: "vaultguard-file-card-subtitle",
+    text: payload.label
+      ? `Label: ${payload.label} • AES-256-GCM Authenticated`
+      : "Protected Note Content • AES-256-GCM Authenticated",
+  });
+
+  const headerRight = header.createDiv({ cls: "vaultguard-file-header-right" });
+  const statusBadge = headerRight.createEl("span", {
+    cls: "vaultguard-status-badge",
+    text: plugin.session.isUnlocked() ? "🔓 Unlocked" : "🔒 Locked",
+  });
+
+  // Action Buttons Toolbar
+  const toolbar = card.createDiv({ cls: "vaultguard-file-card-toolbar" });
+
+  const revealBtn = toolbar.createEl("button", {
+    cls: "vaultguard-btn-action mod-cta",
+    text: "👁️ Reveal Note",
+  });
+
+  const copyDecryptedBtn = toolbar.createEl("button", {
+    cls: "vaultguard-btn-action",
+    text: "📋 Copy Decrypted Note",
+    attr: { title: "Copy decrypted note to clipboard (ephemeral 30s auto-wipe)" },
+  });
+
+  const copyEncryptedBtn = toolbar.createEl("button", {
+    cls: "vaultguard-btn-action",
+    text: "📦 Copy Encrypted",
+    attr: { title: "Copy raw ciphertext block to clipboard" },
+  });
+
+  const revertBtn = toolbar.createEl("button", {
+    cls: "vaultguard-btn-action mod-warning",
+    text: "🔓 Revert to Plaintext",
+    attr: { title: "Permanently decrypt note back to raw Markdown" },
+  });
+
+  // Preview container for decrypted note (initially hidden)
+  const previewContainer = card.createDiv({ cls: "vaultguard-file-preview-container" });
+  previewContainer.style.display = "none";
+
+  const previewHeader = previewContainer.createDiv({ cls: "vaultguard-file-preview-header" });
+  previewHeader.createEl("span", {
+    cls: "vaultguard-preview-title",
+    text: "📖 Decrypted Note Content",
+  });
+
+  const previewActions = previewHeader.createDiv({ cls: "vaultguard-preview-actions" });
+  const timerRingSpan = previewActions.createSpan({ cls: "vaultguard-timer-ring-container" });
+  const hideBtn = previewActions.createEl("button", {
+    cls: "vaultguard-btn-small",
+    text: "🙈 Hide Note",
+  });
+
+  const previewContent = previewContainer.createEl("pre", {
+    cls: "vaultguard-file-preview-content",
+  });
+
+  let isRevealed = false;
+  let countdownTimer: ReturnType<typeof setInterval> | null = null;
+  const timeoutSeconds = 60; // 60s preview window for whole file
+  let secondsRemaining = timeoutSeconds;
+
+  const maskPreview = () => {
+    isRevealed = false;
+    if (countdownTimer !== null) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
+    previewContainer.style.display = "none";
+    previewContent.empty();
+    timerRingSpan.empty();
+    timerRingSpan.style.display = "none";
+    revealBtn.textContent = "👁️ Reveal Note";
+  };
+
+  const revealNote = async () => {
+    if (!plugin.session.isUnlocked()) {
+      new UnlockModal(plugin.app, plugin, {
+        mode: "unlock",
+        onSuccess: () => revealNote(),
+      }).open();
+      return;
+    }
+
+    try {
+      const plaintext = await plugin.session.decryptSecret(payload!);
+      isRevealed = true;
+      secondsRemaining = timeoutSeconds;
+
+      previewContent.textContent = plaintext;
+      previewContainer.style.display = "block";
+      revealBtn.textContent = "🙈 Hide Note";
+
+      renderCountdownRing(timerRingSpan, secondsRemaining, timeoutSeconds);
+      timerRingSpan.style.display = "inline-flex";
+
+      if (countdownTimer !== null) clearInterval(countdownTimer);
+      countdownTimer = setInterval(() => {
+        secondsRemaining -= 1;
+        if (secondsRemaining <= 0) {
+          maskPreview();
+        } else {
+          renderCountdownRing(timerRingSpan, secondsRemaining, timeoutSeconds);
+        }
+      }, 1000);
+    } catch (err: any) {
+      new Notice(`Decryption failed: ${err.message}`);
+    }
+  };
+
+  revealBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (isRevealed) {
+      maskPreview();
+    } else {
+      revealNote();
+    }
+  });
+
+  hideBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    maskPreview();
+  });
+
+  copyDecryptedBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    if (!plugin.session.isUnlocked()) {
+      new UnlockModal(plugin.app, plugin, {
+        mode: "unlock",
+        onSuccess: () => copyDecryptedBtn.click(),
+      }).open();
+      return;
+    }
+
+    try {
+      const plaintext = await plugin.session.decryptSecret(payload!);
+      await VaultGuardClipboard.writeSecret(plaintext, {
+        timeoutSeconds: plugin.settings.clipboardWipeTimeoutSeconds,
+      });
+
+      copyDecryptedBtn.textContent = "✓ Copied Plaintext!";
+      setTimeout(() => {
+        copyDecryptedBtn.textContent = "📋 Copy Decrypted Note";
+      }, 2000);
+      new Notice(`📋 Decrypted note copied (auto-wipes in ${plugin.settings.clipboardWipeTimeoutSeconds}s).`);
+    } catch (err: any) {
+      new Notice(`Failed to copy decrypted note: ${err.message}`);
+    }
+  });
+
+  copyEncryptedBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(rawText);
+      copyEncryptedBtn.textContent = "✓ Copied Ciphertext!";
+      setTimeout(() => {
+        copyEncryptedBtn.textContent = "📦 Copy Encrypted";
+      }, 2000);
+      new Notice("📦 Encrypted note ciphertext copied to clipboard.");
+    } catch (err: any) {
+      new Notice(`Failed to copy ciphertext: ${err.message}`);
+    }
+  });
+
+  revertBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const activeFile = plugin.app.workspace.getActiveFile();
+    if (!activeFile) {
+      new Notice("No active file to revert.");
+      return;
+    }
+
+    if (!plugin.session.isUnlocked()) {
+      new UnlockModal(plugin.app, plugin, {
+        mode: "unlock",
+        onSuccess: () => revertBtn.click(),
+      }).open();
+      return;
+    }
+
+    if (!confirm(`Revert "${activeFile.basename}" to unencrypted plaintext Markdown?`)) {
+      return;
+    }
+
+    try {
+      const plaintext = await plugin.session.decryptSecret(payload!);
+      await plugin.app.vault.modify(activeFile, plaintext);
+      new Notice(`🔓 Note "${activeFile.basename}" reverted to plaintext.`);
+    } catch (err: any) {
+      new Notice(`Failed to revert note: ${err.message}`);
+    }
+  });
+
+  // State changes
+  plugin.session.onStateChange((unlocked) => {
+    statusBadge.textContent = unlocked ? "🔓 Unlocked" : "🔒 Locked";
+    if (!unlocked && isRevealed) {
+      maskPreview();
+    }
+  });
+
+  return card;
 }

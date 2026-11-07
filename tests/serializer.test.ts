@@ -9,6 +9,8 @@ import {
   serializeCodeBlock,
   parseCodeBlock,
   parseSecret,
+  isWholeFileEncrypted,
+  extractWholeFilePayload,
 } from "../src/crypto/serializer";
 import { EncryptedData } from "../src/crypto/engine";
 
@@ -91,6 +93,29 @@ describe("Secret Serializer", () => {
     const parsedBlock = parseSecret(block);
     expect(parsedBlock?.label).toBe("Block Test");
     expect(parsedBlock?.isCodeBlock).toBe(true);
+  });
+
+  it("should support whole-file encrypted containers", () => {
+    const fileBlock = serializeCodeBlock({
+      label: "Entire Secret File",
+      encrypted: dummyEncrypted,
+      isFile: true,
+    });
+
+    expect(fileBlock).toContain("type: file");
+    expect(fileBlock).toContain("label: Entire Secret File");
+
+    const parsed = parseCodeBlock(fileBlock);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.isFilePayload).toBe(true);
+    expect(parsed?.label).toBe("Entire Secret File");
+
+    expect(isWholeFileEncrypted(fileBlock)).toBe(true);
+    expect(isWholeFileEncrypted("# Normal Markdown Note\nContent here")).toBe(false);
+
+    const extracted = extractWholeFilePayload(fileBlock);
+    expect(extracted).not.toBeNull();
+    expect(extracted?.isFilePayload).toBe(true);
   });
 
   it("should return null for malformed or invalid tokens", () => {

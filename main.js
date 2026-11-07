@@ -28,7 +28,7 @@ __export(main_exports, {
   default: () => VaultGuardPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian10 = require("obsidian");
+var import_obsidian12 = require("obsidian");
 
 // src/settings.ts
 var import_obsidian5 = require("obsidian");
@@ -1299,6 +1299,9 @@ function parseInline(raw) {
 }
 function serializeCodeBlock(payload) {
   const lines = ["```vaultguard", "version: 1"];
+  if (payload.isFile) {
+    lines.push("type: file");
+  }
   if (payload.label && payload.label.trim().length > 0) {
     lines.push(`label: ${payload.label.trim()}`);
   }
@@ -1326,6 +1329,7 @@ function parseCodeBlock(raw) {
   }
   const lines = content.split("\n");
   let version = 1;
+  let isFilePayload = false;
   let label;
   let ivStr;
   let tagStr;
@@ -1335,7 +1339,7 @@ function parseCodeBlock(raw) {
     const trimmedLine = line.trim();
     if (trimmedLine.length === 0) continue;
     if (inDataBlock) {
-      if (trimmedLine.startsWith("label:") || trimmedLine.startsWith("iv:") || trimmedLine.startsWith("tag:") || trimmedLine.startsWith("version:")) {
+      if (trimmedLine.startsWith("label:") || trimmedLine.startsWith("iv:") || trimmedLine.startsWith("tag:") || trimmedLine.startsWith("version:") || trimmedLine.startsWith("type:")) {
         inDataBlock = false;
       } else {
         dataChunks.push(trimmedLine);
@@ -1344,6 +1348,11 @@ function parseCodeBlock(raw) {
     }
     if (trimmedLine.startsWith("version:")) {
       version = parseInt(trimmedLine.slice(8).trim(), 10) || 1;
+    } else if (trimmedLine.startsWith("type:")) {
+      const typeVal = trimmedLine.slice(5).trim().toLowerCase();
+      if (typeVal === "file") {
+        isFilePayload = true;
+      }
     } else if (trimmedLine.startsWith("label:")) {
       label = trimmedLine.slice(6).trim();
     } else if (trimmedLine.startsWith("iv:")) {
@@ -1374,11 +1383,39 @@ function parseCodeBlock(raw) {
       data,
       tag,
       rawText: trimmed,
-      isCodeBlock: true
+      isCodeBlock: true,
+      isFilePayload
     };
   } catch (err) {
     return null;
   }
+}
+function parseSecret(raw) {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("%%vg:v1:")) {
+    return parseInline(trimmed);
+  }
+  if (trimmed.startsWith("```vaultguard") || trimmed.includes("data: |")) {
+    return parseCodeBlock(trimmed);
+  }
+  return null;
+}
+function isWholeFileEncrypted(content) {
+  if (!content) return false;
+  const trimmed = content.trim();
+  if (trimmed.startsWith("```vaultguard") && trimmed.endsWith("```")) {
+    return true;
+  }
+  if (trimmed.startsWith("%%vg:v1:") && trimmed.endsWith("%%") && !trimmed.slice(8, -2).includes("\n")) {
+    return true;
+  }
+  return false;
+}
+function extractWholeFilePayload(content) {
+  if (!isWholeFileEncrypted(content)) {
+    return null;
+  }
+  return parseSecret(content);
 }
 
 // src/utils/exporter.ts
@@ -1954,10 +1991,10 @@ var VaultGuardSettingTab = class extends import_obsidian5.PluginSettingTab {
         "Warning: Clears the master salt and verification canary. Existing encrypted tokens in notes will become indecipherable unless you know the previous passphrase."
       ).addButton(
         (button) => button.setButtonText("Reset Vault Configuration").setWarning().onClick(async () => {
-          const confirm = window.confirm(
+          const confirm2 = window.confirm(
             "Are you sure you want to reset VaultGuard? Any secrets encrypted with the current key cannot be decrypted without the original salt and passphrase!"
           );
-          if (confirm) {
+          if (confirm2) {
             this.plugin.settings.isInitialized = false;
             this.plugin.settings.salt = "";
             this.plugin.settings.canaryToken = "";
@@ -2108,13 +2145,13 @@ var VaultGuardSession = class {
   /**
    * Encrypt a secret using the active in-memory key
    */
-  async encryptSecret(plaintext, label, asCodeBlock = false) {
+  async encryptSecret(plaintext, label, asCodeBlock = false, isFile = false) {
     if (!this.derivedKey) {
       throw new Error("Vault is locked. Unlock before encrypting.");
     }
     const encrypted = await encrypt(plaintext, this.derivedKey);
-    if (asCodeBlock || plaintext.includes("\n")) {
-      return serializeCodeBlock({ label, encrypted });
+    if (asCodeBlock || isFile || plaintext.includes("\n")) {
+      return serializeCodeBlock({ label, encrypted, isFile });
     } else {
       return serializeInline({ label, encrypted });
     }
@@ -2182,6 +2219,7 @@ var import_state = require("@codemirror/state");
 
 // src/editor/pillWidget.ts
 var import_view = require("@codemirror/view");
+var import_obsidian7 = require("obsidian");
 
 // src/utils/clipboard.ts
 var import_obsidian6 = require("obsidian");
@@ -2354,6 +2392,9 @@ var VaultGuardPillWidget = class extends import_view.WidgetType {
 };
 function createPillElement(options) {
   const { plugin, payload, rawText, isCodeBlock } = options;
+  if (payload && payload.isFilePayload) {
+    return createWholeFileCardElement(options);
+  }
   const container = document.createElement(isCodeBlock ? "div" : "span");
   container.className = isCodeBlock ? "vaultguard-block-wrapper" : "vaultguard-pill-wrapper";
   if (!payload) {
@@ -2574,6 +2615,194 @@ function renderCorruptedBlock(container, errorMsg, rawText) {
   rawCode.createEl("code", { text: rawText });
   container.appendChild(corruptEl);
 }
+function createWholeFileCardElement(options) {
+  const { plugin, payload, rawText } = options;
+  const card = document.createElement("div");
+  card.className = "vaultguard-file-card-full";
+  if (!payload) {
+    renderCorruptedBlock(card, "Invalid whole-file encrypted syntax", rawText);
+    return card;
+  }
+  const header = card.createDiv({ cls: "vaultguard-file-card-header" });
+  const headerLeft = header.createDiv({ cls: "vaultguard-file-header-left" });
+  headerLeft.createEl("span", { cls: "vaultguard-shield-icon", text: "\u{1F6E1}\uFE0F" });
+  const titleGroup = headerLeft.createDiv({ cls: "vaultguard-file-title-group" });
+  titleGroup.createEl("div", {
+    cls: "vaultguard-file-card-title",
+    text: "VaultGuard: Fully Encrypted Note"
+  });
+  titleGroup.createEl("div", {
+    cls: "vaultguard-file-card-subtitle",
+    text: payload.label ? `Label: ${payload.label} \u2022 AES-256-GCM Authenticated` : "Protected Note Content \u2022 AES-256-GCM Authenticated"
+  });
+  const headerRight = header.createDiv({ cls: "vaultguard-file-header-right" });
+  const statusBadge = headerRight.createEl("span", {
+    cls: "vaultguard-status-badge",
+    text: plugin.session.isUnlocked() ? "\u{1F513} Unlocked" : "\u{1F512} Locked"
+  });
+  const toolbar = card.createDiv({ cls: "vaultguard-file-card-toolbar" });
+  const revealBtn = toolbar.createEl("button", {
+    cls: "vaultguard-btn-action mod-cta",
+    text: "\u{1F441}\uFE0F Reveal Note"
+  });
+  const copyDecryptedBtn = toolbar.createEl("button", {
+    cls: "vaultguard-btn-action",
+    text: "\u{1F4CB} Copy Decrypted Note",
+    attr: { title: "Copy decrypted note to clipboard (ephemeral 30s auto-wipe)" }
+  });
+  const copyEncryptedBtn = toolbar.createEl("button", {
+    cls: "vaultguard-btn-action",
+    text: "\u{1F4E6} Copy Encrypted",
+    attr: { title: "Copy raw ciphertext block to clipboard" }
+  });
+  const revertBtn = toolbar.createEl("button", {
+    cls: "vaultguard-btn-action mod-warning",
+    text: "\u{1F513} Revert to Plaintext",
+    attr: { title: "Permanently decrypt note back to raw Markdown" }
+  });
+  const previewContainer = card.createDiv({ cls: "vaultguard-file-preview-container" });
+  previewContainer.style.display = "none";
+  const previewHeader = previewContainer.createDiv({ cls: "vaultguard-file-preview-header" });
+  previewHeader.createEl("span", {
+    cls: "vaultguard-preview-title",
+    text: "\u{1F4D6} Decrypted Note Content"
+  });
+  const previewActions = previewHeader.createDiv({ cls: "vaultguard-preview-actions" });
+  const timerRingSpan = previewActions.createSpan({ cls: "vaultguard-timer-ring-container" });
+  const hideBtn = previewActions.createEl("button", {
+    cls: "vaultguard-btn-small",
+    text: "\u{1F648} Hide Note"
+  });
+  const previewContent = previewContainer.createEl("pre", {
+    cls: "vaultguard-file-preview-content"
+  });
+  let isRevealed = false;
+  let countdownTimer = null;
+  const timeoutSeconds = 60;
+  let secondsRemaining = timeoutSeconds;
+  const maskPreview = () => {
+    isRevealed = false;
+    if (countdownTimer !== null) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
+    previewContainer.style.display = "none";
+    previewContent.empty();
+    timerRingSpan.empty();
+    timerRingSpan.style.display = "none";
+    revealBtn.textContent = "\u{1F441}\uFE0F Reveal Note";
+  };
+  const revealNote = async () => {
+    if (!plugin.session.isUnlocked()) {
+      new UnlockModal(plugin.app, plugin, {
+        mode: "unlock",
+        onSuccess: () => revealNote()
+      }).open();
+      return;
+    }
+    try {
+      const plaintext = await plugin.session.decryptSecret(payload);
+      isRevealed = true;
+      secondsRemaining = timeoutSeconds;
+      previewContent.textContent = plaintext;
+      previewContainer.style.display = "block";
+      revealBtn.textContent = "\u{1F648} Hide Note";
+      renderCountdownRing(timerRingSpan, secondsRemaining, timeoutSeconds);
+      timerRingSpan.style.display = "inline-flex";
+      if (countdownTimer !== null) clearInterval(countdownTimer);
+      countdownTimer = setInterval(() => {
+        secondsRemaining -= 1;
+        if (secondsRemaining <= 0) {
+          maskPreview();
+        } else {
+          renderCountdownRing(timerRingSpan, secondsRemaining, timeoutSeconds);
+        }
+      }, 1e3);
+    } catch (err) {
+      new import_obsidian7.Notice(`Decryption failed: ${err.message}`);
+    }
+  };
+  revealBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (isRevealed) {
+      maskPreview();
+    } else {
+      revealNote();
+    }
+  });
+  hideBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    maskPreview();
+  });
+  copyDecryptedBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    if (!plugin.session.isUnlocked()) {
+      new UnlockModal(plugin.app, plugin, {
+        mode: "unlock",
+        onSuccess: () => copyDecryptedBtn.click()
+      }).open();
+      return;
+    }
+    try {
+      const plaintext = await plugin.session.decryptSecret(payload);
+      await VaultGuardClipboard.writeSecret(plaintext, {
+        timeoutSeconds: plugin.settings.clipboardWipeTimeoutSeconds
+      });
+      copyDecryptedBtn.textContent = "\u2713 Copied Plaintext!";
+      setTimeout(() => {
+        copyDecryptedBtn.textContent = "\u{1F4CB} Copy Decrypted Note";
+      }, 2e3);
+      new import_obsidian7.Notice(`\u{1F4CB} Decrypted note copied (auto-wipes in ${plugin.settings.clipboardWipeTimeoutSeconds}s).`);
+    } catch (err) {
+      new import_obsidian7.Notice(`Failed to copy decrypted note: ${err.message}`);
+    }
+  });
+  copyEncryptedBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(rawText);
+      copyEncryptedBtn.textContent = "\u2713 Copied Ciphertext!";
+      setTimeout(() => {
+        copyEncryptedBtn.textContent = "\u{1F4E6} Copy Encrypted";
+      }, 2e3);
+      new import_obsidian7.Notice("\u{1F4E6} Encrypted note ciphertext copied to clipboard.");
+    } catch (err) {
+      new import_obsidian7.Notice(`Failed to copy ciphertext: ${err.message}`);
+    }
+  });
+  revertBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const activeFile = plugin.app.workspace.getActiveFile();
+    if (!activeFile) {
+      new import_obsidian7.Notice("No active file to revert.");
+      return;
+    }
+    if (!plugin.session.isUnlocked()) {
+      new UnlockModal(plugin.app, plugin, {
+        mode: "unlock",
+        onSuccess: () => revertBtn.click()
+      }).open();
+      return;
+    }
+    if (!confirm(`Revert "${activeFile.basename}" to unencrypted plaintext Markdown?`)) {
+      return;
+    }
+    try {
+      const plaintext = await plugin.session.decryptSecret(payload);
+      await plugin.app.vault.modify(activeFile, plaintext);
+      new import_obsidian7.Notice(`\u{1F513} Note "${activeFile.basename}" reverted to plaintext.`);
+    } catch (err) {
+      new import_obsidian7.Notice(`Failed to revert note: ${err.message}`);
+    }
+  });
+  plugin.session.onStateChange((unlocked) => {
+    statusBadge.textContent = unlocked ? "\u{1F513} Unlocked" : "\u{1F512} Locked";
+    if (!unlocked && isRevealed) {
+      maskPreview();
+    }
+  });
+  return card;
+}
 
 // src/editor/viewPlugin.ts
 function createVaultGuardViewPlugin(plugin) {
@@ -2723,11 +2952,11 @@ ${source.trim()}
 }
 
 // src/editor/pasteHandler.ts
-var import_obsidian8 = require("obsidian");
+var import_obsidian9 = require("obsidian");
 
 // src/modals/interceptPasteModal.ts
-var import_obsidian7 = require("obsidian");
-var InterceptPasteModal = class extends import_obsidian7.Modal {
+var import_obsidian8 = require("obsidian");
+var InterceptPasteModal = class extends import_obsidian8.Modal {
   plugin;
   editor;
   pastedText;
@@ -2763,7 +2992,7 @@ var InterceptPasteModal = class extends import_obsidian7.Modal {
     });
     this.errorEl = contentEl.createDiv({ cls: "vaultguard-error-message" });
     this.errorEl.style.display = "none";
-    new import_obsidian7.Setting(contentEl).setName("Label for Encrypted Token").setDesc("The display name shown on the masked UI pill.").addText((text) => {
+    new import_obsidian8.Setting(contentEl).setName("Label for Encrypted Token").setDesc("The display name shown on the masked UI pill.").addText((text) => {
       text.setValue(this.customLabel);
       text.onChange((val) => {
         this.customLabel = val;
@@ -2778,7 +3007,7 @@ var InterceptPasteModal = class extends import_obsidian7.Modal {
     });
     pasteRawBtn.addEventListener("click", () => {
       this.editor.replaceSelection(this.pastedText);
-      new import_obsidian7.Notice("\u26A0\uFE0F Pasted unprotected secret in plaintext.");
+      new import_obsidian8.Notice("\u26A0\uFE0F Pasted unprotected secret in plaintext.");
       this.close();
     });
     const encryptBtn = buttonContainer.createEl("button", {
@@ -2827,7 +3056,7 @@ ${token}
         finalTextToInsert = `${before}${token}${after}`;
       }
       this.editor.replaceSelection(finalTextToInsert);
-      new import_obsidian7.Notice("\u{1F512} Credential encrypted and masked in note.");
+      new import_obsidian8.Notice("\u{1F512} Credential encrypted and masked in note.");
       this.close();
     } catch (err) {
       this.showError(err.message || "Encryption failed.");
@@ -2884,7 +3113,7 @@ function registerPasteHandler(plugin) {
     document,
     "paste",
     (evt) => {
-      const activeView = plugin.app.workspace.getActiveViewOfType(import_obsidian8.MarkdownView);
+      const activeView = plugin.app.workspace.getActiveViewOfType(import_obsidian9.MarkdownView);
       if (!activeView || !activeView.editor) return;
       const pastedText = getPastedText(evt);
       if (!pastedText) return;
@@ -2905,8 +3134,8 @@ function registerPasteHandler(plugin) {
 }
 
 // src/modals/insertSecretModal.ts
-var import_obsidian9 = require("obsidian");
-var InsertSecretModal = class extends import_obsidian9.Modal {
+var import_obsidian10 = require("obsidian");
+var InsertSecretModal = class extends import_obsidian10.Modal {
   plugin;
   editor;
   label = "";
@@ -2933,14 +3162,14 @@ var InsertSecretModal = class extends import_obsidian9.Modal {
     });
     this.errorEl = contentEl.createDiv({ cls: "vaultguard-error-message" });
     this.errorEl.style.display = "none";
-    new import_obsidian9.Setting(contentEl).setName("Secret Label (Optional)").setDesc("A non-sensitive descriptor shown on the UI pill (e.g. 'Stripe Live Key', 'Production DB').").addText((text) => {
+    new import_obsidian10.Setting(contentEl).setName("Secret Label (Optional)").setDesc("A non-sensitive descriptor shown on the UI pill (e.g. 'Stripe Live Key', 'Production DB').").addText((text) => {
       text.setPlaceholder("e.g. OpenAI Production Key");
       text.setValue(this.label);
       text.onChange((val) => {
         this.label = val;
       });
     });
-    const secretSetting = new import_obsidian9.Setting(contentEl).setName("Secret Value").setDesc("The confidential credential, API key, or certificate.");
+    const secretSetting = new import_obsidian10.Setting(contentEl).setName("Secret Value").setDesc("The confidential credential, API key, or certificate.");
     const secretWrapper = contentEl.createDiv({ cls: "vaultguard-secret-input-wrapper" });
     this.secretInputEl = secretWrapper.createEl("textarea", {
       cls: "vaultguard-secret-textarea masked",
@@ -2971,7 +3200,7 @@ var InsertSecretModal = class extends import_obsidian9.Modal {
         toggleRevealBtn.textContent = "\u{1F441}\uFE0F Show Plaintext";
       }
     });
-    new import_obsidian9.Setting(contentEl).setName("Storage Format").setDesc("Inline comment for single-line API tokens, or fenced code block for multiline SSH/PEM certificates.").addDropdown((dropdown) => {
+    new import_obsidian10.Setting(contentEl).setName("Storage Format").setDesc("Inline comment for single-line API tokens, or fenced code block for multiline SSH/PEM certificates.").addDropdown((dropdown) => {
       dropdown.addOption("auto", "Auto-Detect (Inline for single line, Code Block for multiline)");
       dropdown.addOption("inline", "Inline Comment (%%vg:v1:...%%)");
       dropdown.addOption("codeblock", "Fenced Code Block (```vaultguard)");
@@ -3036,7 +3265,7 @@ var InsertSecretModal = class extends import_obsidian9.Modal {
 ${token}
 ` : token;
       this.editor.replaceSelection(textToInsert);
-      new import_obsidian9.Notice("\u{1F512} Encrypted secret inserted safely.");
+      new import_obsidian10.Notice("\u{1F512} Encrypted secret inserted safely.");
       this.close();
     } catch (err) {
       this.showError(err.message || "Failed to encrypt secret.");
@@ -3047,8 +3276,98 @@ ${token}
   }
 };
 
+// src/modals/encryptFileModal.ts
+var import_obsidian11 = require("obsidian");
+var EncryptFileModal = class extends import_obsidian11.Modal {
+  plugin;
+  file;
+  content;
+  label;
+  onSuccess;
+  constructor(app, plugin, options) {
+    super(app);
+    this.plugin = plugin;
+    this.file = options.file;
+    this.content = options.content;
+    this.label = options.file.basename;
+    this.onSuccess = options.onSuccess;
+  }
+  onOpen() {
+    this.modalEl.addClass("mod-vaultguard-modal");
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.addClass("vaultguard-modal");
+    contentEl.createEl("h2", {
+      text: "\u{1F512} Encrypt Entire Note"
+    });
+    const lines = this.content.split("\n").length;
+    const chars = this.content.length;
+    const infoCard = contentEl.createDiv({ cls: "vaultguard-intercept-banner" });
+    infoCard.createEl("div", {
+      cls: "vaultguard-badge-pattern",
+      text: "Authenticated AES-256-GCM"
+    });
+    infoCard.createEl("p", {
+      cls: "setting-item-description",
+      text: `Target: "${this.file.basename}" \u2022 ${lines} lines \u2022 ${chars.toLocaleString()} characters`
+    });
+    infoCard.createEl("p", {
+      cls: "setting-item-description",
+      text: "The entire contents of this note will be encrypted into an authenticated ciphertext container. Zero plaintext will remain at rest or in sync history."
+    });
+    new import_obsidian11.Setting(contentEl).setName("Note Security Label").setDesc("A public descriptive title displayed while the file is locked.").addText((text) => {
+      text.setValue(this.label);
+      text.setPlaceholder("e.g. Confidential Journal, Server Runbook");
+      text.onChange((val) => {
+        this.label = val.trim();
+      });
+    });
+    const btnContainer = contentEl.createDiv({ cls: "vaultguard-modal-buttons" });
+    const cancelBtn = btnContainer.createEl("button", {
+      text: "Cancel",
+      cls: "vaultguard-btn-secondary"
+    });
+    cancelBtn.addEventListener("click", () => this.close());
+    const encryptBtn = btnContainer.createEl("button", {
+      text: "\u{1F512} Encrypt Entire File",
+      cls: "mod-cta"
+    });
+    encryptBtn.addEventListener("click", async () => {
+      await this.executeEncryption();
+    });
+  }
+  async executeEncryption() {
+    try {
+      if (!this.plugin.session.isUnlocked()) {
+        new import_obsidian11.Notice("Vault is locked. Please unlock first.");
+        return;
+      }
+      const label = this.label || this.file.basename;
+      const encryptedBlock = await this.plugin.session.encryptSecret(
+        this.content,
+        label,
+        true,
+        // asCodeBlock
+        true
+        // isFile
+      );
+      await this.app.vault.modify(this.file, encryptedBlock);
+      new import_obsidian11.Notice(`\u{1F512} Note "${this.file.basename}" encrypted with AES-256-GCM.`);
+      this.close();
+      if (this.onSuccess) {
+        this.onSuccess();
+      }
+    } catch (err) {
+      new import_obsidian11.Notice(`Failed to encrypt note: ${err.message}`);
+    }
+  }
+  onClose() {
+    this.contentEl.empty();
+  }
+};
+
 // src/main.ts
-var VaultGuardPlugin = class extends import_obsidian10.Plugin {
+var VaultGuardPlugin = class extends import_obsidian12.Plugin {
   settings = DEFAULT_SETTINGS;
   session;
   statusBarItemEl = null;
@@ -3080,13 +3399,13 @@ var VaultGuardPlugin = class extends import_obsidian10.Plugin {
       } else if (!this.session.isUnlocked()) {
         new UnlockModal(this.app, this, { mode: "unlock" }).open();
       } else {
-        const activeView = this.app.workspace.getActiveViewOfType(import_obsidian10.MarkdownView);
+        const activeView = this.app.workspace.getActiveViewOfType(import_obsidian12.MarkdownView);
         if (activeView && activeView.editor) {
           new InsertSecretModal(this.app, this, {
             editor: activeView.editor
           }).open();
         } else {
-          new import_obsidian10.Notice("\u{1F513} VaultGuard is unlocked. Open a note to insert secrets.");
+          new import_obsidian12.Notice("\u{1F513} VaultGuard is unlocked. Open a note to insert secrets.");
         }
       }
     });
@@ -3115,7 +3434,7 @@ var VaultGuardPlugin = class extends import_obsidian10.Plugin {
       editorCallback: (editor) => {
         const selection = editor.getSelection();
         if (!selection) {
-          new import_obsidian10.Notice("Please select text to encrypt.");
+          new import_obsidian12.Notice("Please select text to encrypt.");
           return;
         }
         new InsertSecretModal(this.app, this, {
@@ -3131,7 +3450,7 @@ var VaultGuardPlugin = class extends import_obsidian10.Plugin {
         if (!this.settings.isInitialized) {
           new UnlockModal(this.app, this, { mode: "init" }).open();
         } else if (this.session.isUnlocked()) {
-          new import_obsidian10.Notice("VaultGuard is already unlocked.");
+          new import_obsidian12.Notice("VaultGuard is already unlocked.");
         } else {
           new UnlockModal(this.app, this, { mode: "unlock" }).open();
         }
@@ -3142,10 +3461,10 @@ var VaultGuardPlugin = class extends import_obsidian10.Plugin {
       name: "Lock Vault",
       callback: () => {
         if (!this.session.isUnlocked()) {
-          new import_obsidian10.Notice("VaultGuard is already locked.");
+          new import_obsidian12.Notice("VaultGuard is already locked.");
         } else {
           this.session.lock();
-          new import_obsidian10.Notice("\u{1F512} VaultGuard locked.");
+          new import_obsidian12.Notice("\u{1F512} VaultGuard locked.");
         }
       }
     });
@@ -3180,7 +3499,55 @@ var VaultGuardPlugin = class extends import_obsidian10.Plugin {
       callback: async () => {
         await VaultGuardClipboard.clearClipboard();
         VaultGuardClipboard.cancelAutoWipe();
-        new import_obsidian10.Notice("\u{1F512} Ephemeral clipboard wiped.");
+        new import_obsidian12.Notice("\u{1F512} Ephemeral clipboard wiped.");
+      }
+    });
+    this.addCommand({
+      id: "encrypt-entire-note",
+      name: "Encrypt Entire Current Note",
+      callback: async () => {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile || activeFile.extension !== "md") {
+          new import_obsidian12.Notice("Please open a Markdown note first.");
+          return;
+        }
+        await this.encryptEntireFile(activeFile);
+      }
+    });
+    this.addCommand({
+      id: "decrypt-entire-note",
+      name: "Decrypt Entire Current Note to Plaintext",
+      callback: async () => {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile || activeFile.extension !== "md") {
+          new import_obsidian12.Notice("Please open a Markdown note first.");
+          return;
+        }
+        await this.decryptEntireFile(activeFile);
+      }
+    });
+    this.addCommand({
+      id: "copy-note-encrypted",
+      name: "Copy Note (Encrypted Ciphertext)",
+      callback: async () => {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile || activeFile.extension !== "md") {
+          new import_obsidian12.Notice("Please open a Markdown note first.");
+          return;
+        }
+        await this.copyEncryptedFile(activeFile);
+      }
+    });
+    this.addCommand({
+      id: "copy-note-decrypted",
+      name: "Copy Note (Decrypted Plaintext)",
+      callback: async () => {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (!activeFile || activeFile.extension !== "md") {
+          new import_obsidian12.Notice("Please open a Markdown note first.");
+          return;
+        }
+        await this.copyDecryptedFile(activeFile);
       }
     });
     this.registerEvent(
@@ -3193,6 +3560,40 @@ var VaultGuardPlugin = class extends import_obsidian10.Plugin {
                 editor,
                 initialSecret: selection
               }).open();
+            });
+          });
+        }
+        const activeFile = this.app.workspace.getActiveFile();
+        if (activeFile && activeFile.extension === "md") {
+          menu.addItem((item) => {
+            item.setTitle("VaultGuard: Encrypt Entire Note").setIcon("shield").onClick(async () => {
+              await this.encryptEntireFile(activeFile);
+            });
+          });
+          menu.addItem((item) => {
+            item.setTitle("VaultGuard: Copy Note (Encrypted)").setIcon("copy").onClick(async () => {
+              await this.copyEncryptedFile(activeFile);
+            });
+          });
+        }
+      })
+    );
+    this.registerEvent(
+      this.app.workspace.on("file-menu", (menu, file) => {
+        if (file instanceof import_obsidian12.TFile && file.extension === "md") {
+          menu.addItem((item) => {
+            item.setTitle("VaultGuard: Encrypt Entire Note").setIcon("lock").onClick(async () => {
+              await this.encryptEntireFile(file);
+            });
+          });
+          menu.addItem((item) => {
+            item.setTitle("VaultGuard: Decrypt Note to Plaintext").setIcon("unlock").onClick(async () => {
+              await this.decryptEntireFile(file);
+            });
+          });
+          menu.addItem((item) => {
+            item.setTitle("VaultGuard: Copy Encrypted Content").setIcon("copy").onClick(async () => {
+              await this.copyEncryptedFile(file);
             });
           });
         }
@@ -3221,7 +3622,7 @@ var VaultGuardPlugin = class extends import_obsidian10.Plugin {
       this.statusBarItemEl.setAttribute("title", "Click to lock vault");
       this.statusBarItemEl.onclick = () => {
         this.session.lock();
-        new import_obsidian10.Notice("\u{1F512} VaultGuard locked.");
+        new import_obsidian12.Notice("\u{1F512} VaultGuard locked.");
       };
     } else {
       this.statusBarItemEl.setText("\u{1F512} VaultGuard: Locked");
@@ -3229,6 +3630,108 @@ var VaultGuardPlugin = class extends import_obsidian10.Plugin {
       this.statusBarItemEl.onclick = () => {
         new UnlockModal(this.app, this, { mode: "unlock" }).open();
       };
+    }
+  }
+  async encryptEntireFile(file) {
+    if (!this.settings.isInitialized) {
+      new UnlockModal(this.app, this, { mode: "init" }).open();
+      return;
+    }
+    if (!this.session.isUnlocked()) {
+      new UnlockModal(this.app, this, {
+        mode: "unlock",
+        onSuccess: () => this.encryptEntireFile(file)
+      }).open();
+      return;
+    }
+    const content = await this.app.vault.read(file);
+    if (isWholeFileEncrypted(content)) {
+      new import_obsidian12.Notice(`Note "${file.basename}" is already fully encrypted with VaultGuard.`);
+      return;
+    }
+    new EncryptFileModal(this.app, this, {
+      file,
+      content
+    }).open();
+  }
+  async decryptEntireFile(file) {
+    if (!this.settings.isInitialized) {
+      new UnlockModal(this.app, this, { mode: "init" }).open();
+      return;
+    }
+    if (!this.session.isUnlocked()) {
+      new UnlockModal(this.app, this, {
+        mode: "unlock",
+        onSuccess: () => this.decryptEntireFile(file)
+      }).open();
+      return;
+    }
+    const content = await this.app.vault.read(file);
+    const payload = extractWholeFilePayload(content);
+    if (!payload) {
+      new import_obsidian12.Notice(`Note "${file.basename}" is not an encrypted note.`);
+      return;
+    }
+    if (!confirm(`Revert note "${file.basename}" back to unencrypted plaintext Markdown?`)) {
+      return;
+    }
+    try {
+      const plaintext = await this.session.decryptSecret(payload);
+      await this.app.vault.modify(file, plaintext);
+      new import_obsidian12.Notice(`\u{1F513} Note "${file.basename}" decrypted back to plaintext.`);
+    } catch (err) {
+      new import_obsidian12.Notice(`Failed to decrypt note: ${err.message}`);
+    }
+  }
+  async copyEncryptedFile(file) {
+    const content = await this.app.vault.read(file);
+    if (isWholeFileEncrypted(content)) {
+      await navigator.clipboard.writeText(content);
+      new import_obsidian12.Notice(`\u{1F4E6} Copied encrypted note ciphertext to clipboard.`);
+    } else {
+      if (!this.settings.isInitialized) {
+        new UnlockModal(this.app, this, { mode: "init" }).open();
+        return;
+      }
+      if (!this.session.isUnlocked()) {
+        new UnlockModal(this.app, this, {
+          mode: "unlock",
+          onSuccess: () => this.copyEncryptedFile(file)
+        }).open();
+        return;
+      }
+      try {
+        const encrypted = await this.session.encryptSecret(content, file.basename, true, true);
+        await navigator.clipboard.writeText(encrypted);
+        new import_obsidian12.Notice(`\u{1F4E6} Encrypted note and copied ciphertext to clipboard.`);
+      } catch (err) {
+        new import_obsidian12.Notice(`Failed to encrypt note: ${err.message}`);
+      }
+    }
+  }
+  async copyDecryptedFile(file) {
+    const content = await this.app.vault.read(file);
+    const payload = extractWholeFilePayload(content);
+    if (!payload) {
+      await navigator.clipboard.writeText(content);
+      new import_obsidian12.Notice(`\u{1F4CB} Copied note content to clipboard.`);
+      return;
+    }
+    if (!this.session.isUnlocked()) {
+      new UnlockModal(this.app, this, {
+        mode: "unlock",
+        onSuccess: () => this.copyDecryptedFile(file)
+      }).open();
+      return;
+    }
+    try {
+      const plaintext = await this.session.decryptSecret(payload);
+      await VaultGuardClipboard.writeSecret(plaintext, {
+        timeoutSeconds: this.settings.clipboardWipeTimeoutSeconds
+      });
+      new import_obsidian12.Notice(`\u{1F4CB} Decrypted note copied (auto-wipes in ${this.settings.clipboardWipeTimeoutSeconds}s).`);
+    } catch (err) {
+      new import_obsidian12.Notice(`Failed to decrypt note: ${err.message}`);
     }
   }
   onunload() {

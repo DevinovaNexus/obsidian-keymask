@@ -25,6 +25,7 @@ export interface SecretPayload {
   tag: Uint8Array;
   rawText?: string;
   isCodeBlock?: boolean;
+  isFilePayload?: boolean;
 }
 
 /**
@@ -145,8 +146,13 @@ export function parseInline(raw: string): SecretPayload | null {
 export function serializeCodeBlock(payload: {
   label?: string;
   encrypted: EncryptedData;
+  isFile?: boolean;
 }): string {
   const lines: string[] = ["```vaultguard", "version: 1"];
+
+  if (payload.isFile) {
+    lines.push("type: file");
+  }
 
   if (payload.label && payload.label.trim().length > 0) {
     lines.push(`label: ${payload.label.trim()}`);
@@ -186,6 +192,7 @@ export function parseCodeBlock(raw: string): SecretPayload | null {
 
   const lines = content.split("\n");
   let version = 1;
+  let isFilePayload = false;
   let label: string | undefined;
   let ivStr: string | undefined;
   let tagStr: string | undefined;
@@ -198,7 +205,13 @@ export function parseCodeBlock(raw: string): SecretPayload | null {
 
     if (inDataBlock) {
       // Continuation of multiline data
-      if (trimmedLine.startsWith("label:") || trimmedLine.startsWith("iv:") || trimmedLine.startsWith("tag:") || trimmedLine.startsWith("version:")) {
+      if (
+        trimmedLine.startsWith("label:") ||
+        trimmedLine.startsWith("iv:") ||
+        trimmedLine.startsWith("tag:") ||
+        trimmedLine.startsWith("version:") ||
+        trimmedLine.startsWith("type:")
+      ) {
         inDataBlock = false;
       } else {
         dataChunks.push(trimmedLine);
@@ -208,6 +221,11 @@ export function parseCodeBlock(raw: string): SecretPayload | null {
 
     if (trimmedLine.startsWith("version:")) {
       version = parseInt(trimmedLine.slice(8).trim(), 10) || 1;
+    } else if (trimmedLine.startsWith("type:")) {
+      const typeVal = trimmedLine.slice(5).trim().toLowerCase();
+      if (typeVal === "file") {
+        isFilePayload = true;
+      }
     } else if (trimmedLine.startsWith("label:")) {
       label = trimmedLine.slice(6).trim();
     } else if (trimmedLine.startsWith("iv:")) {
@@ -242,6 +260,7 @@ export function parseCodeBlock(raw: string): SecretPayload | null {
       tag,
       rawText: trimmed,
       isCodeBlock: true,
+      isFilePayload,
     };
   } catch (err) {
     return null;
@@ -260,4 +279,29 @@ export function parseSecret(raw: string): SecretPayload | null {
     return parseCodeBlock(trimmed);
   }
   return null;
+}
+
+/**
+ * Checks if the entire text of a note represents an encrypted whole-file container
+ */
+export function isWholeFileEncrypted(content: string): boolean {
+  if (!content) return false;
+  const trimmed = content.trim();
+  if (trimmed.startsWith("```vaultguard") && trimmed.endsWith("```")) {
+    return true;
+  }
+  if (trimmed.startsWith("%%vg:v1:") && trimmed.endsWith("%%") && !trimmed.slice(8, -2).includes("\n")) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Extracts whole-file payload if the note is entirely encrypted
+ */
+export function extractWholeFilePayload(content: string): SecretPayload | null {
+  if (!isWholeFileEncrypted(content)) {
+    return null;
+  }
+  return parseSecret(content);
 }
