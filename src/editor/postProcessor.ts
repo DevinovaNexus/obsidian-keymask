@@ -33,6 +33,7 @@ export function registerPostProcessors(plugin: VaultGuardPlugin): void {
         payload,
         rawText,
         isCodeBlock: true,
+        sourcePath: ctx.sourcePath,
       });
 
       el.empty();

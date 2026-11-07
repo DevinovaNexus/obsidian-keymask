@@ -10,7 +10,7 @@
  */
 
 import { WidgetType } from "@codemirror/view";
-import { Notice, setIcon } from "obsidian";
+import { Notice, setIcon, TFile } from "obsidian";
 import type VaultGuardPlugin from "../main";
 import { SecretPayload } from "../crypto/serializer";
 import { UnlockModal } from "../modals/unlockModal";
@@ -21,6 +21,7 @@ export interface PillOptions {
   payload: SecretPayload | null;
   rawText: string;
   isCodeBlock?: boolean;
+  sourcePath?: string;
 }
 
 export class VaultGuardPillWidget extends WidgetType {
@@ -402,44 +403,74 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
   const card = document.createElement("div");
   card.className = "vaultguard-file-card-full";
 
+  // Prevent Live Preview mousedown events from triggering CodeMirror raw code-block editing
+  card.addEventListener("mousedown", (e) => {
+    e.stopPropagation();
+  });
+
   // Check for corrupted or invalid payload
   if (!payload) {
     renderCorruptedBlock(card, "Invalid whole-file encrypted syntax", rawText);
     return card;
   }
 
-  // Top header with Shield Icon, Title, Badge, and Label
+  // 1. Resolve active note file and descriptive title
+  let currentFile: TFile | null = null;
+  if (options.sourcePath) {
+    const file = plugin.app.vault.getAbstractFileByPath(options.sourcePath);
+    if (file instanceof TFile) {
+      currentFile = file;
+    }
+  }
+  if (!currentFile) {
+    const activeFile = plugin.app.workspace.getActiveFile();
+    if (activeFile) currentFile = activeFile;
+  }
+
+  const fileBasename = currentFile?.basename || options.sourcePath?.split("/").pop()?.replace(/\.md$/, "");
+  const noteTitle = payload.label || fileBasename || "Encrypted Note";
+
+  // 2. Top header with Shield Icon, Note Title, and Status Badges
   const header = card.createDiv({ cls: "vaultguard-file-card-header" });
   const headerLeft = header.createDiv({ cls: "vaultguard-file-header-left" });
   const shieldIcon = headerLeft.createDiv({ cls: "vaultguard-shield-icon" });
   setIcon(shieldIcon, "shield-check");
 
   const titleGroup = headerLeft.createDiv({ cls: "vaultguard-file-title-group" });
-  titleGroup.createEl("div", {
+  const titleRow = titleGroup.createDiv({ cls: "vaultguard-file-title-row" });
+  titleRow.createEl("span", {
     cls: "vaultguard-file-card-title",
-    text: "VaultGuard: Fully Encrypted Note",
+    text: noteTitle,
   });
+
+  let subtitleText = "AES-256-GCM Authenticated • Zero Plaintext at Rest";
+  if (payload.label && fileBasename && payload.label !== fileBasename) {
+    subtitleText = `File: ${fileBasename}.md • ${subtitleText}`;
+  }
   titleGroup.createEl("div", {
     cls: "vaultguard-file-card-subtitle",
-    text: payload.label
-      ? `Label: ${payload.label} • AES-256-GCM Authenticated`
-      : "Protected Note Content • AES-256-GCM Authenticated",
+    text: subtitleText,
   });
 
   const headerRight = header.createDiv({ cls: "vaultguard-file-header-right" });
+  headerRight.createEl("span", {
+    cls: "vaultguard-file-type-badge",
+    text: "🔒 Encrypted Note",
+  });
   const statusBadge = headerRight.createEl("span", {
     cls: "vaultguard-status-badge",
     text: plugin.session.isUnlocked() ? "🔓 Unlocked" : "🔒 Locked",
   });
 
-  // Action Buttons Toolbar: Left group for reading/copying, Right group for offboarding
+  // 3. Action Buttons Toolbar
   const toolbar = card.createDiv({ cls: "vaultguard-file-card-toolbar" });
   const toolbarLeft = toolbar.createDiv({ cls: "vaultguard-toolbar-left" });
   const toolbarRight = toolbar.createDiv({ cls: "vaultguard-toolbar-right" });
 
   const revealBtn = toolbarLeft.createEl("button", {
     cls: "vaultguard-btn-action mod-cta",
-    text: "👁️ Reveal Note",
+    text: "🔓 Decrypt & Read Note",
+    attr: { title: "Decrypt and display note in secure in-memory reader" },
   });
 
   const copyDecryptedBtn = toolbarLeft.createEl("button", {
@@ -456,11 +487,11 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
 
   const revertBtn = toolbarRight.createEl("button", {
     cls: "vaultguard-btn-revert",
-    text: "🔓 Revert to Plaintext",
+    text: "🔓 Decrypt to Plaintext",
     attr: { title: "Permanently decrypt note back to raw Markdown" },
   });
 
-  // Preview container for decrypted note (initially hidden)
+  // 4. In-Memory Decrypted Note Preview Container
   const previewContainer = card.createDiv({ cls: "vaultguard-file-preview-container" });
   previewContainer.style.display = "none";
 
@@ -470,7 +501,7 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
   setIcon(previewIcon, "file-text");
   previewHeaderLeft.createEl("span", {
     cls: "vaultguard-preview-title",
-    text: "Decrypted Note Content",
+    text: `Decrypted Note: ${noteTitle}`,
   });
 
   const previewActions = previewHeader.createDiv({ cls: "vaultguard-preview-actions" });
@@ -488,7 +519,7 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
   const lockIcon = previewFooter.createSpan({ cls: "vaultguard-footer-icon" });
   setIcon(lockIcon, "lock");
   previewFooter.createEl("span", {
-    text: "In-memory zero-trace preview • Not written to disk • Auto-locks on blur or timeout",
+    text: "In-memory zero-trace preview • Never written to disk • Auto-locks on blur or timeout",
   });
 
   let isRevealed = false;
@@ -506,7 +537,7 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
     previewContent.empty();
     timerRingSpan.empty();
     timerRingSpan.style.display = "none";
-    revealBtn.textContent = "👁️ Reveal Note";
+    revealBtn.textContent = "🔓 Decrypt & Read Note";
     revealBtn.classList.remove("mod-active");
     revealBtn.classList.add("mod-cta");
   };
@@ -604,9 +635,9 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
 
   revertBtn.addEventListener("click", async (e) => {
     e.stopPropagation();
-    const activeFile = plugin.app.workspace.getActiveFile();
-    if (!activeFile) {
-      new Notice("No active file to revert.");
+    const targetFile = currentFile || plugin.app.workspace.getActiveFile();
+    if (!targetFile) {
+      new Notice("No active note found to revert.");
       return;
     }
 
@@ -618,16 +649,16 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
       return;
     }
 
-    if (!confirm(`Revert "${activeFile.basename}" to unencrypted plaintext Markdown?`)) {
+    if (!confirm(`Permanently decrypt "${noteTitle}" and restore unencrypted plaintext Markdown?`)) {
       return;
     }
 
     try {
       const plaintext = await plugin.session.decryptSecret(payload!);
-      await plugin.app.vault.modify(activeFile, plaintext);
-      new Notice(`🔓 Note "${activeFile.basename}" reverted to plaintext.`);
+      await plugin.app.vault.modify(targetFile, plaintext);
+      new Notice(`🔓 Note "${targetFile.basename}" decrypted and restored to plaintext.`);
     } catch (err: any) {
-      new Notice(`Failed to revert note: ${err.message}`);
+      new Notice(`Failed to decrypt note: ${err.message}`);
     }
   });
 

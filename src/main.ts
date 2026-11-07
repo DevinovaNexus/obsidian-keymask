@@ -255,9 +255,17 @@ export default class VaultGuardPlugin extends Plugin {
           menu.addItem((item) => {
             item
               .setTitle("VaultGuard: Encrypt Entire Note")
-              .setIcon("shield")
+              .setIcon("lock")
               .onClick(async () => {
                 await this.encryptEntireFile(activeFile);
+              });
+          });
+          menu.addItem((item) => {
+            item
+              .setTitle("VaultGuard: Decrypt Note to Plaintext")
+              .setIcon("unlock")
+              .onClick(async () => {
+                await this.decryptEntireFile(activeFile);
               });
           });
           menu.addItem((item) => {
@@ -266,6 +274,14 @@ export default class VaultGuardPlugin extends Plugin {
               .setIcon("copy")
               .onClick(async () => {
                 await this.copyEncryptedFile(activeFile);
+              });
+          });
+          menu.addItem((item) => {
+            item
+              .setTitle("VaultGuard: Copy Note (Decrypted)")
+              .setIcon("clipboard-check")
+              .onClick(async () => {
+                await this.copyDecryptedFile(activeFile);
               });
           });
         }
@@ -294,10 +310,18 @@ export default class VaultGuardPlugin extends Plugin {
           });
           menu.addItem((item) => {
             item
-              .setTitle("VaultGuard: Copy Encrypted Content")
+              .setTitle("VaultGuard: Copy Note (Encrypted)")
               .setIcon("copy")
               .onClick(async () => {
                 await this.copyEncryptedFile(file);
+              });
+          });
+          menu.addItem((item) => {
+            item
+              .setTitle("VaultGuard: Copy Note (Decrypted)")
+              .setIcon("clipboard-check")
+              .onClick(async () => {
+                await this.copyDecryptedFile(file);
               });
           });
         }

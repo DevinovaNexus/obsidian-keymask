@@ -1,11 +1,12 @@
 /**
  * VaultGuard CodeMirror 6 ViewPlugin
  *
- * Scans editor viewport for:
- * 1. Inline comment secrets (%%vg:v1:...%%)
- * 2. Fenced code block secrets (```vaultguard ... ```)
+ * Scans editor viewport for inline comment secrets (%%vg:v1:...%%)
+ * and replaces them with interactive VaultGuardPillWidget decorations in Live Preview.
  *
- * Generates CodeMirror 6 replacement decorations using VaultGuardPillWidget.
+ * Note: Fenced code blocks (```vaultguard ... ```) are processed exclusively by Obsidian's
+ * native registerMarkdownCodeBlockProcessor to avoid multi-line CM6 inline replacement RangeErrors.
+ *
  * High performance viewport-bounded scanning guarantees 60 FPS scrolling.
  */
 
@@ -21,9 +22,7 @@ import { RangeSetBuilder } from "@codemirror/state";
 import type VaultGuardPlugin from "../main";
 import {
   parseInline,
-  parseCodeBlock,
   INLINE_SECRET_REGEX,
-  CODE_BLOCK_SECRET_REGEX,
 } from "../crypto/serializer";
 import { VaultGuardPillWidget } from "./pillWidget";
 
@@ -57,14 +56,7 @@ export function createVaultGuardViewPlugin(plugin: VaultGuardPlugin) {
           const scanTo = endLine.to;
           const text = doc.sliceString(scanFrom, scanTo);
 
-          interface MatchItem {
-            from: number;
-            to: number;
-            widget: VaultGuardPillWidget;
-          }
-          const matches: MatchItem[] = [];
-
-          // 1. Scan Inline Secrets: %%vg:v1:...%%
+          // Scan Inline Secrets: %%vg:v1:...%%
           INLINE_SECRET_REGEX.lastIndex = 0;
           let match: RegExpExecArray | null;
           while ((match = INLINE_SECRET_REGEX.exec(text)) !== null) {
@@ -73,47 +65,16 @@ export function createVaultGuardViewPlugin(plugin: VaultGuardPlugin) {
             const rawText = match[0];
             const payload = parseInline(rawText);
 
-            matches.push({
-              from: matchFrom,
-              to: matchTo,
-              widget: new VaultGuardPillWidget({
-                plugin: this.plugin,
-                payload,
-                rawText,
-                isCodeBlock: false,
-              }),
-            });
-          }
-
-          // 2. Scan Fenced Code Blocks: ```vaultguard ... ```
-          CODE_BLOCK_SECRET_REGEX.lastIndex = 0;
-          while ((match = CODE_BLOCK_SECRET_REGEX.exec(text)) !== null) {
-            const matchFrom = scanFrom + match.index;
-            const matchTo = matchFrom + match[0].length;
-            const rawText = match[0];
-            const payload = parseCodeBlock(rawText);
-
-            matches.push({
-              from: matchFrom,
-              to: matchTo,
-              widget: new VaultGuardPillWidget({
-                plugin: this.plugin,
-                payload,
-                rawText,
-                isCodeBlock: true,
-              }),
-            });
-          }
-
-          // Sort matches by 'from' position for RangeSetBuilder requirement
-          matches.sort((a, b) => a.from - b.from);
-
-          for (const item of matches) {
             builder.add(
-              item.from,
-              item.to,
+              matchFrom,
+              matchTo,
               Decoration.replace({
-                widget: item.widget,
+                widget: new VaultGuardPillWidget({
+                  plugin: this.plugin,
+                  payload,
+                  rawText,
+                  isCodeBlock: false,
+                }),
               })
             );
           }
