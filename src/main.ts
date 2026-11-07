@@ -26,10 +26,12 @@ import {
   isWholeFileEncrypted,
   extractWholeFilePayload,
 } from "./crypto/serializer";
+import { EncryptedFileViewManager } from "./editor/fileViewManager";
 
 export default class VaultGuardPlugin extends Plugin {
   settings: VaultGuardSettings = DEFAULT_SETTINGS;
   session!: VaultGuardSession;
+  fileViewManager!: EncryptedFileViewManager;
   statusBarItemEl: HTMLElement | null = null;
 
   async onload() {
@@ -339,6 +341,10 @@ export default class VaultGuardPlugin extends Plugin {
 
     // 8. Settings Tab
     this.addSettingTab(new VaultGuardSettingTab(this.app, this));
+
+    // 9. Whole-File Encrypted Note View Manager
+    this.fileViewManager = new EncryptedFileViewManager(this);
+    this.fileViewManager.init();
   }
 
   updateStatusBar(): void {
@@ -486,6 +492,10 @@ export default class VaultGuardPlugin extends Plugin {
   }
 
   onunload() {
+    // Clean up whole-file encrypted banners and view states
+    if (this.fileViewManager) {
+      this.fileViewManager.destroy();
+    }
     // Purge in-memory key on plugin unload
     this.session.lock();
     VaultGuardClipboard.cancelAutoWipe();

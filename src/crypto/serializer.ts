@@ -286,7 +286,16 @@ export function parseSecret(raw: string): SecretPayload | null {
  */
 export function isWholeFileEncrypted(content: string): boolean {
   if (!content) return false;
-  const trimmed = content.trim();
+  let trimmed = content.trim();
+
+  // Strip YAML frontmatter if present
+  if (trimmed.startsWith("---")) {
+    const endFmIdx = trimmed.indexOf("\n---", 3);
+    if (endFmIdx !== -1) {
+      trimmed = trimmed.slice(endFmIdx + 4).trim();
+    }
+  }
+
   if (trimmed.startsWith("```vaultguard") && trimmed.endsWith("```")) {
     return true;
   }
@@ -300,8 +309,19 @@ export function isWholeFileEncrypted(content: string): boolean {
  * Extracts whole-file payload if the note is entirely encrypted
  */
 export function extractWholeFilePayload(content: string): SecretPayload | null {
-  if (!isWholeFileEncrypted(content)) {
+  if (!content) return null;
+  let trimmed = content.trim();
+
+  // Strip YAML frontmatter if present
+  if (trimmed.startsWith("---")) {
+    const endFmIdx = trimmed.indexOf("\n---", 3);
+    if (endFmIdx !== -1) {
+      trimmed = trimmed.slice(endFmIdx + 4).trim();
+    }
+  }
+
+  if (!isWholeFileEncrypted(trimmed)) {
     return null;
   }
-  return parseSecret(content);
+  return parseSecret(trimmed);
 }

@@ -522,6 +522,12 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
     text: "In-memory zero-trace preview • Never written to disk • Auto-locks on blur or timeout",
   });
 
+  // 5. Collapsible Raw Ciphertext Inspector (for verification & audits)
+  const rawToggle = card.createEl("details", { cls: "vaultguard-file-inspect-raw" });
+  rawToggle.createEl("summary", { text: "Inspect Raw Ciphertext Container" });
+  const rawCode = rawToggle.createEl("pre");
+  rawCode.createEl("code", { text: rawText });
+
   let isRevealed = false;
   let countdownTimer: ReturnType<typeof setInterval> | null = null;
   const timeoutSeconds = 60; // 60s preview window for whole file
