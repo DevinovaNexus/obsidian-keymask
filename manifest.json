@@ -1,10 +1,10 @@
 {
-  "id": "obsidian-vaultguard",
-  "name": "VaultGuard",
+  "id": "keymask",
+  "name": "KeyMask",
   "version": "1.0.0",
   "minAppVersion": "1.5.0",
   "description": "Zero-plaintext credential protection & interactive UI masking for sensitive secrets in Obsidian.",
-  "author": "VaultGuard",
-  "authorUrl": "https://github.com/obsidian-vaultguard/vaultguard",
+  "author": "KeyMask",
+  "authorUrl": "https://github.com/keymask/keymask",
   "isDesktopOnly": false
 }

@@ -1,5 +1,5 @@
 /**
- * VaultGuard Pattern Matcher & Heuristics Unit Tests
+ * KeyMask Pattern Matcher & Heuristics Unit Tests
  */
 
 import { describe, it, expect } from "vitest";
@@ -164,9 +164,12 @@ Line 7: password: MySuperSecretPass#99!
       expect(findings[3].matchedText).toBe("MySuperSecretPass#99!");
     });
 
-    it("should ignore secrets already encrypted with VaultGuard tokens", () => {
+    it("should ignore secrets already encrypted with KeyMask tokens", () => {
       const doc = `# Secure Document
-Already encrypted token:
+Already encrypted token (km):
+%%km:v1:label=T1BFTkFJ:iv=UEyGQGybafBD6EBz:data=FVFmaRHX2h7S7e5G1ZHb_HFX4WE:tag=M44gLh8Ajj1UDHzsaXdspw%%
+
+Already encrypted legacy token (vg):
 %%vg:v1:label=T1BFTkFJ:iv=UEyGQGybafBD6EBz:data=FVFmaRHX2h7S7e5G1ZHb_HFX4WE:tag=M44gLh8Ajj1UDHzsaXdspw%%
 
 Unencrypted token:

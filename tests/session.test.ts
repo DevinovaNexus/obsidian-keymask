@@ -1,11 +1,11 @@
 /**
- * VaultGuard Session & Lifecycle Unit Tests
+ * KeyMask Session & Lifecycle Unit Tests
  */
 
 import { describe, it, expect } from "vitest";
-import { VaultGuardSession } from "../src/crypto/session";
+import { KeyMaskSession } from "../src/crypto/session";
 
-describe("VaultGuard Session Lifecycle", () => {
+describe("KeyMask Session Lifecycle", () => {
   let mockSettings = {
     salt: "",
     canaryToken: "",
@@ -23,7 +23,7 @@ describe("VaultGuard Session Lifecycle", () => {
       lockOnBlur: true,
     };
 
-    return new VaultGuardSession({
+    return new KeyMaskSession({
       getSalt: () => mockSettings.salt,
       setSalt: async (saltB64) => {
         mockSettings.salt = saltB64;
@@ -46,7 +46,7 @@ describe("VaultGuard Session Lifecycle", () => {
 
     expect(session.isUnlocked()).toBe(true);
     expect(mockSettings.salt).toBeTruthy();
-    expect(mockSettings.canaryToken).toContain("%%vg:v1:");
+    expect(mockSettings.canaryToken).toContain("%%km:v1:");
     expect(session.getKey()).not.toBeNull();
   });
 
@@ -88,7 +88,7 @@ describe("VaultGuard Session Lifecycle", () => {
     const rawSecret = "sk-live-stripe-production-token-123456789";
     const token = await session.encryptSecret(rawSecret, "Stripe Key");
 
-    expect(token).toContain("%%vg:v1:");
+    expect(token).toContain("%%km:v1:");
     expect(token).not.toContain(rawSecret); // Zero plaintext in token
 
     const { parseInline } = await import("../src/crypto/serializer");

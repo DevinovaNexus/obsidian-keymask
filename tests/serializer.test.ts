@@ -1,5 +1,5 @@
 /**
- * VaultGuard Serializer & Parser Unit Tests
+ * KeyMask Serializer & Parser Unit Tests
  */
 
 import { describe, it, expect } from "vitest";
@@ -27,7 +27,7 @@ describe("Secret Serializer", () => {
       encrypted: dummyEncrypted,
     });
 
-    expect(serialized).toMatch(/^%%vg:v1:label=[A-Za-z0-9_-]+:iv=[A-Za-z0-9_-]+:data=[A-Za-z0-9_-]+:tag=[A-Za-z0-9_-]+%%$/);
+    expect(serialized).toMatch(/^%%km:v1:label=[A-Za-z0-9_-]+:iv=[A-Za-z0-9_-]+:data=[A-Za-z0-9_-]+:tag=[A-Za-z0-9_-]+%%$/);
 
     const parsed = parseInline(serialized);
     expect(parsed).not.toBeNull();
@@ -44,7 +44,7 @@ describe("Secret Serializer", () => {
       encrypted: dummyEncrypted,
     });
 
-    expect(serialized).toMatch(/^%%vg:v1:iv=[A-Za-z0-9_-]+:data=[A-Za-z0-9_-]+:tag=[A-Za-z0-9_-]+%%$/);
+    expect(serialized).toMatch(/^%%km:v1:iv=[A-Za-z0-9_-]+:data=[A-Za-z0-9_-]+:tag=[A-Za-z0-9_-]+%%$/);
 
     const parsed = parseInline(serialized);
     expect(parsed).not.toBeNull();
@@ -54,13 +54,21 @@ describe("Secret Serializer", () => {
     expect(parsed?.tag).toEqual(dummyEncrypted.tag);
   });
 
+  it("should parse legacy vg:v1 inline tokens for backwards compatibility", () => {
+    const legacyToken = "%%vg:v1:label=TGVnYWN5:iv=AQIDBAUGBwgJCgsM:data=ZGVmZ2hpag:tag=yMjM0NTY3ODk0NTY3OA%%";
+    const parsed = parseInline(legacyToken);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.label).toBe("Legacy");
+    expect(parsed?.isCodeBlock).toBe(false);
+  });
+
   it("should serialize and parse fenced code block", () => {
     const serialized = serializeCodeBlock({
       label: "Production Ed25519 Private Key",
       encrypted: dummyEncrypted,
     });
 
-    expect(serialized).toContain("```vaultguard");
+    expect(serialized).toContain("```keymask");
     expect(serialized).toContain("version: 1");
     expect(serialized).toContain("label: Production Ed25519 Private Key");
     expect(serialized).toContain("data: |");
@@ -73,6 +81,19 @@ describe("Secret Serializer", () => {
     expect(parsed?.iv).toEqual(dummyEncrypted.iv);
     expect(parsed?.data).toEqual(dummyEncrypted.data);
     expect(parsed?.tag).toEqual(dummyEncrypted.tag);
+    expect(parsed?.isCodeBlock).toBe(true);
+  });
+
+  it("should parse legacy ```vaultguard fenced code blocks for backwards compatibility", () => {
+    const modernBlock = serializeCodeBlock({
+      label: "Legacy Block",
+      encrypted: dummyEncrypted,
+    });
+    const legacyBlock = modernBlock.replace("```keymask", "```vaultguard");
+
+    const parsed = parseCodeBlock(legacyBlock);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.label).toBe("Legacy Block");
     expect(parsed?.isCodeBlock).toBe(true);
   });
 
@@ -119,8 +140,10 @@ describe("Secret Serializer", () => {
   });
 
   it("should return null for malformed or invalid tokens", () => {
+    expect(parseInline("%%km:v1:corrupted%%")).toBeNull();
     expect(parseInline("%%vg:v1:corrupted%%")).toBeNull();
     expect(parseInline("%%random_comment%%")).toBeNull();
+    expect(parseCodeBlock("```keymask\nnot valid yaml\n```")).toBeNull();
     expect(parseCodeBlock("```vaultguard\nnot valid yaml\n```")).toBeNull();
     expect(parseSecret("not a secret")).toBeNull();
   });

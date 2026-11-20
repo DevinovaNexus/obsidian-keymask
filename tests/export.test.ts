@@ -1,5 +1,5 @@
 /**
- * VaultGuard KeePass / MacPass Export Format Tests
+ * KeyMask KeePass / MacPass Export Format Tests
  */
 
 import { describe, it, expect } from "vitest";
@@ -14,14 +14,14 @@ describe("KeePass & MacPass Export Specifications", () => {
     {
       title: "Stripe Live Key & Production DB",
       password: "sk_live_1234567890abcdef<secret>&pass='test'\"quoted\"",
-      group: "VaultGuard/Production",
+      group: "KeyMask/Production",
       url: "obsidian://open?vault=MainVault&file=Notes/Billing.md",
       notes: "Location: Notes/Billing.md:14\nPattern: Stripe Secret Key",
     },
     {
       title: "AWS Root Key",
       password: "AKIAIOSFODNN7EXAMPLE",
-      group: "VaultGuard",
+      group: "KeyMask",
       url: "obsidian://open?vault=MainVault&file=AWS.md",
       notes: "AWS admin credential",
     },
@@ -33,7 +33,7 @@ describe("KeePass & MacPass Export Specifications", () => {
     expect(xml).toContain('<?xml version="1.0" encoding="utf-8" standalone="yes"?>');
     expect(xml).toContain("<KeePassFile>");
     expect(xml).toContain("<DatabaseName>TestVault Secrets</DatabaseName>");
-    expect(xml).toContain("<Name>VaultGuard</Name>");
+    expect(xml).toContain("<Name>KeyMask</Name>");
     expect(xml).toContain("<Key>Title</Key>");
     expect(xml).toContain("<Key>Password</Key>");
     expect(xml).toContain("<Key>URL</Key>");
@@ -49,7 +49,7 @@ describe("KeePass & MacPass Export Specifications", () => {
     const csv = generateCSV(sampleEntries);
 
     expect(csv).toContain('"Group","Title","Username","Password","URL","Notes"');
-    expect(csv).toContain('"VaultGuard/Production"');
+    expect(csv).toContain('"KeyMask/Production"');
     expect(csv).toContain('"Stripe Live Key & Production DB"');
     expect(csv).toContain('"AKIAIOSFODNN7EXAMPLE"');
   });

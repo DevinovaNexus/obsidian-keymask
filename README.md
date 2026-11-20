@@ -1,19 +1,19 @@
-# VaultGuard (Obsidian Plugin)
+# KeyMask (Obsidian Plugin)
 
 > **Zero-Plaintext Credential Protection & Interactive UI Masking for Sensitive Secrets in Obsidian**
 
-VaultGuard (`obsidian-vaultguard`) is an enterprise-grade security plugin for Obsidian desktop and mobile, engineered to eliminate credential leakage across notes, sync engines, screen shares, clipboard managers, and third-party plugins.
+KeyMask (`keymask`) is an enterprise-grade security plugin for Obsidian desktop and mobile, engineered to eliminate credential leakage across notes, sync engines, screen shares, clipboard managers, and third-party plugins.
 
 ---
 
-## 🛡️ Threat Model & How VaultGuard Protects You
+## 🛡️ Threat Model & How KeyMask Protects You
 
 In typical Obsidian setups, secrets such as OpenAI/Anthropic API keys, database connection strings, SSH private keys, and GitHub personal access tokens are stored in raw plaintext Markdown files. Because third-party plugins run in the same shared JavaScript execution environment, any untrusted plugin can read your vault notes via `app.vault` or inspect the DOM. Furthermore, automatic cloud sync (Obsidian Sync, iCloud, Git) synchronizes plaintext credentials to remote servers and commit history.
 
-| Threat Vector | Severity | Standard Risk | VaultGuard Mitigation |
+| Threat Vector | Severity | Standard Risk | KeyMask Mitigation |
 | :--- | :--- | :--- | :--- |
 | **Untrusted Plugins** | High | Plugins read `app.vault` or inspect the DOM | Secrets remain encrypted at rest with AES-256-GCM. Decryption is on-demand for single tokens only; decrypted strings are never added to the static DOM tree or global window namespace. |
-| **Git / Sync History Leak** | Critical | Plaintext tokens committed into file history | Modal-driven pre-encryption prevents raw secrets from ever entering editor buffer or undo/redo stack. Ciphertext is stored in inline comments (`%%vg:v1:...%%`). |
+| **Git / Sync History Leak** | Critical | Plaintext tokens committed into file history | Modal-driven pre-encryption prevents raw secrets from ever entering editor buffer or undo/redo stack. Ciphertext is stored in inline comments (`%%km:v1:...%%`). |
 | **Clipboard Snooping** | Medium | OS clipboard history managers archive copied keys indefinitely | Ephemeral auto-clearing timer (default 30s) + volatile OS clipboard exclusion metadata headers (`org.nspasteboard.ConcealedType`, `ExcludeClipboardContentFromMonitorProcessing`). |
 | **Accidental Screen Sharing** | High | Note displays API keys during meetings | Interactive UI masking replaces secrets with `[ 🔑 <Label> •••••••••••• | 📋 Copy ]`. Single-token click-to-reveal with 5s countdown ring. |
 | **Merge Corruption** | High | Git or sync merge engines corrupt partial ciphertext strings | AES-GCM 128-bit authentication tags verify integrity before decryption. Failed decryptions surface an explicit Corrupted State UI without deleting content. |
@@ -62,14 +62,14 @@ In typical Obsidian setups, secrets such as OpenAI/Anthropic API keys, database 
   - **[ Cancel ]**
 
 ### 5. Proactive Secret Ingestion
-- Hotkey: `Cmd/Ctrl + Shift + S` or Command Palette -> **"VaultGuard: Insert Encrypted Secret"**.
+- Hotkey: `Cmd/Ctrl + Shift + S` or Command Palette -> **"KeyMask: Insert Encrypted Secret"**.
 - Native modal dialog with masked password input and optional label.
 - Directly encrypts in memory and writes the ciphertext token to note. Plaintext never touches editor buffer or undo/redo stack.
 
 ### 6. Vault Secret Audit & Batch Remediation (Vault Scanner)
 - **Target Selection**: Audit the entire vault or select specific folders (with recursive subfolder toggle).
 - **Comprehensive Detection**: Discovers unencrypted OpenAI/Anthropic keys, AWS credentials, GitHub tokens, database URIs, passwords, and private keys.
-- **Exclusion of Already-Encrypted Secrets**: Ignores tokens that are already encrypted with VaultGuard (`%%vg:v1:...%%`).
+- **Exclusion of Already-Encrypted Secrets**: Ignores tokens that are already encrypted with KeyMask (`%%km:v1:...%%` or legacy `%%vg:v1:...%%`).
 - **Interactive Review Table**: Review findings grouped by note with line numbers, masked previews, and editable labels.
 - **Batch Remediation**: One-click **[ 🔒 Encrypt & Mask Selected ]** encrypts all chosen secrets using AES-256-GCM in reverse-offset order to preserve note structure and formatting with zero data loss.
 
@@ -79,13 +79,13 @@ In typical Obsidian setups, secrets such as OpenAI/Anthropic API keys, database 
 
 ### 1. Inline Comment Format (Single-Line Secrets & API Keys)
 ```markdown
-%%vg:v1:label=<B64_LABEL>:iv=<B64_IV>:data=<B64_DATA>:tag=<B64_TAG>%%
+%%km:v1:label=<B64_LABEL>:iv=<B64_IV>:data=<B64_DATA>:tag=<B64_TAG>%%
 ```
-Enclosed in Markdown comments (`%%...%%`) so raw ciphertext remains hidden in standard Markdown parsers while CodeMirror 6 live preview turns it into an interactive UI pill.
+Enclosed in Markdown comments (`%%...%%`) so raw ciphertext remains hidden in standard Markdown parsers while CodeMirror 6 live preview turns it into an interactive UI pill. *(Legacy `%%vg:v1:...%%` tokens are also parsed automatically).*
 
 ### 2. Fenced Code Block Format (Multi-line Secrets & SSH/PEM Keys)
 ````markdown
-```vaultguard
+```keymask
 version: 1
 label: Production Ed25519 Private Key
 iv: <BASE64_12_BYTE_IV>
@@ -94,6 +94,7 @@ data: |
   <BASE64_CHUNKS_OF_CIPHERTEXT>
 ```
 ````
+*(Legacy ````vaultguard```` fenced blocks are also supported for seamless backwards compatibility).*
 
 ---
 
@@ -101,13 +102,15 @@ data: |
 
 | Command | Hotkey | Description |
 | :--- | :--- | :--- |
-| `VaultGuard: Insert Encrypted Secret` | `Cmd/Ctrl + Shift + S` | Opens modal to encrypt and insert a new credential |
-| `VaultGuard: Encrypt Selected Text` | Context Menu / Palette | Encrypts currently selected text in active editor |
-| `VaultGuard: Audit Vault for Plaintext Secrets` | Palette / Settings | Scans entire vault or folders and batch-encrypts exposed secrets |
-| `VaultGuard: Unlock Vault` | Ribbon / Status Bar / Palette | Prompts for master passphrase to enable decryption |
-| `VaultGuard: Lock Vault` | Ribbon / Status Bar / Palette | Purges derived encryption key from memory |
-| `VaultGuard: Change Master Passphrase` | Palette / Settings | Re-derives key and updates verification canary |
-| `VaultGuard: Clear Ephemeral Clipboard Now` | Palette | Immediately purges any active secret from clipboard |
+| `KeyMask: Insert Encrypted Secret` | `Cmd/Ctrl + Shift + S` | Opens modal to encrypt and insert a new credential |
+| `KeyMask: Encrypt Selected Text` | Context Menu / Palette | Encrypts currently selected text in active editor |
+| `KeyMask: Audit Vault for Plaintext Secrets` | Palette / Settings | Scans entire vault or folders and batch-encrypts exposed secrets |
+| `KeyMask: Unlock Vault` | Ribbon / Status Bar / Palette | Prompts for master passphrase to enable decryption |
+| `KeyMask: Lock Vault` | Ribbon / Status Bar / Palette | Purges derived encryption key from memory |
+| `KeyMask: Change Master Passphrase` | Palette / Settings | Re-derives key and updates verification canary |
+| `KeyMask: Clear Ephemeral Clipboard Now` | Palette | Immediately purges any active secret from clipboard |
+| `KeyMask: Export Secrets (KeePass XML / CSV)` | Palette / Settings | Exports secrets to KeePass/MacPass XML or universal CSV |
+| `KeyMask: Decrypt All Notes (De-escalate Vault)` | Palette / Settings | Batch decrypts all tokens back to raw Markdown |
 
 ---
 
@@ -117,7 +120,7 @@ data: |
 # Install dependencies
 npm install
 
-# Run unit tests (33 tests covering engine, serializer, heuristics, session)
+# Run unit tests (45 tests covering engine, serializer, heuristics, export, session)
 npm run test
 
 # Build production bundle
@@ -128,3 +131,4 @@ Generated bundle files:
 - `main.js`: Bundled JavaScript plugin
 - `manifest.json`: Obsidian community plugin manifest
 - `styles.css`: Visual styling for masked pills, progress rings, and modals
+- `keymask-standalone-decryptor.html`: Offline HTML recovery tool

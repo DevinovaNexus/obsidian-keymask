@@ -1,5 +1,5 @@
 /**
- * VaultGuard Cryptographic Engine Unit Tests
+ * KeyMask Cryptographic Engine Unit Tests
  */
 
 import { describe, it, expect } from "vitest";

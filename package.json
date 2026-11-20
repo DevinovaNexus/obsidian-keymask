@@ -1,5 +1,5 @@
 {
-  "name": "obsidian-vaultguard",
+  "name": "keymask",
   "version": "1.0.0",
   "description": "Zero-plaintext credential protection & interactive UI masking for sensitive secrets in Obsidian.",
   "main": "main.js",
@@ -15,9 +15,9 @@
     "security",
     "encryption",
     "masking",
-    "vaultguard"
+    "keymask"
   ],
-  "author": "VaultGuard",
+  "author": "KeyMask",
   "license": "MIT",
   "devDependencies": {
     "@codemirror/language": "^6.13.1",
