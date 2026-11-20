@@ -1,5 +1,5 @@
 /**
- * VaultGuard Mobile-Friendly Confirmation Modal
+ * KeyMask Mobile-Friendly Confirmation Modal
  *
  * Replaces window.confirm() with an Obsidian-native, themed modal dialog.
  * Works seamlessly across Obsidian Mobile (iOS / Android) and Desktop (macOS / Windows / Linux)
@@ -27,27 +27,27 @@ export class ConfirmModal extends Modal {
   }
 
   onOpen(): void {
-    this.modalEl.addClass("mod-vaultguard-modal", "vaultguard-confirm-modal");
+    this.modalEl.addClass("mod-keymask-modal", "keymask-confirm-modal");
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.addClass("vaultguard-modal");
+    contentEl.addClass("keymask-modal");
 
     // Header
-    const headerEl = contentEl.createDiv({ cls: "vaultguard-modal-header" });
-    const headerIcon = headerEl.createDiv({ cls: "vaultguard-modal-header-icon" });
+    const headerEl = contentEl.createDiv({ cls: "keymask-modal-header" });
+    const headerIcon = headerEl.createDiv({ cls: "keymask-modal-header-icon" });
     setIcon(headerIcon, this.options.danger ? "alert-triangle" : "shield-check");
     headerEl.createEl("h2", { text: this.options.title });
 
     // Message
-    const messageEl = contentEl.createDiv({ cls: "vaultguard-confirm-message" });
+    const messageEl = contentEl.createDiv({ cls: "keymask-confirm-message" });
     messageEl.createEl("p", { text: this.options.message });
 
     // Buttons
-    const btnContainer = contentEl.createDiv({ cls: "vaultguard-modal-buttons" });
+    const btnContainer = contentEl.createDiv({ cls: "keymask-modal-buttons" });
 
     const cancelBtn = btnContainer.createEl("button", {
       text: this.options.cancelText || "Cancel",
-      cls: "vaultguard-btn-secondary",
+      cls: "keymask-btn-secondary",
     });
     cancelBtn.addEventListener("click", () => {
       this.close();
@@ -59,8 +59,8 @@ export class ConfirmModal extends Modal {
     const confirmBtn = btnContainer.createEl("button", {
       text: this.options.confirmText || "Confirm",
       cls: this.options.danger
-        ? "mod-warning vaultguard-btn-danger"
-        : "mod-cta vaultguard-btn-primary-action",
+        ? "mod-warning keymask-btn-danger"
+        : "mod-cta keymask-btn-primary-action",
     });
     confirmBtn.addEventListener("click", () => {
       this.close();

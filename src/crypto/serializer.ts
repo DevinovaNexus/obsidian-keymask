@@ -1,10 +1,10 @@
 /**
- * VaultGuard Secret Serializer & Parser
+ * KeyMask Secret Serializer & Parser
  *
  * Handles bidirectional serialization between in-memory cryptographic structures
  * and Markdown-compatible representations:
- * 1. Inline Markdown comments: %%vg:v1:...%%
- * 2. Fenced Code Blocks: ```vaultguard ... ```
+ * 1. Inline Markdown comments: %%km:v1:...%% (and legacy %%vg:v1:...%%)
+ * 2. Fenced Code Blocks: ```keymask ... ``` (and legacy ```vaultguard ... ```)
  */
 
 import {
@@ -29,30 +29,30 @@ export interface SecretPayload {
 }
 
 /**
- * Regex matching inline VaultGuard comment tokens:
- * %%vg:v1:label=<LABEL>:iv=<IV>:data=<DATA>:tag=<TAG>%%
+ * Regex matching inline KeyMask comment tokens (and legacy vg:v1 tokens):
+ * %%km:v1:label=<LABEL>:iv=<IV>:data=<DATA>:tag=<TAG>%%
  */
 export const INLINE_SECRET_REGEX =
-  /%%vg:v1:((?:(?:label|iv|data|tag)=[A-Za-z0-9_\-\/+=]*:?)+)%%/g;
+  /%%(?:km|vg):v1:((?:(?:label|iv|data|tag)=[A-Za-z0-9_\-\/+=]*:?)+)%%/g;
 
 /**
- * Regex matching fenced code block VaultGuard secrets:
- * ```vaultguard
+ * Regex matching fenced code block KeyMask secrets:
+ * ```keymask
  * ...
  * ```
  */
 export const CODE_BLOCK_SECRET_REGEX =
-  /```vaultguard\s*\n([\s\S]*?)\n```/g;
+  /```(?:keymask|vaultguard)\s*\n([\s\S]*?)\n```/g;
 
 /**
  * Serialize an encrypted secret to the standard inline comment format:
- * %%vg:v1:label=<B64_LABEL>:iv=<B64_IV>:data=<B64_DATA>:tag=<B64_TAG>%%
+ * %%km:v1:label=<B64_LABEL>:iv=<B64_IV>:data=<B64_DATA>:tag=<B64_TAG>%%
  */
 export function serializeInline(payload: {
   label?: string;
   encrypted: EncryptedData;
 }): string {
-  const parts: string[] = ["vg:v1"];
+  const parts: string[] = ["km:v1"];
 
   if (payload.label && payload.label.trim().length > 0) {
     const encodedLabel = stringToBase64Url(payload.label.trim());
@@ -71,15 +71,17 @@ export function serializeInline(payload: {
 }
 
 /**
- * Parse an inline VaultGuard comment token
+ * Parse an inline KeyMask comment token (supports km:v1 and legacy vg:v1)
  */
 export function parseInline(raw: string): SecretPayload | null {
   const trimmed = raw.trim();
-  if (!trimmed.startsWith("%%vg:v1:") || !trimmed.endsWith("%%")) {
+  const isKm = trimmed.startsWith("%%km:v1:");
+  const isVg = trimmed.startsWith("%%vg:v1:");
+  if ((!isKm && !isVg) || !trimmed.endsWith("%%")) {
     return null;
   }
 
-  // Strip %% wrappers and vg:v1: prefix
+  // Strip %% wrappers and km:v1: / vg:v1: prefix (both 8 chars)
   const content = trimmed.slice(8, -2);
   const pairs = content.split(":");
 
@@ -134,7 +136,7 @@ export function parseInline(raw: string): SecretPayload | null {
 
 /**
  * Serialize an encrypted secret to the fenced code block format:
- * ```vaultguard
+ * ```keymask
  * version: 1
  * label: Production Ed25519 Private Key
  * iv: <BASE64_12_BYTE_IV>
@@ -148,7 +150,7 @@ export function serializeCodeBlock(payload: {
   encrypted: EncryptedData;
   isFile?: boolean;
 }): string {
-  const lines: string[] = ["```vaultguard", "version: 1"];
+  const lines: string[] = ["```keymask", "version: 1"];
 
   if (payload.isFile) {
     lines.push("type: file");
@@ -177,13 +179,13 @@ export function serializeCodeBlock(payload: {
 }
 
 /**
- * Parse a fenced code block VaultGuard secret
+ * Parse a fenced code block KeyMask secret (supports ```keymask and legacy ```vaultguard)
  */
 export function parseCodeBlock(raw: string): SecretPayload | null {
   const trimmed = raw.trim();
   let content = trimmed;
 
-  if (trimmed.startsWith("```vaultguard")) {
+  if (trimmed.startsWith("```keymask") || trimmed.startsWith("```vaultguard")) {
     const startIdx = trimmed.indexOf("\n");
     const endIdx = trimmed.lastIndexOf("```");
     if (startIdx === -1 || endIdx <= startIdx) return null;
@@ -272,10 +274,14 @@ export function parseCodeBlock(raw: string): SecretPayload | null {
  */
 export function parseSecret(raw: string): SecretPayload | null {
   const trimmed = raw.trim();
-  if (trimmed.startsWith("%%vg:v1:")) {
+  if (trimmed.startsWith("%%km:v1:") || trimmed.startsWith("%%vg:v1:")) {
     return parseInline(trimmed);
   }
-  if (trimmed.startsWith("```vaultguard") || trimmed.includes("data: |")) {
+  if (
+    trimmed.startsWith("```keymask") ||
+    trimmed.startsWith("```vaultguard") ||
+    trimmed.includes("data: |")
+  ) {
     return parseCodeBlock(trimmed);
   }
   return null;
@@ -296,10 +302,17 @@ export function isWholeFileEncrypted(content: string): boolean {
     }
   }
 
-  if (trimmed.startsWith("```vaultguard") && trimmed.endsWith("```")) {
+  if (
+    (trimmed.startsWith("```keymask") || trimmed.startsWith("```vaultguard")) &&
+    trimmed.endsWith("```")
+  ) {
     return true;
   }
-  if (trimmed.startsWith("%%vg:v1:") && trimmed.endsWith("%%") && !trimmed.slice(8, -2).includes("\n")) {
+  if (
+    (trimmed.startsWith("%%km:v1:") || trimmed.startsWith("%%vg:v1:")) &&
+    trimmed.endsWith("%%") &&
+    !trimmed.slice(8, -2).includes("\n")
+  ) {
     return true;
   }
   return false;

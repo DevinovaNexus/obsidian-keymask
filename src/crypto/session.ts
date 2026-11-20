@@ -1,5 +1,5 @@
 /**
- * VaultGuard Session & In-Memory Key Lifecycle Manager
+ * KeyMask Session & In-Memory Key Lifecycle Manager
  *
  * Requirements:
  * - Derived symmetric key resides exclusively as an in-memory, non-extractable WebCrypto object.
@@ -14,6 +14,7 @@ import {
   CANARY_PLAINTEXT,
   DEFAULT_KDF_ITERATIONS,
   EncryptedData,
+  LEGACY_CANARY_PLAINTEXT,
   base64ToUint8Array,
   deriveKeyFromPassphrase,
   encrypt,
@@ -40,7 +41,7 @@ export interface SessionConfig {
   getLockOnBlur: () => boolean;
 }
 
-export class VaultGuardSession {
+export class KeyMaskSession {
   private derivedKey: CryptoKey | null = null;
   private autoLockTimer: ReturnType<typeof setTimeout> | null = null;
   private listeners: Set<SessionStateListener> = new Set();
@@ -66,7 +67,7 @@ export class VaultGuardSession {
       try {
         listener(unlocked);
       } catch (e) {
-        console.error("VaultGuard session listener error:", e);
+        console.error("KeyMask session listener error:", e);
       }
     }
   }
@@ -120,7 +121,7 @@ export class VaultGuardSession {
     const canaryToken = this.config.getCanaryToken();
 
     if (!saltB64 || !canaryToken) {
-      throw new Error("VaultGuard has not been initialized. Please set up a master passphrase first.");
+      throw new Error("KeyMask has not been initialized. Please set up a master passphrase first.");
     }
 
     const salt = base64ToUint8Array(saltB64);
@@ -146,7 +147,7 @@ export class VaultGuardSession {
         candidateKey
       );
 
-      if (decrypted !== CANARY_PLAINTEXT) {
+      if (decrypted !== CANARY_PLAINTEXT && decrypted !== LEGACY_CANARY_PLAINTEXT) {
         throw new Error("Invalid canary plaintext.");
       }
     } catch (err) {

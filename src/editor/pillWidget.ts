@@ -1,5 +1,5 @@
 /**
- * VaultGuard UI Masked Pill & Block Widget
+ * KeyMask UI Masked Pill & Block Widget
  *
  * Implements CodeMirror 6 WidgetType for dynamic interactive masking:
  * - Masked Pill: [ 🔑 <Optional Label> •••••••••••• | 📋 Copy ]
@@ -10,23 +10,23 @@
  */
 
 import { WidgetType } from "@codemirror/view";
-import { Notice, setIcon, TFile } from "obsidian";
-import type VaultGuardPlugin from "../main";
+import { Menu, Notice, setIcon, TFile } from "obsidian";
+import type KeyMaskPlugin from "../main";
 import { SecretPayload } from "../crypto/serializer";
 import { UnlockModal } from "../modals/unlockModal";
 import { confirmAction } from "../modals/confirmModal";
-import { VaultGuardClipboard } from "../utils/clipboard";
+import { KeyMaskClipboard } from "../utils/clipboard";
 
 export interface PillOptions {
-  plugin: VaultGuardPlugin;
+  plugin: KeyMaskPlugin;
   payload: SecretPayload | null;
   rawText: string;
   isCodeBlock?: boolean;
   sourcePath?: string;
 }
 
-export class VaultGuardPillWidget extends WidgetType {
-  private plugin: VaultGuardPlugin;
+export class KeyMaskPillWidget extends WidgetType {
+  private plugin: KeyMaskPlugin;
   private payload: SecretPayload | null;
   private rawText: string;
   private isCodeBlock: boolean;
@@ -39,7 +39,7 @@ export class VaultGuardPillWidget extends WidgetType {
     this.isCodeBlock = options.isCodeBlock || false;
   }
 
-  eq(other: VaultGuardPillWidget): boolean {
+  eq(other: KeyMaskPillWidget): boolean {
     return (
       other.rawText === this.rawText &&
       other.isCodeBlock === this.isCodeBlock &&
@@ -62,11 +62,11 @@ export class VaultGuardPillWidget extends WidgetType {
     if (
       target.tagName === "BUTTON" ||
       target.closest("button") ||
-      target.classList.contains("vaultguard-pill-value") ||
-      target.classList.contains("vaultguard-pill-mask") ||
-      target.classList.contains("vaultguard-pill-copy") ||
-      target.classList.contains("vaultguard-pill-reveal") ||
-      target.closest(".vaultguard-pill")
+      target.classList.contains("keymask-pill-value") ||
+      target.classList.contains("keymask-pill-mask") ||
+      target.classList.contains("keymask-pill-copy") ||
+      target.classList.contains("keymask-pill-reveal") ||
+      target.closest(".keymask-pill")
     ) {
       return true;
     }
@@ -88,8 +88,8 @@ export function createPillElement(options: PillOptions): HTMLElement {
 
   const container = document.createElement(isCodeBlock ? "div" : "span");
   container.className = isCodeBlock
-    ? "vaultguard-block-wrapper"
-    : "vaultguard-pill-wrapper";
+    ? "keymask-block-wrapper"
+    : "keymask-pill-wrapper";
 
   // Check for corrupted or invalid payload
   if (!payload) {
@@ -98,21 +98,21 @@ export function createPillElement(options: PillOptions): HTMLElement {
   }
 
   const pill = document.createElement("span");
-  pill.className = `vaultguard-pill ${isCodeBlock ? "is-codeblock" : "is-inline"}`;
+  pill.className = `keymask-pill ${isCodeBlock ? "is-codeblock" : "is-inline"}`;
 
   // 1. Icon & Status Indicator
   const iconSpan = document.createElement("span");
-  iconSpan.className = "vaultguard-pill-icon";
+  iconSpan.className = "keymask-pill-icon";
   updateIcon(iconSpan, plugin.session.isUnlocked());
 
   // 2. Optional Label
   const labelSpan = document.createElement("span");
-  labelSpan.className = "vaultguard-pill-label";
+  labelSpan.className = "keymask-pill-label";
   labelSpan.textContent = payload.label || (isCodeBlock ? "Encrypted Secret Block" : "Secret");
 
   // 3. Mask / Value Area
   const valueSpan = document.createElement("span");
-  valueSpan.className = "vaultguard-pill-value masked";
+  valueSpan.className = "keymask-pill-value masked";
   valueSpan.textContent = isCodeBlock
     ? "••••••••••••••••••••••••••••••••"
     : "••••••••••••";
@@ -120,22 +120,22 @@ export function createPillElement(options: PillOptions): HTMLElement {
 
   // 4. Countdown Progress Ring Container (hidden while masked)
   const timerContainer = document.createElement("span");
-  timerContainer.className = "vaultguard-timer-ring-container";
+  timerContainer.className = "keymask-timer-ring-container";
   timerContainer.style.display = "none";
 
   // 5. Reveal / Toggle Action Button
   const revealBtn = document.createElement("button");
   revealBtn.type = "button";
-  revealBtn.className = "vaultguard-btn vaultguard-btn-reveal";
+  revealBtn.className = "keymask-btn keymask-btn-reveal";
   revealBtn.title = "Click to reveal";
-  revealBtn.innerHTML = `<span class="vg-btn-icon">👁️</span>`;
+  revealBtn.innerHTML = `<span class="km-btn-icon">👁️</span>`;
 
   // 6. Copy Action Button
   const copyBtn = document.createElement("button");
   copyBtn.type = "button";
-  copyBtn.className = "vaultguard-btn vaultguard-btn-copy";
+  copyBtn.className = "keymask-btn keymask-btn-copy";
   copyBtn.title = "Copy decrypted secret to clipboard (auto-wipes)";
-  copyBtn.innerHTML = `<span class="vg-btn-icon">📋</span> <span class="vg-btn-text">Copy</span>`;
+  copyBtn.innerHTML = `<span class="km-btn-icon">📋</span> <span class="km-btn-text">Copy</span>`;
 
   pill.appendChild(iconSpan);
   pill.appendChild(labelSpan);
@@ -165,10 +165,10 @@ export function createPillElement(options: PillOptions): HTMLElement {
     valueSpan.textContent = isCodeBlock
       ? "••••••••••••••••••••••••••••••••"
       : "••••••••••••";
-    valueSpan.className = "vaultguard-pill-value masked";
+    valueSpan.className = "keymask-pill-value masked";
     timerContainer.style.display = "none";
     timerContainer.empty();
-    revealBtn.innerHTML = `<span class="vg-btn-icon">👁️</span>`;
+    revealBtn.innerHTML = `<span class="km-btn-icon">👁️</span>`;
     revealBtn.title = "Click to reveal";
   }
 
@@ -189,8 +189,8 @@ export function createPillElement(options: PillOptions): HTMLElement {
       secondsRemaining = plugin.settings.revealTimeoutSeconds;
 
       valueSpan.textContent = plaintext;
-      valueSpan.className = `vaultguard-pill-value revealed ${isCodeBlock ? "multiline" : ""}`;
-      revealBtn.innerHTML = `<span class="vg-btn-icon">🙈</span>`;
+      valueSpan.className = `keymask-pill-value revealed ${isCodeBlock ? "multiline" : ""}`;
+      revealBtn.innerHTML = `<span class="km-btn-icon">🙈</span>`;
       revealBtn.title = "Hide secret";
 
       // Render SVG Countdown Ring
@@ -252,22 +252,71 @@ export function createPillElement(options: PillOptions): HTMLElement {
   async function copySecret() {
     try {
       const plaintext = await plugin.session.decryptSecret(payload!);
-      await VaultGuardClipboard.writeSecret(plaintext, {
+      await KeyMaskClipboard.writeSecret(plaintext, {
         timeoutSeconds: plugin.settings.clipboardWipeTimeoutSeconds,
       });
 
       // Visual feedback on copy button
       copyBtn.classList.add("copied");
-      copyBtn.innerHTML = `<span class="vg-btn-icon">✓</span> <span class="vg-btn-text">Copied!</span>`;
+      copyBtn.innerHTML = `<span class="km-btn-icon">✓</span> <span class="km-btn-text">Copied!</span>`;
 
       setTimeout(() => {
         copyBtn.classList.remove("copied");
-        copyBtn.innerHTML = `<span class="vg-btn-icon">📋</span> <span class="vg-btn-text">Copy</span>`;
+        copyBtn.innerHTML = `<span class="km-btn-icon">📋</span> <span class="km-btn-text">Copy</span>`;
       }, 2000);
+      new Notice(`📋 Decrypted secret copied to clipboard (auto-wipes in ${plugin.settings.clipboardWipeTimeoutSeconds}s).`);
     } catch (err: any) {
       renderCorruptedBlock(container, err.message || "Decryption failed on copy", rawText);
     }
   }
+
+  // Right-click context menu on pill to copy decrypted or encrypted secret token
+  pill.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const menu = new Menu();
+
+    menu.addItem((item) => {
+      item
+        .setTitle("Copy Decrypted Password")
+        .setIcon("clipboard-check")
+        .onClick(async () => {
+          if (!plugin.session.isUnlocked()) {
+            new UnlockModal(plugin.app, plugin, {
+              mode: "unlock",
+              onSuccess: () => copySecret(),
+            }).open();
+            return;
+          }
+          await copySecret();
+        });
+    });
+
+    menu.addItem((item) => {
+      item
+        .setTitle("Copy Encrypted Token (Ciphertext)")
+        .setIcon("copy")
+        .onClick(async () => {
+          await KeyMaskClipboard.writeText(rawText);
+          new Notice("📦 Encrypted secret token copied to clipboard.");
+        });
+    });
+
+    menu.addItem((item) => {
+      item
+        .setTitle(isRevealed ? "Hide Secret" : "Reveal Secret")
+        .setIcon(isRevealed ? "eye-off" : "eye")
+        .onClick(() => {
+          if (isRevealed) {
+            maskSecret();
+          } else {
+            revealSecret();
+          }
+        });
+    });
+
+    menu.showAtMouseEvent(e);
+  });
 
   // Icon click to lock/unlock
   iconSpan.addEventListener("click", (e) => {
@@ -317,14 +366,14 @@ function renderCountdownRing(
   const strokeDashoffset = circumference * (1 - progressRatio);
 
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("class", "vaultguard-progress-ring");
+  svg.setAttribute("class", "keymask-progress-ring");
   svg.setAttribute("width", "22");
   svg.setAttribute("height", "22");
   svg.setAttribute("viewBox", "0 0 24 24");
 
   // Background track circle
   const track = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-  track.setAttribute("class", "vaultguard-progress-track");
+  track.setAttribute("class", "keymask-progress-track");
   track.setAttribute("cx", "12");
   track.setAttribute("cy", "12");
   track.setAttribute("r", radius.toString());
@@ -333,7 +382,7 @@ function renderCountdownRing(
 
   // Animated progress circle
   const progress = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-  progress.setAttribute("class", "vaultguard-progress-indicator");
+  progress.setAttribute("class", "keymask-progress-indicator");
   progress.setAttribute("cx", "12");
   progress.setAttribute("cy", "12");
   progress.setAttribute("r", radius.toString());
@@ -348,7 +397,7 @@ function renderCountdownRing(
   text.setAttribute("x", "12");
   text.setAttribute("y", "15.5");
   text.setAttribute("text-anchor", "middle");
-  text.setAttribute("class", "vaultguard-progress-text");
+  text.setAttribute("class", "keymask-progress-text");
   text.textContent = current.toString();
 
   svg.appendChild(track);
@@ -369,22 +418,22 @@ export function renderCorruptedBlock(
   container.empty();
 
   const corruptEl = document.createElement("div");
-  corruptEl.className = "vaultguard-corrupted-block";
+  corruptEl.className = "keymask-corrupted-block";
 
-  const header = corruptEl.createDiv({ cls: "vaultguard-corrupted-header" });
-  header.createEl("span", { cls: "vaultguard-corrupted-icon", text: "⚠️" });
+  const header = corruptEl.createDiv({ cls: "keymask-corrupted-header" });
+  header.createEl("span", { cls: "keymask-corrupted-icon", text: "⚠️" });
   header.createEl("span", {
-    cls: "vaultguard-corrupted-title",
+    cls: "keymask-corrupted-title",
     text: "Corrupted Ciphertext Block",
   });
 
   corruptEl.createEl("div", {
-    cls: "vaultguard-corrupted-desc",
+    cls: "keymask-corrupted-desc",
     text: `${errorMsg}. Content may have suffered a merge conflict or key mismatch. Raw ciphertext preserved.`,
   });
 
   const detailsToggle = corruptEl.createEl("details", {
-    cls: "vaultguard-corrupted-details",
+    cls: "keymask-corrupted-details",
   });
   detailsToggle.createEl("summary", { text: "Inspect Raw Ciphertext" });
   const rawCode = detailsToggle.createEl("pre");
@@ -402,7 +451,7 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
   const { plugin, payload, rawText } = options;
 
   const card = document.createElement("div");
-  card.className = "vaultguard-file-card-full";
+  card.className = "keymask-file-card-full";
 
   // Prevent Live Preview mousedown events from triggering CodeMirror raw code-block editing
   card.addEventListener("mousedown", (e) => {
@@ -432,15 +481,15 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
   const noteTitle = payload.label || fileBasename || "Encrypted Note";
 
   // 2. Top header with Shield Icon, Note Title, and Status Badges
-  const header = card.createDiv({ cls: "vaultguard-file-card-header" });
-  const headerLeft = header.createDiv({ cls: "vaultguard-file-header-left" });
-  const shieldIcon = headerLeft.createDiv({ cls: "vaultguard-shield-icon" });
+  const header = card.createDiv({ cls: "keymask-file-card-header" });
+  const headerLeft = header.createDiv({ cls: "keymask-file-header-left" });
+  const shieldIcon = headerLeft.createDiv({ cls: "keymask-shield-icon" });
   setIcon(shieldIcon, "shield-check");
 
-  const titleGroup = headerLeft.createDiv({ cls: "vaultguard-file-title-group" });
-  const titleRow = titleGroup.createDiv({ cls: "vaultguard-file-title-row" });
+  const titleGroup = headerLeft.createDiv({ cls: "keymask-file-title-group" });
+  const titleRow = titleGroup.createDiv({ cls: "keymask-file-title-row" });
   titleRow.createEl("span", {
-    cls: "vaultguard-file-card-title",
+    cls: "keymask-file-card-title",
     text: noteTitle,
   });
 
@@ -449,82 +498,82 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
     subtitleText = `File: ${fileBasename}.md • ${subtitleText}`;
   }
   titleGroup.createEl("div", {
-    cls: "vaultguard-file-card-subtitle",
+    cls: "keymask-file-card-subtitle",
     text: subtitleText,
   });
 
-  const headerRight = header.createDiv({ cls: "vaultguard-file-header-right" });
+  const headerRight = header.createDiv({ cls: "keymask-file-header-right" });
   headerRight.createEl("span", {
-    cls: "vaultguard-file-type-badge",
+    cls: "keymask-file-type-badge",
     text: "🔒 Encrypted Note",
   });
   const statusBadge = headerRight.createEl("span", {
-    cls: "vaultguard-status-badge",
+    cls: "keymask-status-badge",
     text: plugin.session.isUnlocked() ? "🔓 Unlocked" : "🔒 Locked",
   });
 
   // 3. Action Buttons Toolbar
-  const toolbar = card.createDiv({ cls: "vaultguard-file-card-toolbar" });
-  const toolbarLeft = toolbar.createDiv({ cls: "vaultguard-toolbar-left" });
-  const toolbarRight = toolbar.createDiv({ cls: "vaultguard-toolbar-right" });
+  const toolbar = card.createDiv({ cls: "keymask-file-card-toolbar" });
+  const toolbarLeft = toolbar.createDiv({ cls: "keymask-toolbar-left" });
+  const toolbarRight = toolbar.createDiv({ cls: "keymask-toolbar-right" });
 
   const revealBtn = toolbarLeft.createEl("button", {
-    cls: "vaultguard-btn-action mod-cta",
+    cls: "keymask-btn-action mod-cta",
     text: "🔓 Decrypt & Read Note",
     attr: { title: "Decrypt and display note in secure in-memory reader" },
   });
 
   const copyDecryptedBtn = toolbarLeft.createEl("button", {
-    cls: "vaultguard-btn-action",
+    cls: "keymask-btn-action",
     text: "📋 Copy Decrypted Note",
     attr: { title: "Copy decrypted note to clipboard (ephemeral 30s auto-wipe)" },
   });
 
   const copyEncryptedBtn = toolbarLeft.createEl("button", {
-    cls: "vaultguard-btn-action",
+    cls: "keymask-btn-action",
     text: "📦 Copy Encrypted",
     attr: { title: "Copy raw ciphertext block to clipboard" },
   });
 
   const revertBtn = toolbarRight.createEl("button", {
-    cls: "vaultguard-btn-revert",
+    cls: "keymask-btn-revert",
     text: "🔓 Decrypt to Plaintext",
     attr: { title: "Permanently decrypt note back to raw Markdown" },
   });
 
   // 4. In-Memory Decrypted Note Preview Container
-  const previewContainer = card.createDiv({ cls: "vaultguard-file-preview-container" });
+  const previewContainer = card.createDiv({ cls: "keymask-file-preview-container" });
   previewContainer.style.display = "none";
 
-  const previewHeader = previewContainer.createDiv({ cls: "vaultguard-file-preview-header" });
-  const previewHeaderLeft = previewHeader.createDiv({ cls: "vaultguard-preview-header-left" });
-  const previewIcon = previewHeaderLeft.createSpan({ cls: "vaultguard-preview-icon" });
+  const previewHeader = previewContainer.createDiv({ cls: "keymask-file-preview-header" });
+  const previewHeaderLeft = previewHeader.createDiv({ cls: "keymask-preview-header-left" });
+  const previewIcon = previewHeaderLeft.createSpan({ cls: "keymask-preview-icon" });
   setIcon(previewIcon, "file-text");
   previewHeaderLeft.createEl("span", {
-    cls: "vaultguard-preview-title",
+    cls: "keymask-preview-title",
     text: `Decrypted Note: ${noteTitle}`,
   });
 
-  const previewActions = previewHeader.createDiv({ cls: "vaultguard-preview-actions" });
-  const timerRingSpan = previewActions.createSpan({ cls: "vaultguard-timer-ring-container" });
+  const previewActions = previewHeader.createDiv({ cls: "keymask-preview-actions" });
+  const timerRingSpan = previewActions.createSpan({ cls: "keymask-timer-ring-container" });
   const hideBtn = previewActions.createEl("button", {
-    cls: "vaultguard-btn-small vaultguard-btn-hide-preview",
+    cls: "keymask-btn-small keymask-btn-hide-preview",
     text: "🙈 Hide Note",
   });
 
   const previewContent = previewContainer.createEl("pre", {
-    cls: "vaultguard-file-preview-content",
+    cls: "keymask-file-preview-content",
   });
 
-  const previewFooter = previewContainer.createDiv({ cls: "vaultguard-file-preview-footer" });
-  const lockIcon = previewFooter.createSpan({ cls: "vaultguard-footer-icon" });
+  const previewFooter = previewContainer.createDiv({ cls: "keymask-file-preview-footer" });
+  const lockIcon = previewFooter.createSpan({ cls: "keymask-footer-icon" });
   setIcon(lockIcon, "lock");
   previewFooter.createEl("span", {
     text: "In-memory zero-trace preview • Never written to disk • Auto-locks on blur or timeout",
   });
 
   // 5. Collapsible Raw Ciphertext Inspector (for verification & audits)
-  const rawToggle = card.createEl("details", { cls: "vaultguard-file-inspect-raw" });
+  const rawToggle = card.createEl("details", { cls: "keymask-file-inspect-raw" });
   rawToggle.createEl("summary", { text: "Inspect Raw Ciphertext Container" });
   const rawCode = rawToggle.createEl("pre");
   rawCode.createEl("code", { text: rawText });
@@ -612,7 +661,7 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
 
     try {
       const plaintext = await plugin.session.decryptSecret(payload!);
-      await VaultGuardClipboard.writeSecret(plaintext, {
+      await KeyMaskClipboard.writeSecret(plaintext, {
         timeoutSeconds: plugin.settings.clipboardWipeTimeoutSeconds,
       });
 
@@ -629,7 +678,7 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
   copyEncryptedBtn.addEventListener("click", async (e) => {
     e.stopPropagation();
     try {
-      await navigator.clipboard.writeText(rawText);
+      await KeyMaskClipboard.writeText(rawText);
       copyEncryptedBtn.textContent = "✓ Copied Ciphertext!";
       setTimeout(() => {
         copyEncryptedBtn.textContent = "📦 Copy Encrypted";

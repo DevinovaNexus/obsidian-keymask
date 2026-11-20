@@ -1,5 +1,5 @@
 /**
- * VaultGuard Paste Interceptor Modal
+ * KeyMask Paste Interceptor Modal
  *
  * Requirements:
  * - Triggers when sensitive token patterns (OpenAI, AWS, Anthropic, GitHub, Private Keys)
@@ -11,7 +11,7 @@
  */
 
 import { App, Editor, Modal, Setting, Notice } from "obsidian";
-import type VaultGuardPlugin from "../main";
+import type KeyMaskPlugin from "../main";
 import { DetectedToken, maskForPreview } from "../utils/heuristics";
 import { UnlockModal } from "./unlockModal";
 
@@ -22,14 +22,14 @@ export interface InterceptPasteOptions {
 }
 
 export class InterceptPasteModal extends Modal {
-  private plugin: VaultGuardPlugin;
+  private plugin: KeyMaskPlugin;
   private editor: Editor;
   private pastedText: string;
   private detectedToken: DetectedToken;
   private customLabel: string;
   private errorEl: HTMLElement | null = null;
 
-  constructor(app: App, plugin: VaultGuardPlugin, options: InterceptPasteOptions) {
+  constructor(app: App, plugin: KeyMaskPlugin, options: InterceptPasteOptions) {
     super(app);
     this.plugin = plugin;
     this.editor = options.editor;
@@ -41,28 +41,28 @@ export class InterceptPasteModal extends Modal {
   onOpen(): void {
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.addClass("vaultguard-modal", "vaultguard-intercept-modal");
+    contentEl.addClass("keymask-modal", "keymask-intercept-modal");
 
     contentEl.createEl("h2", { text: "⚠️ Sensitive Token Pattern Detected" });
 
-    const banner = contentEl.createDiv({ cls: "vaultguard-intercept-banner" });
+    const banner = contentEl.createDiv({ cls: "keymask-intercept-banner" });
     banner.createEl("span", {
-      cls: "vaultguard-badge-pattern",
+      cls: "keymask-badge-pattern",
       text: this.detectedToken.patternName,
     });
 
     const preview = maskForPreview(this.detectedToken.matchedText);
     banner.createEl("code", {
-      cls: "vaultguard-preview-code",
+      cls: "keymask-preview-code",
       text: preview,
     });
 
     contentEl.createEl("p", {
       cls: "setting-item-description",
-      text: "You are attempting to paste a confidential credential into your note. Pasting plaintext exposes it to note history, cloud sync engines, and other plugins. VaultGuard can encrypt it immediately with zero plaintext exposure.",
+      text: "You are attempting to paste a confidential credential into your note. Pasting plaintext exposes it to note history, cloud sync engines, and other plugins. KeyMask can encrypt it immediately with zero plaintext exposure.",
     });
 
-    this.errorEl = contentEl.createDiv({ cls: "vaultguard-error-message" });
+    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message" });
     this.errorEl.style.display = "none";
 
     // Optional Label customization
@@ -77,7 +77,7 @@ export class InterceptPasteModal extends Modal {
       });
 
     // Action Buttons
-    const buttonContainer = contentEl.createDiv({ cls: "vaultguard-modal-buttons" });
+    const buttonContainer = contentEl.createDiv({ cls: "keymask-modal-buttons" });
 
     // Cancel Button
     const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });

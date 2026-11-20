@@ -1,15 +1,15 @@
 /**
- * VaultGuard Markdown Post Processor (Reading View)
+ * KeyMask Markdown Post Processor (Reading View)
  *
  * Implements Obsidian's MarkdownPostProcessor API:
- * 1. registerMarkdownCodeBlockProcessor("vaultguard", ...) for fenced code blocks.
- * 2. registerMarkdownPostProcessor(...) for inline %%vg:v1:...%% comment tokens.
+ * 1. registerMarkdownCodeBlockProcessor("keymask", ...) for fenced code blocks (and legacy "vaultguard").
+ * 2. registerMarkdownPostProcessor(...) for inline %%km:v1:...%% / %%vg:v1:...%% comment tokens.
  *
  * Replaces tokens with interactive DOM pills identical to Live Preview.
  */
 
 import { MarkdownPostProcessorContext } from "obsidian";
-import type VaultGuardPlugin from "../main";
+import type KeyMaskPlugin from "../main";
 import {
   parseCodeBlock,
   parseInline,
@@ -20,12 +20,11 @@ import { createPillElement } from "./pillWidget";
 /**
  * Register code block and inline post processors for Reading View
  */
-export function registerPostProcessors(plugin: VaultGuardPlugin): void {
-  // 1. Fenced Code Block Processor (```vaultguard)
-  plugin.registerMarkdownCodeBlockProcessor(
-    "vaultguard",
-    (source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
-      const rawText = `\`\`\`vaultguard\n${source.trim()}\n\`\`\``;
+export function registerPostProcessors(plugin: KeyMaskPlugin): void {
+  // 1. Fenced Code Block Processor (```keymask and legacy ```vaultguard)
+  const handleCodeBlock = (tag: string) => {
+    return (source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
+      const rawText = `\`\`\`${tag}\n${source.trim()}\n\`\`\``;
       const payload = parseCodeBlock(rawText);
 
       const pillEl = createPillElement({
@@ -38,20 +37,26 @@ export function registerPostProcessors(plugin: VaultGuardPlugin): void {
 
       el.empty();
       el.appendChild(pillEl);
-    }
-  );
+    };
+  };
 
-  // 2. Inline Comment Secret Post Processor (%%vg:v1:...%%)
+  plugin.registerMarkdownCodeBlockProcessor("keymask", handleCodeBlock("keymask"));
+  plugin.registerMarkdownCodeBlockProcessor("vaultguard", handleCodeBlock("vaultguard"));
+
+  // 2. Inline Comment Secret Post Processor (%%km:v1:...%% and legacy %%vg:v1:...%%)
   plugin.registerMarkdownPostProcessor(
     (el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
-      // Find all text nodes that might contain %%vg:v1:
+      // Find all text nodes that might contain %%km:v1: or %%vg:v1:
       const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
       const nodesToReplace: { node: Text; text: string }[] = [];
 
       let currentNode = walker.nextNode();
       while (currentNode) {
         const textNode = currentNode as Text;
-        if (textNode.nodeValue && textNode.nodeValue.includes("%%vg:v1:")) {
+        if (
+          textNode.nodeValue &&
+          (textNode.nodeValue.includes("%%km:v1:") || textNode.nodeValue.includes("%%vg:v1:"))
+        ) {
           nodesToReplace.push({ node: textNode, text: textNode.nodeValue });
         }
         currentNode = walker.nextNode();

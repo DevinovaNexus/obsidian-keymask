@@ -1,16 +1,16 @@
 /**
- * VaultGuard Configuration & Settings Tab
+ * KeyMask Configuration & Settings Tab
  */
 
 import { App, PluginSettingTab, Setting, Notice } from "obsidian";
-import type VaultGuardPlugin from "./main";
+import type KeyMaskPlugin from "./main";
 import { UnlockModal } from "./modals/unlockModal";
 import { VaultAuditModal } from "./modals/vaultAuditModal";
 import { ExportSecretsModal } from "./modals/exportSecretsModal";
 import { BatchDecryptModal } from "./modals/batchDecryptModal";
 import { confirmAction } from "./modals/confirmModal";
 
-export interface VaultGuardSettings {
+export interface KeyMaskSettings {
   isInitialized: boolean;
   salt: string;
   kdfIterations: number;
@@ -22,7 +22,7 @@ export interface VaultGuardSettings {
   interceptPaste: boolean;
 }
 
-export const DEFAULT_SETTINGS: VaultGuardSettings = {
+export const DEFAULT_SETTINGS: KeyMaskSettings = {
   isInitialized: false,
   salt: "",
   kdfIterations: 600_000,
@@ -34,10 +34,10 @@ export const DEFAULT_SETTINGS: VaultGuardSettings = {
   interceptPaste: true,
 };
 
-export class VaultGuardSettingTab extends PluginSettingTab {
-  plugin: VaultGuardPlugin;
+export class KeyMaskSettingTab extends PluginSettingTab {
+  plugin: KeyMaskPlugin;
 
-  constructor(app: App, plugin: VaultGuardPlugin) {
+  constructor(app: App, plugin: KeyMaskPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }
@@ -46,21 +46,21 @@ export class VaultGuardSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl("h2", { text: "VaultGuard Settings" });
+    containerEl.createEl("h2", { text: "KeyMask Settings" });
 
     // 1. Vault Status Banner
-    const statusDiv = containerEl.createDiv({ cls: "vaultguard-status-banner" });
+    const statusDiv = containerEl.createDiv({ cls: "keymask-status-banner" });
     const isUnlocked = this.plugin.session.isUnlocked();
     const isInitialized = this.plugin.settings.isInitialized;
 
     if (!isInitialized) {
       statusDiv.createEl("div", {
-        cls: "vaultguard-status-pill unconfigured",
+        cls: "keymask-status-pill unconfigured",
         text: "⚠️ Vault Not Initialized",
       });
       statusDiv.createEl("p", {
         cls: "setting-item-description",
-        text: "Please initialize VaultGuard with a master passphrase to secure your credentials.",
+        text: "Please initialize KeyMask with a master passphrase to secure your credentials.",
       });
 
       new Setting(containerEl)
@@ -82,7 +82,7 @@ export class VaultGuardSettingTab extends PluginSettingTab {
       const statusCls = isUnlocked ? "unlocked" : "locked";
 
       statusDiv.createEl("div", {
-        cls: `vaultguard-status-pill ${statusCls}`,
+        cls: `keymask-status-pill ${statusCls}`,
         text: statusText,
       });
 
@@ -100,7 +100,7 @@ export class VaultGuardSettingTab extends PluginSettingTab {
               .setWarning()
               .onClick(() => {
                 this.plugin.session.lock();
-                new Notice("VaultGuard locked.");
+                new Notice("KeyMask locked.");
                 this.display();
               });
           } else {
@@ -234,7 +234,7 @@ export class VaultGuardSettingTab extends PluginSettingTab {
 
     containerEl.createEl("p", {
       cls: "setting-item-description",
-      text: "VaultGuard enforces zero vendor lock-in. If you ever plan to disable or remove the plugin, you can export your secrets to an external password manager or restore all your notes back to plaintext.",
+      text: "KeyMask enforces zero vendor lock-in. If you ever plan to disable or remove the plugin, you can export your secrets to an external password manager or restore all your notes back to plaintext.",
     });
 
     new Setting(containerEl)
@@ -250,7 +250,7 @@ export class VaultGuardSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Revert Vault to Plaintext (Offboarding)")
-      .setDesc("Batch decrypt all VaultGuard tokens in your notes back into raw Markdown text. Use this before disabling or uninstalling VaultGuard if you want your notes unencrypted.")
+      .setDesc("Batch decrypt all KeyMask tokens in your notes back into raw Markdown text. Use this before disabling or uninstalling KeyMask if you want your notes unencrypted.")
       .addButton((button) =>
         button
           .setButtonText("Revert All to Plaintext")
@@ -265,7 +265,7 @@ export class VaultGuardSettingTab extends PluginSettingTab {
       containerEl.createEl("h3", { text: "Advanced / Danger Zone" });
 
       new Setting(containerEl)
-        .setName("Reset VaultGuard Configuration")
+        .setName("Reset KeyMask Configuration")
         .setDesc(
           "Warning: Clears the master salt and verification canary. Existing encrypted tokens in notes will become indecipherable unless you know the previous passphrase."
         )
@@ -275,8 +275,8 @@ export class VaultGuardSettingTab extends PluginSettingTab {
             .setWarning()
             .onClick(async () => {
               const confirmed = await confirmAction(this.app, {
-                title: "Reset VaultGuard Configuration",
-                message: "Are you sure you want to reset VaultGuard? Any secrets encrypted with the current key cannot be decrypted without the original salt and passphrase!",
+                title: "Reset KeyMask Configuration",
+                message: "Are you sure you want to reset KeyMask? Any secrets encrypted with the current key cannot be decrypted without the original salt and passphrase!",
                 confirmText: "Reset Configuration",
                 danger: true,
               });
@@ -286,7 +286,7 @@ export class VaultGuardSettingTab extends PluginSettingTab {
                 this.plugin.settings.canaryToken = "";
                 await this.plugin.saveSettings();
                 this.plugin.session.lock();
-                new Notice("VaultGuard configuration has been reset.");
+                new Notice("KeyMask configuration has been reset.");
                 this.display();
               }
             })

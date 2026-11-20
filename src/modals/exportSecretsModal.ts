@@ -1,5 +1,5 @@
 /**
- * VaultGuard KeePass / MacPass Export Modal
+ * KeyMask KeePass / MacPass Export Modal
  *
  * Scans vault notes for encrypted secrets, decrypts them in memory using
  * the master key, and exports them to industry-standard formats:
@@ -8,7 +8,7 @@
  */
 
 import { App, Modal, Setting, Notice, TFile, TFolder, Platform } from "obsidian";
-import type VaultGuardPlugin from "../main";
+import type KeyMaskPlugin from "../main";
 import {
   parseInline,
   parseCodeBlock,
@@ -26,23 +26,23 @@ import { UnlockModal } from "./unlockModal";
 export { DecryptedExportEntry, generateKeePassXML, generateCSV };
 
 export class ExportSecretsModal extends Modal {
-  private plugin: VaultGuardPlugin;
+  private plugin: KeyMaskPlugin;
   private format: "xml" | "csv" = "xml";
   private selectedFolder: string = "/";
   private isExporting: boolean = false;
   private errorEl: HTMLElement | null = null;
   private statusEl: HTMLElement | null = null;
 
-  constructor(app: App, plugin: VaultGuardPlugin) {
+  constructor(app: App, plugin: KeyMaskPlugin) {
     super(app);
     this.plugin = plugin;
   }
 
   onOpen(): void {
-    this.modalEl.addClass("mod-vaultguard-modal");
+    this.modalEl.addClass("mod-keymask-modal");
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.addClass("vaultguard-modal", "vaultguard-export-modal");
+    contentEl.addClass("keymask-modal", "keymask-export-modal");
 
     contentEl.createEl("h2", { text: "📤 Export Secrets to KeePass / MacPass" });
 
@@ -51,14 +51,14 @@ export class ExportSecretsModal extends Modal {
       text: "Decrypt and export your secrets into standard KeePass XML or CSV format. The exported file can be opened directly with MacPass, KeePassXC, KeePass, or imported into 1Password / Bitwarden.",
     });
 
-    const warningBox = contentEl.createDiv({ cls: "vaultguard-intercept-banner" });
-    warningBox.createEl("span", { cls: "vaultguard-badge-pattern", text: "Security Notice" });
+    const warningBox = contentEl.createDiv({ cls: "keymask-intercept-banner" });
+    warningBox.createEl("span", { cls: "keymask-badge-pattern", text: "Security Notice" });
     warningBox.createEl("span", {
       cls: "setting-item-description",
       text: "The generated export file will contain your credentials. Store it in a secure location or import it into MacPass/KeePass immediately, then delete the exported file.",
     });
 
-    this.errorEl = contentEl.createDiv({ cls: "vaultguard-error-message" });
+    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message" });
     this.errorEl.style.display = "none";
 
     // 1. Export Format Selection
@@ -90,11 +90,11 @@ export class ExportSecretsModal extends Modal {
         });
       });
 
-    this.statusEl = contentEl.createDiv({ cls: "vaultguard-export-status" });
+    this.statusEl = contentEl.createDiv({ cls: "keymask-export-status" });
     this.statusEl.style.display = "none";
 
     // Action Buttons
-    const buttonContainer = contentEl.createDiv({ cls: "vaultguard-modal-buttons" });
+    const buttonContainer = contentEl.createDiv({ cls: "keymask-modal-buttons" });
 
     const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });
     cancelBtn.addEventListener("click", () => this.close());
@@ -129,7 +129,7 @@ export class ExportSecretsModal extends Modal {
 
   private async handleExport(): Promise<void> {
     if (!this.plugin.settings.isInitialized) {
-      new Notice("VaultGuard is not configured with a master passphrase.");
+      new Notice("KeyMask is not configured with a master passphrase.");
       return;
     }
 
@@ -155,8 +155,8 @@ export class ExportSecretsModal extends Modal {
       for (const file of files) {
         const content = await this.app.vault.read(file);
         const folderGroup = file.parent?.path && file.parent.path !== "/"
-          ? `VaultGuard/${file.parent.path}`
-          : "VaultGuard";
+          ? `KeyMask/${file.parent.path}`
+          : "KeyMask";
 
         // 1. Scan Inline Secrets
         INLINE_SECRET_REGEX.lastIndex = 0;
@@ -175,7 +175,7 @@ export class ExportSecretsModal extends Modal {
                 notes: `Source Note: ${file.path}\nStorage Format: Inline Comment`,
               });
             } catch (e) {
-              console.warn(`VaultGuard: Decryption failed for token in ${file.path}:`, e);
+              console.warn(`KeyMask: Decryption failed for token in ${file.path}:`, e);
             }
           }
         }
@@ -196,14 +196,14 @@ export class ExportSecretsModal extends Modal {
                 notes: `Source Note: ${file.path}\nStorage Format: Fenced Code Block`,
               });
             } catch (e) {
-              console.warn(`VaultGuard: Decryption failed for codeblock in ${file.path}:`, e);
+              console.warn(`KeyMask: Decryption failed for codeblock in ${file.path}:`, e);
             }
           }
         }
       }
 
       if (entries.length === 0) {
-        new Notice("No VaultGuard encrypted secrets found in the selected scope.");
+        new Notice("No KeyMask encrypted secrets found in the selected scope.");
         this.close();
         return;
       }
@@ -217,11 +217,11 @@ export class ExportSecretsModal extends Modal {
 
       if (this.format === "xml") {
         fileContent = generateKeePassXML(entries, vaultName);
-        filename = `VaultGuard-Export-${dateStr}.xml`;
+        filename = `KeyMask-Export-${dateStr}.xml`;
         mimeType = "application/xml";
       } else {
         fileContent = generateCSV(entries);
-        filename = `VaultGuard-Export-${dateStr}.csv`;
+        filename = `KeyMask-Export-${dateStr}.csv`;
         mimeType = "text/csv";
       }
 

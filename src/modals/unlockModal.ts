@@ -1,9 +1,9 @@
 /**
- * VaultGuard Unlock & Passphrase Management Modal
+ * KeyMask Unlock & Passphrase Management Modal
  */
 
 import { App, Modal, Setting, Notice } from "obsidian";
-import type VaultGuardPlugin from "../main";
+import type KeyMaskPlugin from "../main";
 
 export interface UnlockModalOptions {
   mode: "init" | "unlock" | "change";
@@ -12,7 +12,7 @@ export interface UnlockModalOptions {
 }
 
 export class UnlockModal extends Modal {
-  private plugin: VaultGuardPlugin;
+  private plugin: KeyMaskPlugin;
   private options: UnlockModalOptions;
   private passphrase = "";
   private confirmPassphrase = "";
@@ -21,7 +21,7 @@ export class UnlockModal extends Modal {
   private submitButton: HTMLButtonElement | null = null;
   private isBusy = false;
 
-  constructor(app: App, plugin: VaultGuardPlugin, options: UnlockModalOptions) {
+  constructor(app: App, plugin: KeyMaskPlugin, options: UnlockModalOptions) {
     super(app);
     this.plugin = plugin;
     this.options = options;
@@ -30,12 +30,12 @@ export class UnlockModal extends Modal {
   onOpen(): void {
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.addClass("vaultguard-modal");
+    contentEl.addClass("keymask-modal");
 
     const modeTitles = {
-      init: "Initialize VaultGuard Master Passphrase",
-      unlock: "Unlock VaultGuard",
-      change: "Change VaultGuard Master Passphrase",
+      init: "Initialize KeyMask Master Passphrase",
+      unlock: "Unlock KeyMask",
+      change: "Change KeyMask Master Passphrase",
     };
 
     contentEl.createEl("h2", { text: modeTitles[this.options.mode] });
@@ -52,7 +52,7 @@ export class UnlockModal extends Modal {
         "Enter your current master passphrase, followed by your new master passphrase.";
     }
 
-    this.errorEl = contentEl.createDiv({ cls: "vaultguard-error-message" });
+    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message" });
     this.errorEl.style.display = "none";
 
     if (this.options.mode === "change") {
@@ -103,7 +103,7 @@ export class UnlockModal extends Modal {
         });
     }
 
-    const buttonContainer = contentEl.createDiv({ cls: "vaultguard-modal-buttons" });
+    const buttonContainer = contentEl.createDiv({ cls: "keymask-modal-buttons" });
 
     const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });
     cancelBtn.addEventListener("click", () => {
@@ -182,10 +182,10 @@ export class UnlockModal extends Modal {
         await this.plugin.session.initializeVault(this.passphrase);
         this.plugin.settings.isInitialized = true;
         await this.plugin.saveSettings();
-        new Notice("🔒 VaultGuard initialized and unlocked.");
+        new Notice("🔒 KeyMask initialized and unlocked.");
       } else if (this.options.mode === "unlock") {
         await this.plugin.session.unlock(this.passphrase);
-        new Notice("🔓 VaultGuard unlocked.");
+        new Notice("🔓 KeyMask unlocked.");
       } else if (this.options.mode === "change") {
         await this.plugin.session.changePassphrase(
           this.currentPassphrase,

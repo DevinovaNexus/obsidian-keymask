@@ -1,12 +1,12 @@
 /**
- * VaultGuard Whole-File Encryption Modal
+ * KeyMask Whole-File Encryption Modal
  *
  * Prompts user to confirm full-file encryption with an optional custom label.
  * Enterprise-grade typography, alignment, and full-width inputs.
  */
 
 import { App, Modal, Notice, TFile, setIcon } from "obsidian";
-import type VaultGuardPlugin from "../main";
+import type KeyMaskPlugin from "../main";
 
 export interface EncryptFileModalOptions {
   file: TFile;
@@ -15,13 +15,13 @@ export interface EncryptFileModalOptions {
 }
 
 export class EncryptFileModal extends Modal {
-  private plugin: VaultGuardPlugin;
+  private plugin: KeyMaskPlugin;
   private file: TFile;
   private content: string;
   private label: string;
   private onSuccess?: () => void;
 
-  constructor(app: App, plugin: VaultGuardPlugin, options: EncryptFileModalOptions) {
+  constructor(app: App, plugin: KeyMaskPlugin, options: EncryptFileModalOptions) {
     super(app);
     this.plugin = plugin;
     this.file = options.file;
@@ -31,14 +31,14 @@ export class EncryptFileModal extends Modal {
   }
 
   onOpen(): void {
-    this.modalEl.addClass("mod-vaultguard-modal", "vaultguard-encrypt-file-modal");
+    this.modalEl.addClass("mod-keymask-modal", "keymask-encrypt-file-modal");
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.addClass("vaultguard-modal");
+    contentEl.addClass("keymask-modal");
 
     // Modal Header with SVG Icon
-    const headerEl = contentEl.createDiv({ cls: "vaultguard-modal-header" });
-    const headerIcon = headerEl.createDiv({ cls: "vaultguard-modal-header-icon" });
+    const headerEl = contentEl.createDiv({ cls: "keymask-modal-header" });
+    const headerIcon = headerEl.createDiv({ cls: "keymask-modal-header-icon" });
     setIcon(headerIcon, "shield-check");
     headerEl.createEl("h2", { text: "Encrypt Entire Note" });
 
@@ -46,63 +46,63 @@ export class EncryptFileModal extends Modal {
     const chars = this.content.length;
 
     // Structured Target File Details Card
-    const targetCard = contentEl.createDiv({ cls: "vaultguard-file-target-card" });
+    const targetCard = contentEl.createDiv({ cls: "keymask-file-target-card" });
 
     // Row 1: Target note name + Security algorithm badge
-    const targetTop = targetCard.createDiv({ cls: "vaultguard-target-top" });
-    const targetTitleGroup = targetTop.createDiv({ cls: "vaultguard-target-title-group" });
-    const targetFileIcon = targetTitleGroup.createSpan({ cls: "vaultguard-target-icon" });
+    const targetTop = targetCard.createDiv({ cls: "keymask-target-top" });
+    const targetTitleGroup = targetTop.createDiv({ cls: "keymask-target-title-group" });
+    const targetFileIcon = targetTitleGroup.createSpan({ cls: "keymask-target-icon" });
     setIcon(targetFileIcon, "file-text");
     targetTitleGroup.createEl("span", {
-      cls: "vaultguard-target-filename",
+      cls: "keymask-target-filename",
       text: `${this.file.basename}.md`,
     });
 
     targetTop.createEl("span", {
-      cls: "vaultguard-target-algo-pill",
+      cls: "keymask-target-algo-pill",
       text: "AES-256-GCM",
     });
 
     // Row 2: File Stats (Lines, Characters, Folder Path)
-    const statsRow = targetCard.createDiv({ cls: "vaultguard-target-stats-row" });
+    const statsRow = targetCard.createDiv({ cls: "keymask-target-stats-row" });
     statsRow.createEl("span", {
-      cls: "vaultguard-stat-item",
+      cls: "keymask-stat-item",
       text: `📊 ${lines} ${lines === 1 ? "line" : "lines"}`,
     });
-    statsRow.createEl("span", { cls: "vaultguard-stat-bullet", text: "•" });
+    statsRow.createEl("span", { cls: "keymask-stat-bullet", text: "•" });
     statsRow.createEl("span", {
-      cls: "vaultguard-stat-item",
+      cls: "keymask-stat-item",
       text: `🔤 ${chars.toLocaleString()} characters`,
     });
     if (this.file.parent && this.file.parent.path !== "/") {
-      statsRow.createEl("span", { cls: "vaultguard-stat-bullet", text: "•" });
+      statsRow.createEl("span", { cls: "keymask-stat-bullet", text: "•" });
       statsRow.createEl("span", {
-        cls: "vaultguard-stat-item",
+        cls: "keymask-stat-item",
         text: `📁 ${this.file.parent.path}`,
       });
     }
 
     // Row 3: Security guarantee notice
-    const noteNotice = targetCard.createDiv({ cls: "vaultguard-target-notice" });
+    const noteNotice = targetCard.createDiv({ cls: "keymask-target-notice" });
     noteNotice.createEl("p", {
       text: "The complete contents of this note will be converted into an authenticated ciphertext container. Zero plaintext will remain on disk or in sync history.",
     });
 
     // Full-Width Security Label Input Field
-    const labelGroup = contentEl.createDiv({ cls: "vaultguard-form-field-group" });
-    const labelHeader = labelGroup.createDiv({ cls: "vaultguard-field-header" });
+    const labelGroup = contentEl.createDiv({ cls: "keymask-form-field-group" });
+    const labelHeader = labelGroup.createDiv({ cls: "keymask-field-header" });
     labelHeader.createEl("label", {
-      cls: "vaultguard-field-label",
+      cls: "keymask-field-label",
       text: "Note Security Label",
     });
     labelHeader.createEl("span", {
-      cls: "vaultguard-field-hint",
+      cls: "keymask-field-hint",
       text: "Public title shown while note is locked",
     });
 
     const labelInput = labelGroup.createEl("input", {
       type: "text",
-      cls: "vaultguard-full-input",
+      cls: "keymask-full-input",
       attr: {
         placeholder: "e.g. Confidential Journal, Recovery Keys, Server Runbook",
       },
@@ -113,17 +113,17 @@ export class EncryptFileModal extends Modal {
     });
 
     // Action buttons
-    const btnContainer = contentEl.createDiv({ cls: "vaultguard-modal-buttons" });
+    const btnContainer = contentEl.createDiv({ cls: "keymask-modal-buttons" });
 
     const cancelBtn = btnContainer.createEl("button", {
       text: "Cancel",
-      cls: "vaultguard-btn-secondary",
+      cls: "keymask-btn-secondary",
     });
     cancelBtn.addEventListener("click", () => this.close());
 
     const encryptBtn = btnContainer.createEl("button", {
       text: "🔒 Encrypt Entire Note",
-      cls: "mod-cta vaultguard-btn-primary-action",
+      cls: "mod-cta keymask-btn-primary-action",
     });
     encryptBtn.addEventListener("click", async () => {
       await this.executeEncryption();

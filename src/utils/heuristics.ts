@@ -1,5 +1,5 @@
 /**
- * VaultGuard Pattern Matchers & Leak Heuristics
+ * KeyMask Pattern Matchers & Leak Heuristics
  *
  * High-performance compiled regex matchers executed during paste events
  * to intercept sensitive credentials before they touch the note buffer.
@@ -321,8 +321,8 @@ export function maskForPreview(token: string, visibleChars = 4): string {
 
 /**
  * Scans an entire document for all unencrypted secrets and sensitive credentials.
- * Automatically excludes ranges that are already encrypted with VaultGuard
- * (%%vg:v1:...%% and ```vaultguard ... ```).
+ * Automatically excludes ranges that are already encrypted with KeyMask
+ * (%%km:v1:...%%, %%vg:v1:...%% and ```keymask ... ```, ```vaultguard ... ```).
  */
 export function scanTextForSecrets(text: string): DiscoveredSecret[] {
   if (!text || text.trim().length < 6) {
@@ -332,13 +332,13 @@ export function scanTextForSecrets(text: string): DiscoveredSecret[] {
   // 1. Identify already encrypted ranges so they are never flagged or double-encrypted
   const encryptedRanges: { from: number; to: number }[] = [];
 
-  const inlineRegex = /%%vg:v1:[\s\S]*?%%/g;
+  const inlineRegex = /%%(?:km|vg):v1:[\s\S]*?%%/g;
   let m: RegExpExecArray | null;
   while ((m = inlineRegex.exec(text)) !== null) {
     encryptedRanges.push({ from: m.index, to: m.index + m[0].length });
   }
 
-  const blockRegex = /```vaultguard[\s\S]*?```/g;
+  const blockRegex = /```(?:keymask|vaultguard)[\s\S]*?```/g;
   while ((m = blockRegex.exec(text)) !== null) {
     encryptedRanges.push({ from: m.index, to: m.index + m[0].length });
   }
@@ -408,8 +408,13 @@ export function scanTextForSecrets(text: string): DiscoveredSecret[] {
       const endIndex = startIndex + cleanMatch.length;
       matchedText = cleanMatch;
 
-      // Ignore if it's already an encrypted VaultGuard token
-      if (matchedText.startsWith("%%vg:v1:") || matchedText.startsWith("vg:v1:")) {
+      // Ignore if it's already an encrypted KeyMask token
+      if (
+        matchedText.startsWith("%%km:v1:") ||
+        matchedText.startsWith("km:v1:") ||
+        matchedText.startsWith("%%vg:v1:") ||
+        matchedText.startsWith("vg:v1:")
+      ) {
         continue;
       }
 

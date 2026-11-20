@@ -1,5 +1,5 @@
 /**
- * VaultGuard Editor Paste Interceptor Handler
+ * KeyMask Editor Paste Interceptor Handler
  *
  * Hooks into:
  * 1. Document capture-phase 'paste' DOM event (intercepts before CodeMirror 6 / Obsidian)
@@ -10,11 +10,11 @@
  */
 
 import { Editor, MarkdownView } from "obsidian";
-import type VaultGuardPlugin from "../main";
+import type KeyMaskPlugin from "../main";
 import { detectSensitiveToken, DetectedToken } from "../utils/heuristics";
 import { InterceptPasteModal } from "../modals/interceptPasteModal";
 
-export function registerPasteHandler(plugin: VaultGuardPlugin): void {
+export function registerPasteHandler(plugin: KeyMaskPlugin): void {
   let isHandlingPaste = false;
 
   const processPaste = (

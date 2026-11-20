@@ -1,13 +1,13 @@
 /**
- * VaultGuard Batch Decrypt & Offboarding Modal (Vault De-escalation)
+ * KeyMask Batch Decrypt & Offboarding Modal (Vault De-escalation)
  *
  * Allows a user to decrypt all secrets across all notes back into raw plaintext.
- * Designed for users who wish to uninstall or disable VaultGuard without leaving
+ * Designed for users who wish to uninstall or disable KeyMask without leaving
  * their secrets permanently locked in ciphertext.
  */
 
 import { App, Modal, Setting, Notice, TFile, TFolder } from "obsidian";
-import type VaultGuardPlugin from "../main";
+import type KeyMaskPlugin from "../main";
 import {
   parseInline,
   parseCodeBlock,
@@ -17,37 +17,37 @@ import {
 import { UnlockModal } from "./unlockModal";
 
 export class BatchDecryptModal extends Modal {
-  private plugin: VaultGuardPlugin;
+  private plugin: KeyMaskPlugin;
   private selectedFolder: string = "/";
   private isProcessing: boolean = false;
   private statusEl: HTMLElement | null = null;
   private confirmationInput: string = "";
 
-  constructor(app: App, plugin: VaultGuardPlugin) {
+  constructor(app: App, plugin: KeyMaskPlugin) {
     super(app);
     this.plugin = plugin;
   }
 
   onOpen(): void {
-    this.modalEl.addClass("mod-vaultguard-modal");
+    this.modalEl.addClass("mod-keymask-modal");
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.addClass("vaultguard-modal", "vaultguard-decrypt-all-modal");
+    contentEl.addClass("keymask-modal", "keymask-decrypt-all-modal");
 
     contentEl.createEl("h2", { text: "🔓 Batch Decrypt & Revert to Plaintext" });
 
     contentEl.createEl("p", {
       cls: "setting-item-description",
-      text: "This operation will decrypt all VaultGuard tokens (%%vg:v1:...%%) in your notes back into raw plaintext. Use this if you are planning to disable or remove the VaultGuard plugin and want your notes restored to standard unencrypted Markdown.",
+      text: "This operation will decrypt all KeyMask tokens (%%km:v1:...%%) in your notes back into raw plaintext. Use this if you are planning to disable or remove the KeyMask plugin and want your notes restored to standard unencrypted Markdown.",
     });
 
-    const dangerCard = contentEl.createDiv({ cls: "vaultguard-corrupted-block" });
+    const dangerCard = contentEl.createDiv({ cls: "keymask-corrupted-block" });
     dangerCard.createEl("div", {
-      cls: "vaultguard-corrupted-header",
+      cls: "keymask-corrupted-header",
       text: "⚠️ Plaintext Warning",
     });
     dangerCard.createEl("div", {
-      cls: "vaultguard-corrupted-desc",
+      cls: "keymask-corrupted-desc",
       text: "Decrypting all secrets will expose your API keys, credentials, and passwords to note history, cloud sync engines (iCloud, Obsidian Sync, Git), and any third-party plugins. Ensure your environment is secure before proceeding.",
     });
 
@@ -78,10 +78,10 @@ export class BatchDecryptModal extends Modal {
         });
       });
 
-    this.statusEl = contentEl.createDiv({ cls: "vaultguard-export-status" });
+    this.statusEl = contentEl.createDiv({ cls: "keymask-export-status" });
     this.statusEl.style.display = "none";
 
-    const buttonContainer = contentEl.createDiv({ cls: "vaultguard-modal-buttons" });
+    const buttonContainer = contentEl.createDiv({ cls: "keymask-modal-buttons" });
 
     const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });
     cancelBtn.addEventListener("click", () => this.close());
@@ -121,7 +121,7 @@ export class BatchDecryptModal extends Modal {
     }
 
     if (!this.plugin.settings.isInitialized) {
-      new Notice("VaultGuard is not configured.");
+      new Notice("KeyMask is not configured.");
       return;
     }
 
@@ -155,7 +155,7 @@ export class BatchDecryptModal extends Modal {
         }
         const replacements: MatchToReplace[] = [];
 
-        // 1. Find Inline Secrets: %%vg:v1:...%%
+        // 1. Find Inline Secrets: %%km:v1:...%%
         INLINE_SECRET_REGEX.lastIndex = 0;
         let match: RegExpExecArray | null;
         while ((match = INLINE_SECRET_REGEX.exec(content)) !== null) {
@@ -171,12 +171,12 @@ export class BatchDecryptModal extends Modal {
                 decryptedText: decrypted,
               });
             } catch (e) {
-              console.warn(`VaultGuard: Failed decrypting token in ${file.path}:`, e);
+              console.warn(`KeyMask: Failed decrypting token in ${file.path}:`, e);
             }
           }
         }
 
-        // 2. Find Fenced Code Blocks: ```vaultguard ... ```
+        // 2. Find Fenced Code Blocks: ```keymask ... ```
         CODE_BLOCK_SECRET_REGEX.lastIndex = 0;
         while ((match = CODE_BLOCK_SECRET_REGEX.exec(content)) !== null) {
           const rawToken = match[0];
@@ -191,7 +191,7 @@ export class BatchDecryptModal extends Modal {
                 decryptedText: decrypted,
               });
             } catch (e) {
-              console.warn(`VaultGuard: Failed decrypting codeblock in ${file.path}:`, e);
+              console.warn(`KeyMask: Failed decrypting codeblock in ${file.path}:`, e);
             }
           }
         }

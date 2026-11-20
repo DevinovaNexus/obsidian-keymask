@@ -1,16 +1,16 @@
 /**
- * VaultGuard Secret Ingestion Modal
+ * KeyMask Secret Ingestion Modal
  *
  * Requirements:
  * - Dedicated native Obsidian modal dialog
  * - Fields: Label (optional), Secret Value (masked password input / textarea)
- * - Format choice: Inline Comment (%%vg:v1:...%%) vs Fenced Code Block (```vaultguard)
+ * - Format choice: Inline Comment (%%km:v1:...%%) vs Fenced Code Block (```keymask)
  * - Direct Cipher Insertion: Secret is encrypted directly inside modal memory.
  * - Plaintext NEVER touches editor buffer or undo/redo stack.
  */
 
 import { App, Editor, Modal, Setting, Notice } from "obsidian";
-import type VaultGuardPlugin from "../main";
+import type KeyMaskPlugin from "../main";
 import { UnlockModal } from "./unlockModal";
 
 export interface InsertSecretOptions {
@@ -20,7 +20,7 @@ export interface InsertSecretOptions {
 }
 
 export class InsertSecretModal extends Modal {
-  private plugin: VaultGuardPlugin;
+  private plugin: KeyMaskPlugin;
   private editor: Editor;
   private label = "";
   private secret = "";
@@ -29,7 +29,7 @@ export class InsertSecretModal extends Modal {
   private secretInputEl: HTMLTextAreaElement | null = null;
   private errorEl: HTMLElement | null = null;
 
-  constructor(app: App, plugin: VaultGuardPlugin, options: InsertSecretOptions) {
+  constructor(app: App, plugin: KeyMaskPlugin, options: InsertSecretOptions) {
     super(app);
     this.plugin = plugin;
     this.editor = options.editor;
@@ -40,7 +40,7 @@ export class InsertSecretModal extends Modal {
   onOpen(): void {
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.addClass("vaultguard-modal");
+    contentEl.addClass("keymask-modal");
 
     contentEl.createEl("h2", { text: "Insert Encrypted Secret" });
 
@@ -49,7 +49,7 @@ export class InsertSecretModal extends Modal {
       text: "The secret is encrypted with AES-256-GCM in memory and inserted as ciphertext. Plaintext never enters your editor buffer, undo history, or disk autosave.",
     });
 
-    this.errorEl = contentEl.createDiv({ cls: "vaultguard-error-message" });
+    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message" });
     this.errorEl.style.display = "none";
 
     // 1. Label Input
@@ -69,10 +69,10 @@ export class InsertSecretModal extends Modal {
       .setName("Secret Value")
       .setDesc("The confidential credential, API key, or certificate.");
 
-    const secretWrapper = contentEl.createDiv({ cls: "vaultguard-secret-input-wrapper" });
+    const secretWrapper = contentEl.createDiv({ cls: "keymask-secret-input-wrapper" });
 
     this.secretInputEl = secretWrapper.createEl("textarea", {
-      cls: "vaultguard-secret-textarea masked",
+      cls: "keymask-secret-textarea masked",
       attr: {
         placeholder: "Paste or type secret here...",
         rows: "4",
@@ -86,9 +86,9 @@ export class InsertSecretModal extends Modal {
     });
 
     // Toggle Masking / Reveal Button
-    const controlsDiv = secretWrapper.createDiv({ cls: "vaultguard-secret-controls" });
+    const controlsDiv = secretWrapper.createDiv({ cls: "keymask-secret-controls" });
     const toggleRevealBtn = controlsDiv.createEl("button", {
-      cls: "clickable-icon vaultguard-icon-btn",
+      cls: "clickable-icon keymask-icon-btn",
       attr: { title: "Toggle Visibility" },
       text: "👁️ Show Plaintext",
     });
@@ -110,8 +110,8 @@ export class InsertSecretModal extends Modal {
       .setDesc("Inline comment for single-line API tokens, or fenced code block for multiline SSH/PEM certificates.")
       .addDropdown((dropdown) => {
         dropdown.addOption("auto", "Auto-Detect (Inline for single line, Code Block for multiline)");
-        dropdown.addOption("inline", "Inline Comment (%%vg:v1:...%%)");
-        dropdown.addOption("codeblock", "Fenced Code Block (```vaultguard)");
+        dropdown.addOption("inline", "Inline Comment (%%km:v1:...%%)");
+        dropdown.addOption("codeblock", "Fenced Code Block (```keymask)");
         dropdown.setValue(this.format);
         dropdown.onChange((val: any) => {
           this.format = val;
@@ -119,7 +119,7 @@ export class InsertSecretModal extends Modal {
       });
 
     // 4. Modal Buttons
-    const buttonContainer = contentEl.createDiv({ cls: "vaultguard-modal-buttons" });
+    const buttonContainer = contentEl.createDiv({ cls: "keymask-modal-buttons" });
 
     const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });
     cancelBtn.addEventListener("click", () => this.close());

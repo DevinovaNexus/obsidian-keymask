@@ -1,10 +1,10 @@
 /**
- * VaultGuard CodeMirror 6 ViewPlugin
+ * KeyMask CodeMirror 6 ViewPlugin
  *
- * Scans editor viewport for inline comment secrets (%%vg:v1:...%%)
- * and replaces them with interactive VaultGuardPillWidget decorations in Live Preview.
+ * Scans editor viewport for inline comment secrets (%%km:v1:...%% / %%vg:v1:...%%)
+ * and replaces them with interactive KeyMaskPillWidget decorations in Live Preview.
  *
- * Note: Fenced code blocks (```vaultguard ... ```) are processed exclusively by Obsidian's
+ * Note: Fenced code blocks (```keymask ... ```) are processed exclusively by Obsidian's
  * native registerMarkdownCodeBlockProcessor to avoid multi-line CM6 inline replacement RangeErrors.
  *
  * High performance viewport-bounded scanning guarantees 60 FPS scrolling.
@@ -19,18 +19,18 @@ import {
   PluginValue,
 } from "@codemirror/view";
 import { RangeSetBuilder } from "@codemirror/state";
-import type VaultGuardPlugin from "../main";
+import type KeyMaskPlugin from "../main";
 import {
   parseInline,
   INLINE_SECRET_REGEX,
 } from "../crypto/serializer";
-import { VaultGuardPillWidget } from "./pillWidget";
+import { KeyMaskPillWidget } from "./pillWidget";
 
-export function createVaultGuardViewPlugin(plugin: VaultGuardPlugin) {
+export function createKeyMaskViewPlugin(plugin: KeyMaskPlugin) {
   return ViewPlugin.fromClass(
     class implements PluginValue {
       decorations: DecorationSet;
-      private plugin: VaultGuardPlugin;
+      private plugin: KeyMaskPlugin;
 
       constructor(view: EditorView) {
         this.plugin = plugin;
@@ -56,7 +56,7 @@ export function createVaultGuardViewPlugin(plugin: VaultGuardPlugin) {
           const scanTo = endLine.to;
           const text = doc.sliceString(scanFrom, scanTo);
 
-          // Scan Inline Secrets: %%vg:v1:...%%
+          // Scan Inline Secrets: %%km:v1:...%% / %%vg:v1:...%%
           INLINE_SECRET_REGEX.lastIndex = 0;
           let match: RegExpExecArray | null;
           while ((match = INLINE_SECRET_REGEX.exec(text)) !== null) {
@@ -69,7 +69,7 @@ export function createVaultGuardViewPlugin(plugin: VaultGuardPlugin) {
               matchFrom,
               matchTo,
               Decoration.replace({
-                widget: new VaultGuardPillWidget({
+                widget: new KeyMaskPillWidget({
                   plugin: this.plugin,
                   payload,
                   rawText,

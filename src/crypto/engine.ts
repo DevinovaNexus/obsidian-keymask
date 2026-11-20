@@ -1,5 +1,5 @@
 /**
- * VaultGuard Cryptographic Engine
+ * KeyMask Cryptographic Engine
  *
  * Implements:
  * - PBKDF2-HMAC-SHA256 key derivation (>= 600,000 iterations)
@@ -11,7 +11,8 @@
  * - W3C Web Cryptography API compliance (cross-platform desktop & mobile)
  */
 
-export const CANARY_PLAINTEXT = "VAULTGUARD_CANARY_V1";
+export const CANARY_PLAINTEXT = "KEYMASK_CANARY_V1";
+export const LEGACY_CANARY_PLAINTEXT = "VAULTGUARD_CANARY_V1";
 export const DEFAULT_KDF_ITERATIONS = 600_000;
 export const AES_KEY_LENGTH = 256;
 export const AES_TAG_LENGTH = 128; // in bits (16 bytes)

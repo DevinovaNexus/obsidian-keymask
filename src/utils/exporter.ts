@@ -1,5 +1,5 @@
 /**
- * VaultGuard Export Generators (KeePass XML & CSV)
+ * KeyMask Export Generators (KeePass XML & CSV)
  *
  * Zero-dependency pure functions for generating standard password manager files:
  * 1. KeePass 2.x XML (.xml) - Native support in MacPass, KeePassXC, and KeePass
@@ -60,13 +60,13 @@ export function generateKeePassXML(
   return `<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <KeePassFile>
   <Meta>
-    <Generator>VaultGuard Obsidian Plugin</Generator>
+    <Generator>KeyMask Obsidian Plugin</Generator>
     <DatabaseName>${escapeXml(vaultName)} Secrets</DatabaseName>
     <DatabaseDescription>Exported credentials from Obsidian vault: ${escapeXml(vaultName)}</DatabaseDescription>
   </Meta>
   <Root>
     <Group>
-      <Name>VaultGuard</Name>
+      <Name>KeyMask</Name>
 ${xmlEntries}
     </Group>
   </Root>

@@ -1,5 +1,5 @@
 /**
- * VaultGuard Encrypted File View Manager
+ * KeyMask Encrypted File View Manager
  *
  * Manages the top-level presentation of Whole-File Encrypted notes in Obsidian.
  *
@@ -11,7 +11,7 @@
  */
 
 import { MarkdownView, TFile } from "obsidian";
-import type VaultGuardPlugin from "../main";
+import type KeyMaskPlugin from "../main";
 import {
   isWholeFileEncrypted,
   extractWholeFilePayload,
@@ -20,10 +20,10 @@ import {
 import { createWholeFileCardElement } from "./pillWidget";
 
 export class EncryptedFileViewManager {
-  private plugin: VaultGuardPlugin;
+  private plugin: KeyMaskPlugin;
   private activeViews = new Map<MarkdownView, { bannerEl: HTMLElement; path: string }>();
 
-  constructor(plugin: VaultGuardPlugin) {
+  constructor(plugin: KeyMaskPlugin) {
     this.plugin = plugin;
   }
 
@@ -132,11 +132,11 @@ export class EncryptedFileViewManager {
     this.removeBanner(view);
 
     // Apply active class to hide raw CodeMirror editor & reading view
-    view.containerEl.addClass("vaultguard-file-encrypted-active");
+    view.containerEl.addClass("keymask-file-encrypted-active");
 
     // Create wrapper container
     const bannerEl = document.createElement("div");
-    bannerEl.className = "vaultguard-whole-file-banner";
+    bannerEl.className = "keymask-whole-file-banner";
 
     // Create the interactive security card
     const cardEl = createWholeFileCardElement({
@@ -155,7 +155,7 @@ export class EncryptedFileViewManager {
   }
 
   public removeBanner(view: MarkdownView): void {
-    view.containerEl.removeClass("vaultguard-file-encrypted-active");
+    view.containerEl.removeClass("keymask-file-encrypted-active");
 
     const record = this.activeViews.get(view);
     if (record) {
@@ -164,7 +164,7 @@ export class EncryptedFileViewManager {
     }
 
     // Safety fallback: remove any orphaned banners from DOM
-    const orphan = view.contentEl.querySelector(".vaultguard-whole-file-banner");
+    const orphan = view.contentEl.querySelector(".keymask-whole-file-banner");
     if (orphan) {
       orphan.remove();
     }
@@ -172,7 +172,7 @@ export class EncryptedFileViewManager {
 
   public destroy(): void {
     for (const [view, record] of this.activeViews.entries()) {
-      view.containerEl.removeClass("vaultguard-file-encrypted-active");
+      view.containerEl.removeClass("keymask-file-encrypted-active");
       record.bannerEl.remove();
     }
     this.activeViews.clear();

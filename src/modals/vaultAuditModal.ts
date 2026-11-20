@@ -1,5 +1,5 @@
 /**
- * VaultGuard Secret Audit & Batch Remediation Modal
+ * KeyMask Secret Audit & Batch Remediation Modal
  *
  * Scans the entire vault or selected folders for unencrypted plaintext credentials,
  * API keys, passwords, and tokens.
@@ -7,7 +7,7 @@
  */
 
 import { App, Modal, Setting, Notice, TFile, TFolder, MarkdownView } from "obsidian";
-import type VaultGuardPlugin from "../main";
+import type KeyMaskPlugin from "../main";
 import {
   DiscoveredSecret,
   maskForPreview,
@@ -22,7 +22,7 @@ export interface FileAuditResult {
 }
 
 export class VaultAuditModal extends Modal {
-  private plugin: VaultGuardPlugin;
+  private plugin: KeyMaskPlugin;
   private selectedFolder: string = "/"; // "/" represents entire vault
   private includeSubfolders: boolean = true;
   private isScanning: boolean = false;
@@ -36,25 +36,25 @@ export class VaultAuditModal extends Modal {
   private progressContainer: HTMLElement | null = null;
   private resultsContainer: HTMLElement | null = null;
 
-  constructor(app: App, plugin: VaultGuardPlugin) {
+  constructor(app: App, plugin: KeyMaskPlugin) {
     super(app);
     this.plugin = plugin;
   }
 
   onOpen(): void {
-    this.modalEl.addClass("mod-vaultguard-audit");
+    this.modalEl.addClass("mod-keymask-audit");
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.addClass("vaultguard-modal", "vaultguard-audit-modal");
+    contentEl.addClass("keymask-modal", "keymask-audit-modal");
 
-    contentEl.createEl("h2", { text: "🔍 VaultGuard: Secret Audit & Leak Scanner" });
+    contentEl.createEl("h2", { text: "🔍 KeyMask: Secret Audit & Leak Scanner" });
 
     contentEl.createEl("p", {
       cls: "setting-item-description",
-      text: "Scan your existing notes for exposed plaintext API keys, passwords, connection URIs, and private keys. Once discovered, VaultGuard can encrypt and mask them in-place with zero data loss.",
+      text: "Scan your existing notes for exposed plaintext API keys, passwords, connection URIs, and private keys. Once discovered, KeyMask can encrypt and mask them in-place with zero data loss.",
     });
 
-    this.containerElContent = contentEl.createDiv({ cls: "vaultguard-audit-body" });
+    this.containerElContent = contentEl.createDiv({ cls: "keymask-audit-body" });
     this.renderScanControls();
   }
 
@@ -63,7 +63,7 @@ export class VaultAuditModal extends Modal {
     this.containerElContent.empty();
 
     const controlsCard = this.containerElContent.createDiv({
-      cls: "vaultguard-audit-controls-card",
+      cls: "keymask-audit-controls-card",
     });
 
     // 1. Folder Selection Dropdown
@@ -94,9 +94,9 @@ export class VaultAuditModal extends Modal {
       });
 
     // 3. Start Scan Button
-    const buttonRow = controlsCard.createDiv({ cls: "vaultguard-audit-start-row" });
+    const buttonRow = controlsCard.createDiv({ cls: "keymask-audit-start-row" });
     const startScanBtn = buttonRow.createEl("button", {
-      cls: "mod-cta vaultguard-start-scan-btn",
+      cls: "mod-cta keymask-start-scan-btn",
       text: "🔍 Start Secret Audit",
     });
 
@@ -106,12 +106,12 @@ export class VaultAuditModal extends Modal {
 
     // Placeholder for Progress and Results
     this.progressContainer = this.containerElContent.createDiv({
-      cls: "vaultguard-audit-progress-container",
+      cls: "keymask-audit-progress-container",
     });
     this.progressContainer.style.display = "none";
 
     this.resultsContainer = this.containerElContent.createDiv({
-      cls: "vaultguard-audit-results-container",
+      cls: "keymask-audit-results-container",
     });
   }
 
@@ -168,11 +168,11 @@ export class VaultAuditModal extends Modal {
     let exposedCount = 0;
 
     const progressBar = this.progressContainer?.createEl("progress", {
-      cls: "vaultguard-progress-bar",
+      cls: "keymask-progress-bar",
       attr: { max: totalFiles.toString(), value: "0" },
     });
     const progressLabel = this.progressContainer?.createDiv({
-      cls: "vaultguard-progress-label",
+      cls: "keymask-progress-label",
       text: `Scanning notes (0/${totalFiles})...`,
     });
 
@@ -193,7 +193,7 @@ export class VaultAuditModal extends Modal {
           }
         }
       } catch (e) {
-        console.warn(`VaultGuard: Error reading file ${file.path}:`, e);
+        console.warn(`KeyMask: Error reading file ${file.path}:`, e);
       }
 
       scannedCount++;
@@ -228,7 +228,7 @@ export class VaultAuditModal extends Modal {
     // If no secrets found
     if (totalSecrets === 0) {
       const cleanBanner = this.resultsContainer.createDiv({
-        cls: "vaultguard-clean-banner",
+        cls: "keymask-clean-banner",
       });
       cleanBanner.createEl("div", { cls: "clean-icon", text: "🎉" });
       cleanBanner.createEl("h3", { text: "No Exposed Secrets Found!" });
@@ -241,28 +241,28 @@ export class VaultAuditModal extends Modal {
 
     // Header Summary & Actions
     const summaryHeader = this.resultsContainer.createDiv({
-      cls: "vaultguard-audit-summary-header",
+      cls: "keymask-audit-summary-header",
     });
 
     const summaryText = summaryHeader.createDiv({
-      cls: "vaultguard-audit-summary-text",
+      cls: "keymask-audit-summary-text",
     });
     summaryText.createEl("h3", {
       text: `⚠️ Found ${totalSecrets} Exposed Secret${totalSecrets > 1 ? "s" : ""} across ${this.auditResults.length} Note${this.auditResults.length > 1 ? "s" : ""}`,
     });
     summaryText.createEl("p", {
       cls: "setting-item-description",
-      text: "Select the secrets you wish to encrypt. VaultGuard will replace the plaintext with authenticated AES-256-GCM ciphertext tokens.",
+      text: "Select the secrets you wish to encrypt. KeyMask will replace the plaintext with authenticated AES-256-GCM ciphertext tokens.",
     });
 
     const actionRow = summaryHeader.createDiv({
-      cls: "vaultguard-audit-action-row",
+      cls: "keymask-audit-action-row",
     });
 
     // Select/Deselect All
     const selectAllBtn = actionRow.createEl("button", {
       text: "Select All",
-      cls: "vaultguard-btn-secondary",
+      cls: "keymask-btn-secondary",
     });
     selectAllBtn.addEventListener("click", () => {
       for (const res of this.auditResults) {
@@ -277,7 +277,7 @@ export class VaultAuditModal extends Modal {
 
     const deselectAllBtn = actionRow.createEl("button", {
       text: "Deselect All",
-      cls: "vaultguard-btn-secondary",
+      cls: "keymask-btn-secondary",
     });
     deselectAllBtn.addEventListener("click", () => {
       this.selectedSecretIds.clear();
@@ -287,35 +287,35 @@ export class VaultAuditModal extends Modal {
     // Expand All / Collapse All
     const expandAllBtn = actionRow.createEl("button", {
       text: "▾ Expand All",
-      cls: "vaultguard-btn-secondary",
+      cls: "keymask-btn-secondary",
     });
     expandAllBtn.addEventListener("click", () => {
-      this.contentEl.querySelectorAll<HTMLElement>(".vaultguard-file-card").forEach((card) => {
+      this.contentEl.querySelectorAll<HTMLElement>(".keymask-file-card").forEach((card) => {
         card.removeClass("is-collapsed");
-        const chevron = card.querySelector<HTMLElement>(".vaultguard-chevron-icon");
+        const chevron = card.querySelector<HTMLElement>(".keymask-chevron-icon");
         if (chevron) chevron.textContent = "▼";
-        const findings = card.querySelector<HTMLElement>(".vaultguard-file-findings");
+        const findings = card.querySelector<HTMLElement>(".keymask-file-findings");
         if (findings) findings.style.display = "flex";
       });
     });
 
     const collapseAllBtn = actionRow.createEl("button", {
       text: "▸ Collapse All",
-      cls: "vaultguard-btn-secondary",
+      cls: "keymask-btn-secondary",
     });
     collapseAllBtn.addEventListener("click", () => {
-      this.contentEl.querySelectorAll<HTMLElement>(".vaultguard-file-card").forEach((card) => {
+      this.contentEl.querySelectorAll<HTMLElement>(".keymask-file-card").forEach((card) => {
         card.addClass("is-collapsed");
-        const chevron = card.querySelector<HTMLElement>(".vaultguard-chevron-icon");
+        const chevron = card.querySelector<HTMLElement>(".keymask-chevron-icon");
         if (chevron) chevron.textContent = "▶";
-        const findings = card.querySelector<HTMLElement>(".vaultguard-file-findings");
+        const findings = card.querySelector<HTMLElement>(".keymask-file-findings");
         if (findings) findings.style.display = "none";
       });
     });
 
     // Primary Remediation Button
     const remediateBtn = actionRow.createEl("button", {
-      cls: "mod-cta vaultguard-batch-remediate-btn",
+      cls: "mod-cta keymask-batch-remediate-btn",
       text: `🔒 Encrypt & Mask Selected (${this.selectedSecretIds.size})`,
     });
     remediateBtn.addEventListener("click", () => {
@@ -324,37 +324,37 @@ export class VaultAuditModal extends Modal {
 
     // Group Findings by Note
     const filesList = this.resultsContainer.createDiv({
-      cls: "vaultguard-audit-files-list",
+      cls: "keymask-audit-files-list",
     });
 
     for (const fileResult of this.auditResults) {
       const { file, secrets } = fileResult;
 
-      const fileCard = filesList.createDiv({ cls: "vaultguard-file-card" });
+      const fileCard = filesList.createDiv({ cls: "keymask-file-card" });
 
       // File Title Bar with clean Basename, Path, Badge, and Action buttons
-      const fileHeader = fileCard.createDiv({ cls: "vaultguard-file-header" });
+      const fileHeader = fileCard.createDiv({ cls: "keymask-file-header" });
 
-      const fileInfo = fileHeader.createDiv({ cls: "vaultguard-file-info" });
+      const fileInfo = fileHeader.createDiv({ cls: "keymask-file-info" });
       const fileTitle = fileInfo.createEl("span", {
-        cls: "vaultguard-file-title",
+        cls: "keymask-file-title",
         text: `📄 ${file.basename}`,
       });
       if (file.parent && file.parent.path !== "/") {
         fileInfo.createEl("span", {
-          cls: "vaultguard-file-path",
+          cls: "keymask-file-path",
           text: `📁 ${file.path}`,
         });
       }
 
-      const headerRight = fileHeader.createDiv({ cls: "vaultguard-header-actions" });
+      const headerRight = fileHeader.createDiv({ cls: "keymask-header-actions" });
       headerRight.createEl("span", {
-        cls: "vaultguard-file-badge",
+        cls: "keymask-file-badge",
         text: `${secrets.length} secret${secrets.length > 1 ? "s" : ""}`,
       });
 
       const openNoteBtn = headerRight.createEl("button", {
-        cls: "vaultguard-btn-open-file",
+        cls: "keymask-btn-open-file",
         text: "↗ Open Note",
         attr: { title: "Open this note in editor" },
       });
@@ -364,17 +364,17 @@ export class VaultAuditModal extends Modal {
       });
 
       const chevronIcon = headerRight.createEl("span", {
-        cls: "vaultguard-chevron-icon",
+        cls: "keymask-chevron-icon",
         text: "▼",
       });
 
       // Findings List inside fileCard
-      const findingsList = fileCard.createDiv({ cls: "vaultguard-file-findings" });
+      const findingsList = fileCard.createDiv({ cls: "keymask-file-findings" });
 
       // Header click toggles collapse / expand
       fileHeader.addEventListener("click", (e) => {
         const target = e.target as HTMLElement;
-        if (target === openNoteBtn || target.closest(".vaultguard-btn-open-file")) {
+        if (target === openNoteBtn || target.closest(".keymask-btn-open-file")) {
           return;
         }
         const isCollapsed = fileCard.hasClass("is-collapsed");
@@ -391,17 +391,17 @@ export class VaultAuditModal extends Modal {
 
       for (const secret of secrets) {
         const itemCard = findingsList.createDiv({
-          cls: `vaultguard-secret-item row-${secret.id}`,
+          cls: `keymask-secret-item row-${secret.id}`,
         });
 
         // Top Row: Checkbox, Line badge, Type tag, Jump button, Encrypt button
-        const topRow = itemCard.createDiv({ cls: "vaultguard-item-top-row" });
+        const topRow = itemCard.createDiv({ cls: "keymask-item-top-row" });
 
-        const leftGroup = topRow.createDiv({ cls: "vaultguard-item-left" });
+        const leftGroup = topRow.createDiv({ cls: "keymask-item-left" });
 
         const checkbox = leftGroup.createEl("input", {
           type: "checkbox",
-          cls: "vaultguard-secret-checkbox",
+          cls: "keymask-secret-checkbox",
         });
         checkbox.checked = this.selectedSecretIds.has(secret.id);
         checkbox.disabled = this.remediatedSecretIds.has(secret.id);
@@ -416,7 +416,7 @@ export class VaultAuditModal extends Modal {
         });
 
         const lineBadge = leftGroup.createEl("span", {
-          cls: "vaultguard-cell-line clickable-icon",
+          cls: "keymask-cell-line clickable-icon",
           text: `📍 Line ${secret.lineNumber}`,
           attr: { title: "Click to jump to line in note" },
         });
@@ -425,14 +425,14 @@ export class VaultAuditModal extends Modal {
         });
 
         leftGroup.createEl("span", {
-          cls: "vaultguard-pattern-tag",
+          cls: "keymask-pattern-tag",
           text: secret.patternName,
         });
 
-        const rightGroup = topRow.createDiv({ cls: "vaultguard-item-right" });
+        const rightGroup = topRow.createDiv({ cls: "keymask-item-right" });
 
         const jumpBtn = rightGroup.createEl("button", {
-          cls: "vaultguard-btn-jump",
+          cls: "keymask-btn-jump",
           text: "↗ Jump to Line",
           attr: { title: "Open note and scroll directly to this secret" },
         });
@@ -443,12 +443,12 @@ export class VaultAuditModal extends Modal {
 
         if (this.remediatedSecretIds.has(secret.id)) {
           rightGroup.createEl("span", {
-            cls: "vaultguard-remediated-badge",
+            cls: "keymask-remediated-badge",
             text: "✅ Encrypted",
           });
         } else {
           const singleEncryptBtn = rightGroup.createEl("button", {
-            cls: "vaultguard-btn-single-encrypt",
+            cls: "keymask-btn-single-encrypt",
             text: "🔒 Encrypt",
           });
           singleEncryptBtn.addEventListener("click", (e) => {
@@ -459,7 +459,7 @@ export class VaultAuditModal extends Modal {
 
         // Context Snippet Box (Middle Row): shows exact localized radius around the secret
         const snippetBox = itemCard.createDiv({
-          cls: "vaultguard-snippet-box clickable-icon",
+          cls: "keymask-snippet-box clickable-icon",
           attr: { title: "Click to jump to this secret in editor" },
         });
         snippetBox.addEventListener("click", () => {
@@ -470,25 +470,25 @@ export class VaultAuditModal extends Modal {
         const snippet = extractSecretSnippet(secret.lineContent, secret.matchedText, 40);
 
         if (snippet.before) {
-          codeSnippet.createSpan({ text: snippet.before, cls: "vaultguard-snippet-context" });
+          codeSnippet.createSpan({ text: snippet.before, cls: "keymask-snippet-context" });
         }
         codeSnippet.createEl("mark", {
-          cls: "vaultguard-secret-highlight",
+          cls: "keymask-secret-highlight",
           text: snippet.matchedMasked,
         });
         if (snippet.after) {
-          codeSnippet.createSpan({ text: snippet.after, cls: "vaultguard-snippet-context" });
+          codeSnippet.createSpan({ text: snippet.after, cls: "keymask-snippet-context" });
         }
 
         // Bottom Row: Custom label input
-        const bottomRow = itemCard.createDiv({ cls: "vaultguard-item-bottom-row" });
+        const bottomRow = itemCard.createDiv({ cls: "keymask-item-bottom-row" });
         bottomRow.createEl("span", {
-          cls: "vaultguard-label-caption",
+          cls: "keymask-label-caption",
           text: "Pill Label:",
         });
         const labelInput = bottomRow.createEl("input", {
           type: "text",
-          cls: "vaultguard-inline-label-input",
+          cls: "keymask-inline-label-input",
           attr: { placeholder: "Label for masked pill" },
         });
         labelInput.value =
@@ -562,7 +562,7 @@ export class VaultAuditModal extends Modal {
 
   private updateSelectionCounts(): void {
     const checkboxes = this.contentEl.querySelectorAll<HTMLInputElement>(
-      ".vaultguard-secret-checkbox"
+      ".keymask-secret-checkbox"
     );
     checkboxes.forEach((cb) => {
       const row = cb.closest("tr");
@@ -575,7 +575,7 @@ export class VaultAuditModal extends Modal {
     });
 
     const remediateBtn = this.contentEl.querySelector<HTMLButtonElement>(
-      ".vaultguard-batch-remediate-btn"
+      ".keymask-batch-remediate-btn"
     );
     if (remediateBtn) {
       this.updateRemediateButton(remediateBtn);

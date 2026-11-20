@@ -1,13 +1,13 @@
-/* VaultGuard Styles */
+/* KeyMask Styles */
 
 /* 1. Masked Inline Pill */
-.vaultguard-pill-wrapper {
+.keymask-pill-wrapper {
   display: inline-flex;
   vertical-align: middle;
   margin: 0 3px;
 }
 
-.vaultguard-pill {
+.keymask-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -21,24 +21,24 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.vaultguard-pill:hover {
+.keymask-pill:hover {
   border-color: var(--interactive-accent);
   background-color: var(--background-secondary-alt);
 }
 
-.vaultguard-pill-icon {
+.keymask-pill-icon {
   font-size: 1em;
   cursor: pointer;
   opacity: 0.85;
   user-select: none;
 }
 
-.vaultguard-pill-icon:hover {
+.keymask-pill-icon:hover {
   opacity: 1;
   transform: scale(1.1);
 }
 
-.vaultguard-pill-label {
+.keymask-pill-label {
   font-weight: 600;
   font-size: 0.8em;
   text-transform: uppercase;
@@ -50,20 +50,20 @@
   user-select: none;
 }
 
-.vaultguard-pill-value {
+.keymask-pill-value {
   font-family: var(--font-monospace);
   font-size: 0.9em;
   padding: 0 4px;
   cursor: pointer;
 }
 
-.vaultguard-pill-value.masked {
+.keymask-pill-value.masked {
   letter-spacing: 2px;
   color: var(--text-muted);
   user-select: none;
 }
 
-.vaultguard-pill-value.revealed {
+.keymask-pill-value.revealed {
   color: var(--interactive-accent);
   background-color: var(--background-primary);
   border-radius: 4px;
@@ -73,7 +73,7 @@
 }
 
 /* 2. Action Buttons */
-.vaultguard-btn {
+.keymask-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -88,40 +88,40 @@
   line-height: 1;
 }
 
-.vaultguard-btn:hover {
+.keymask-btn:hover {
   background-color: var(--background-modifier-hover);
   color: var(--text-normal);
   border-color: var(--background-modifier-border);
 }
 
-.vaultguard-btn-copy.copied {
+.keymask-btn-copy.copied {
   color: var(--text-success, #22c55e);
   border-color: var(--text-success, #22c55e);
   background-color: rgba(34, 197, 94, 0.1);
 }
 
 /* 3. SVG Countdown Progress Ring */
-.vaultguard-timer-ring-container {
+.keymask-timer-ring-container {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   margin: 0 2px;
 }
 
-.vaultguard-progress-ring {
+.keymask-progress-ring {
   transform-origin: center;
 }
 
-.vaultguard-progress-track {
+.keymask-progress-track {
   stroke: var(--background-modifier-border);
 }
 
-.vaultguard-progress-indicator {
+.keymask-progress-indicator {
   stroke: var(--interactive-accent);
   transition: stroke-dashoffset 0.9s linear;
 }
 
-.vaultguard-progress-text {
+.keymask-progress-text {
   font-size: 10px;
   font-family: var(--font-monospace);
   font-weight: 700;
@@ -129,11 +129,11 @@
 }
 
 /* 4. Multi-Line Fenced Code Block Widget */
-.vaultguard-block-wrapper {
+.keymask-block-wrapper {
   margin: 12px 0;
 }
 
-.vaultguard-pill.is-codeblock {
+.keymask-pill.is-codeblock {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -142,7 +142,7 @@
   border-radius: 8px;
 }
 
-.vaultguard-pill.is-codeblock .vaultguard-pill-value.revealed {
+.keymask-pill.is-codeblock .keymask-pill-value.revealed {
   white-space: pre-wrap;
   word-break: break-all;
   max-height: 240px;
@@ -151,7 +151,7 @@
 }
 
 /* 5. Corrupted Ciphertext Block UI */
-.vaultguard-corrupted-block {
+.keymask-corrupted-block {
   border: 1px solid var(--text-error, #ef4444);
   background-color: rgba(239, 68, 68, 0.08);
   border-radius: 6px;
@@ -160,7 +160,7 @@
   color: var(--text-normal);
 }
 
-.vaultguard-corrupted-header {
+.keymask-corrupted-header {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -168,23 +168,23 @@
   color: var(--text-error, #ef4444);
 }
 
-.vaultguard-corrupted-desc {
+.keymask-corrupted-desc {
   font-size: 0.85em;
   color: var(--text-muted);
   margin-top: 4px;
 }
 
-.vaultguard-corrupted-details {
+.keymask-corrupted-details {
   margin-top: 6px;
   font-size: 0.8em;
 }
 
-.vaultguard-corrupted-details summary {
+.keymask-corrupted-details summary {
   cursor: pointer;
   color: var(--text-muted);
 }
 
-.vaultguard-corrupted-details pre {
+.keymask-corrupted-details pre {
   margin-top: 4px;
   background-color: var(--background-primary);
   padding: 6px;
@@ -194,11 +194,11 @@
 }
 
 /* 6. Modals & Settings UI */
-.vaultguard-modal {
+.keymask-modal {
   padding: 10px 14px;
 }
 
-.vaultguard-modal h2 {
+.keymask-modal h2 {
   margin-top: 0;
   margin-bottom: 12px;
   font-size: 1.3em;
@@ -206,20 +206,20 @@
   color: var(--text-normal);
 }
 
-.vaultguard-modal .setting-item {
+.keymask-modal .setting-item {
   border-top: none;
   padding: 10px 0;
 }
 
-.vaultguard-modal .setting-item-control input[type="text"],
-.vaultguard-modal .setting-item-control input[type="password"] {
+.keymask-modal .setting-item-control input[type="text"],
+.keymask-modal .setting-item-control input[type="password"] {
   min-width: 220px;
   max-width: 320px;
   padding: 6px 10px;
   border-radius: 6px;
 }
 
-.vaultguard-error-message {
+.keymask-error-message {
   color: var(--text-error, #ef4444);
   background-color: rgba(239, 68, 68, 0.1);
   border: 1px solid var(--text-error, #ef4444);
@@ -229,34 +229,34 @@
   margin-bottom: 12px;
 }
 
-.vaultguard-secret-input-wrapper {
+.keymask-secret-input-wrapper {
   margin-bottom: 12px;
 }
 
-.vaultguard-secret-textarea {
+.keymask-secret-textarea {
   width: 100%;
   font-family: var(--font-monospace);
   resize: vertical;
 }
 
-.vaultguard-secret-textarea.masked {
+.keymask-secret-textarea.masked {
   -webkit-text-security: disc;
 }
 
-.vaultguard-secret-controls {
+.keymask-secret-controls {
   display: flex;
   justify-content: flex-end;
   margin-top: 4px;
 }
 
-.vaultguard-modal-buttons {
+.keymask-modal-buttons {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 16px;
 }
 
-.vaultguard-intercept-banner {
+.keymask-intercept-banner {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -267,7 +267,7 @@
   margin-bottom: 12px;
 }
 
-.vaultguard-badge-pattern {
+.keymask-badge-pattern {
   background-color: var(--interactive-accent);
   color: var(--text-on-accent);
   padding: 2px 8px;
@@ -276,16 +276,16 @@
   font-weight: 600;
 }
 
-.vaultguard-preview-code {
+.keymask-preview-code {
   font-family: var(--font-monospace);
   color: var(--text-muted);
 }
 
-.vaultguard-status-banner {
+.keymask-status-banner {
   margin-bottom: 16px;
 }
 
-.vaultguard-status-pill {
+.keymask-status-pill {
   display: inline-block;
   padding: 4px 12px;
   border-radius: 9999px;
@@ -293,31 +293,31 @@
   font-size: 0.85em;
 }
 
-.vaultguard-status-pill.unlocked {
+.keymask-status-pill.unlocked {
   background-color: rgba(34, 197, 94, 0.15);
   color: var(--text-success, #22c55e);
   border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
-.vaultguard-status-pill.locked {
+.keymask-status-pill.locked {
   background-color: rgba(234, 179, 8, 0.15);
   color: var(--text-warning, #eab308);
   border: 1px solid rgba(234, 179, 8, 0.3);
 }
 
-.vaultguard-status-pill.unconfigured {
+.keymask-status-pill.unconfigured {
   background-color: rgba(239, 68, 68, 0.15);
   color: var(--text-error, #ef4444);
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
-.vaultguard-status-bar-item {
+.keymask-status-bar-item {
   cursor: pointer;
 }
 
 /* 7. Vault Secret Audit & Leak Scanner UI */
-.modal.mod-vaultguard-audit,
-.modal:has(.vaultguard-audit-modal) {
+.modal.mod-keymask-audit,
+.modal:has(.keymask-audit-modal) {
   width: min(880px, 92vw) !important;
   max-width: 880px !important;
   max-height: 85vh !important;
@@ -326,17 +326,17 @@
   overflow: hidden !important;
 }
 
-.modal.mod-vaultguard-modal,
-.modal:has(.vaultguard-export-modal),
-.modal:has(.vaultguard-decrypt-all-modal),
-.modal:has(.vaultguard-encrypt-file-modal),
-.modal.vaultguard-encrypt-file-modal {
+.modal.mod-keymask-modal,
+.modal:has(.keymask-export-modal),
+.modal:has(.keymask-decrypt-all-modal),
+.modal:has(.keymask-encrypt-file-modal),
+.modal.keymask-encrypt-file-modal {
   width: min(580px, 92vw) !important;
   max-width: 580px !important;
 }
 
-.modal.mod-vaultguard-audit .modal-content,
-.modal:has(.vaultguard-audit-modal) .modal-content {
+.modal.mod-keymask-audit .modal-content,
+.modal:has(.keymask-audit-modal) .modal-content {
   overflow-y: auto !important;
   overflow-x: hidden !important;
   padding: 16px 20px !important;
@@ -344,14 +344,14 @@
   box-sizing: border-box !important;
 }
 
-.vaultguard-audit-modal {
+.keymask-audit-modal {
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
   overflow-x: hidden !important;
 }
 
-.vaultguard-audit-controls-card {
+.keymask-audit-controls-card {
   background-color: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
   border-radius: 8px;
@@ -361,7 +361,7 @@
   width: 100%;
 }
 
-.vaultguard-audit-controls-card .setting-item {
+.keymask-audit-controls-card .setting-item {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -371,39 +371,39 @@
   gap: 16px;
 }
 
-.vaultguard-audit-controls-card .setting-item-info {
+.keymask-audit-controls-card .setting-item-info {
   flex: 1 1 auto;
 }
 
-.vaultguard-audit-controls-card .setting-item-control {
+.keymask-audit-controls-card .setting-item-control {
   flex: 0 0 auto;
   display: flex;
   justify-content: flex-end;
 }
 
-.vaultguard-audit-controls-card .setting-item-control select,
-.vaultguard-audit-controls-card .setting-item-control .dropdown {
+.keymask-audit-controls-card .setting-item-control select,
+.keymask-audit-controls-card .setting-item-control .dropdown {
   max-width: 260px;
   width: auto;
 }
 
-.vaultguard-audit-start-row {
+.keymask-audit-start-row {
   display: flex;
   justify-content: flex-end;
   margin-top: 10px;
 }
 
-.vaultguard-start-scan-btn {
+.keymask-start-scan-btn {
   font-weight: 600;
   padding: 6px 14px;
 }
 
-.vaultguard-audit-progress-container {
+.keymask-audit-progress-container {
   margin: 16px 0;
   text-align: center;
 }
 
-.vaultguard-progress-bar {
+.keymask-progress-bar {
   width: 100%;
   height: 8px;
   border-radius: 4px;
@@ -411,13 +411,13 @@
   accent-color: var(--interactive-accent);
 }
 
-.vaultguard-progress-label {
+.keymask-progress-label {
   font-size: 0.85em;
   color: var(--text-muted);
   margin-top: 6px;
 }
 
-.vaultguard-clean-banner {
+.keymask-clean-banner {
   text-align: center;
   padding: 32px 16px;
   background-color: rgba(34, 197, 94, 0.08);
@@ -426,17 +426,17 @@
   margin: 16px 0;
 }
 
-.vaultguard-clean-banner .clean-icon {
+.keymask-clean-banner .clean-icon {
   font-size: 2.5em;
   margin-bottom: 8px;
 }
 
-.vaultguard-clean-banner h3 {
+.keymask-clean-banner h3 {
   color: var(--text-success, #22c55e);
   margin-bottom: 4px;
 }
 
-.vaultguard-audit-summary-header {
+.keymask-audit-summary-header {
   background-color: rgba(234, 179, 8, 0.1);
   border: 1px solid rgba(234, 179, 8, 0.3);
   border-radius: 8px;
@@ -444,19 +444,19 @@
   margin: 16px 0;
 }
 
-.vaultguard-audit-summary-header h3 {
+.keymask-audit-summary-header h3 {
   margin: 0 0 4px 0;
   color: var(--text-warning, #eab308);
 }
 
-.vaultguard-audit-action-row {
+.keymask-audit-action-row {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-top: 12px;
 }
 
-.vaultguard-btn-secondary {
+.keymask-btn-secondary {
   background: var(--background-modifier-form-field);
   border: 1px solid var(--background-modifier-border);
   color: var(--text-normal);
@@ -468,17 +468,17 @@
   transition: all 0.15s ease;
 }
 
-.vaultguard-btn-secondary:hover {
+.keymask-btn-secondary:hover {
   background: var(--background-modifier-hover);
   border-color: var(--background-modifier-border-hover, var(--interactive-accent));
 }
 
-.vaultguard-batch-remediate-btn {
+.keymask-batch-remediate-btn {
   margin-left: auto;
   font-weight: 600;
 }
 
-.vaultguard-audit-files-list {
+.keymask-audit-files-list {
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -486,7 +486,7 @@
   width: 100%;
 }
 
-.vaultguard-file-card {
+.keymask-file-card {
   background-color: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
   border-radius: 8px;
@@ -494,11 +494,11 @@
   transition: border-color 0.15s ease;
 }
 
-.vaultguard-file-card:hover {
+.keymask-file-card:hover {
   border-color: var(--background-modifier-border-hover);
 }
 
-.vaultguard-file-header {
+.keymask-file-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -511,15 +511,15 @@
   transition: background-color 0.15s ease;
 }
 
-.vaultguard-file-header:hover {
+.keymask-file-header:hover {
   background-color: var(--background-modifier-hover);
 }
 
-.vaultguard-file-card.is-collapsed .vaultguard-file-header {
+.keymask-file-card.is-collapsed .keymask-file-header {
   border-bottom: none;
 }
 
-.vaultguard-file-info {
+.keymask-file-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -527,13 +527,13 @@
   flex: 1 1 auto;
 }
 
-.vaultguard-file-title {
+.keymask-file-title {
   font-weight: 600;
   font-size: 0.95em;
   color: var(--text-normal);
 }
 
-.vaultguard-file-path {
+.keymask-file-path {
   font-size: 0.78em;
   color: var(--text-muted);
   overflow: hidden;
@@ -541,20 +541,20 @@
   white-space: nowrap;
 }
 
-.vaultguard-header-actions {
+.keymask-header-actions {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
 }
 
-.vaultguard-chevron-icon {
+.keymask-chevron-icon {
   font-size: 0.75em;
   color: var(--text-muted);
   padding: 2px 4px;
 }
 
-.vaultguard-file-badge {
+.keymask-file-badge {
   background-color: rgba(239, 68, 68, 0.15);
   color: var(--text-error, #ef4444);
   font-size: 0.8em;
@@ -564,13 +564,13 @@
 }
 
 /* Card-based Finding Items */
-.vaultguard-header-right {
+.keymask-header-right {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.vaultguard-btn-open-file {
+.keymask-btn-open-file {
   background: var(--background-modifier-form-field);
   color: var(--text-normal);
   border: 1px solid var(--background-modifier-border);
@@ -580,18 +580,18 @@
   cursor: pointer;
 }
 
-.vaultguard-btn-open-file:hover {
+.keymask-btn-open-file:hover {
   background: var(--background-modifier-hover);
 }
 
-.vaultguard-file-findings {
+.keymask-file-findings {
   display: flex;
   flex-direction: column;
   padding: 10px 14px;
   gap: 12px;
 }
 
-.vaultguard-secret-item {
+.keymask-secret-item {
   background-color: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
   border-radius: 6px;
@@ -602,30 +602,30 @@
   transition: border-color 0.15s ease;
 }
 
-.vaultguard-secret-item:hover {
+.keymask-secret-item:hover {
   border-color: var(--interactive-accent);
 }
 
-.vaultguard-item-top-row {
+.keymask-item-top-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
 }
 
-.vaultguard-item-left {
+.keymask-item-left {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.vaultguard-item-right {
+.keymask-item-right {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.vaultguard-cell-line {
+.keymask-cell-line {
   font-family: var(--font-monospace);
   font-weight: 600;
   font-size: 0.85em;
@@ -636,11 +636,11 @@
   background-color: var(--background-modifier-form-field);
 }
 
-.vaultguard-cell-line:hover {
+.keymask-cell-line:hover {
   text-decoration: underline;
 }
 
-.vaultguard-pattern-tag {
+.keymask-pattern-tag {
   background-color: rgba(239, 68, 68, 0.12);
   color: var(--text-error, #ef4444);
   border: 1px solid rgba(239, 68, 68, 0.25);
@@ -651,7 +651,7 @@
   white-space: nowrap;
 }
 
-.vaultguard-btn-jump {
+.keymask-btn-jump {
   background: transparent;
   color: var(--text-accent);
   border: 1px solid var(--background-modifier-border);
@@ -661,11 +661,11 @@
   cursor: pointer;
 }
 
-.vaultguard-btn-jump:hover {
+.keymask-btn-jump:hover {
   background: var(--background-modifier-hover);
 }
 
-.vaultguard-snippet-box {
+.keymask-snippet-box {
   background-color: var(--background-secondary-alt);
   border: 1px solid var(--background-modifier-border);
   border-radius: 5px;
@@ -680,17 +680,17 @@
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-.vaultguard-snippet-box:hover {
+.keymask-snippet-box:hover {
   background-color: var(--background-primary-alt);
   border-color: var(--interactive-accent);
 }
 
-.vaultguard-snippet-context {
+.keymask-snippet-context {
   color: var(--text-muted);
   opacity: 0.88;
 }
 
-.vaultguard-secret-highlight {
+.keymask-secret-highlight {
   background-color: rgba(239, 68, 68, 0.22);
   color: var(--text-error, #ef4444);
   font-weight: 700;
@@ -700,7 +700,7 @@
 }
 }
 
-.vaultguard-item-bottom-row {
+.keymask-item-bottom-row {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -708,12 +708,12 @@
   color: var(--text-muted);
 }
 
-.vaultguard-label-caption {
+.keymask-label-caption {
   font-size: 0.85em;
   color: var(--text-muted);
 }
 
-.vaultguard-inline-label-input {
+.keymask-inline-label-input {
   font-size: 0.85em;
   padding: 3px 8px;
   width: 220px;
@@ -723,13 +723,13 @@
   color: var(--text-normal);
 }
 
-.vaultguard-remediated-badge {
+.keymask-remediated-badge {
   color: var(--text-success, #22c55e);
   font-weight: 600;
   font-size: 0.85em;
 }
 
-.vaultguard-btn-single-encrypt {
+.keymask-btn-single-encrypt {
   background-color: var(--interactive-accent);
   color: var(--text-on-accent);
   border: none;
@@ -741,19 +741,19 @@
   transition: opacity 0.15s ease;
 }
 
-.vaultguard-btn-single-encrypt:hover {
+.keymask-btn-single-encrypt:hover {
   opacity: 0.9;
 }
 
 /* 7b. Whole-File Encrypted Modal UI */
-.vaultguard-modal-header {
+.keymask-modal-header {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 18px;
 }
 
-.vaultguard-modal-header-icon {
+.keymask-modal-header-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -765,19 +765,19 @@
   flex-shrink: 0;
 }
 
-.vaultguard-modal-header-icon svg {
+.keymask-modal-header-icon svg {
   width: 22px;
   height: 22px;
 }
 
-.vaultguard-modal-header h2 {
+.keymask-modal-header h2 {
   margin: 0;
   font-size: 1.25em;
   font-weight: 700;
   color: var(--text-normal);
 }
 
-.vaultguard-file-target-card {
+.keymask-file-target-card {
   background-color: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
   border-radius: 8px;
@@ -788,33 +788,33 @@
   gap: 10px;
 }
 
-.vaultguard-target-top {
+.keymask-target-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
 }
 
-.vaultguard-target-title-group {
+.keymask-target-title-group {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
 }
 
-.vaultguard-target-icon {
+.keymask-target-icon {
   color: var(--text-accent);
   display: flex;
   align-items: center;
   flex-shrink: 0;
 }
 
-.vaultguard-target-icon svg {
+.keymask-target-icon svg {
   width: 18px;
   height: 18px;
 }
 
-.vaultguard-target-filename {
+.keymask-target-filename {
   font-weight: 600;
   font-size: 0.95em;
   color: var(--text-normal);
@@ -823,7 +823,7 @@
   white-space: nowrap;
 }
 
-.vaultguard-target-algo-pill {
+.keymask-target-algo-pill {
   font-size: 0.78em;
   font-weight: 600;
   padding: 3px 8px;
@@ -835,7 +835,7 @@
   border: 1px solid rgba(var(--interactive-accent-rgb, 124, 58, 237), 0.25);
 }
 
-.vaultguard-target-stats-row {
+.keymask-target-stats-row {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -844,54 +844,54 @@
   flex-wrap: wrap;
 }
 
-.vaultguard-stat-item {
+.keymask-stat-item {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.vaultguard-stat-bullet {
+.keymask-stat-bullet {
   opacity: 0.35;
 }
 
-.vaultguard-target-notice {
+.keymask-target-notice {
   border-top: 1px solid var(--background-modifier-border);
   padding-top: 8px;
 }
 
-.vaultguard-target-notice p {
+.keymask-target-notice p {
   margin: 0;
   font-size: 0.84em;
   line-height: 1.45;
   color: var(--text-muted);
 }
 
-.vaultguard-form-field-group {
+.keymask-form-field-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
   margin-bottom: 20px;
 }
 
-.vaultguard-field-header {
+.keymask-field-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
 }
 
-.vaultguard-field-label {
+.keymask-field-label {
   font-weight: 600;
   font-size: 0.9em;
   color: var(--text-normal);
 }
 
-.vaultguard-field-hint {
+.keymask-field-hint {
   font-size: 0.8em;
   color: var(--text-muted);
 }
 
-.vaultguard-full-input {
+.keymask-full-input {
   width: 100% !important;
   box-sizing: border-box !important;
   padding: 9px 12px !important;
@@ -903,13 +903,13 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.vaultguard-full-input:focus {
+.keymask-full-input:focus {
   border-color: var(--interactive-accent) !important;
   outline: none !important;
   box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb, 124, 58, 237), 0.2) !important;
 }
 
-.vaultguard-btn-primary-action {
+.keymask-btn-primary-action {
   font-weight: 600;
   padding: 6px 16px;
   font-size: 0.88em;
@@ -921,12 +921,12 @@
   transition: opacity 0.15s ease;
 }
 
-.vaultguard-btn-primary-action:hover {
+.keymask-btn-primary-action:hover {
   opacity: 0.9;
 }
 
 /* 7c. Whole-File Encrypted In-Note Security Card UI */
-.vaultguard-file-card-full {
+.keymask-file-card-full {
   background-color: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
   border-left: 4px solid var(--interactive-accent);
@@ -939,7 +939,7 @@
   gap: 14px;
 }
 
-.vaultguard-file-card-header {
+.keymask-file-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -948,14 +948,14 @@
   padding-bottom: 12px;
 }
 
-.vaultguard-file-header-left {
+.keymask-file-header-left {
   display: flex;
   align-items: center;
   gap: 12px;
   min-width: 0;
 }
 
-.vaultguard-shield-icon {
+.keymask-shield-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -967,32 +967,32 @@
   flex-shrink: 0;
 }
 
-.vaultguard-shield-icon svg {
+.keymask-shield-icon svg {
   width: 22px;
   height: 22px;
 }
 
-.vaultguard-file-title-group {
+.keymask-file-title-group {
   display: flex;
   flex-direction: column;
   gap: 3px;
   min-width: 0;
 }
 
-.vaultguard-file-title-row {
+.keymask-file-title-row {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.vaultguard-file-card-title {
+.keymask-file-card-title {
   font-size: 1.12em;
   font-weight: 700;
   color: var(--text-normal);
   line-height: 1.3;
 }
 
-.vaultguard-file-card-subtitle {
+.keymask-file-card-subtitle {
   font-size: 0.83em;
   color: var(--text-muted);
   line-height: 1.3;
@@ -1001,14 +1001,14 @@
   white-space: nowrap;
 }
 
-.vaultguard-file-header-right {
+.keymask-file-header-right {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
 }
 
-.vaultguard-file-type-badge {
+.keymask-file-type-badge {
   font-size: 0.8em;
   font-weight: 600;
   padding: 4px 10px;
@@ -1019,7 +1019,7 @@
   white-space: nowrap;
 }
 
-.vaultguard-status-badge {
+.keymask-status-badge {
   font-size: 0.8em;
   font-weight: 600;
   padding: 4px 10px;
@@ -1030,7 +1030,7 @@
   white-space: nowrap;
 }
 
-.vaultguard-file-card-toolbar {
+.keymask-file-card-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1038,20 +1038,20 @@
   gap: 10px;
 }
 
-.vaultguard-toolbar-left {
+.keymask-toolbar-left {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.vaultguard-toolbar-right {
+.keymask-toolbar-right {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.vaultguard-btn-action {
+.keymask-btn-action {
   background-color: var(--background-modifier-form-field);
   border: 1px solid var(--background-modifier-border);
   color: var(--text-normal);
@@ -1066,29 +1066,29 @@
   gap: 6px;
 }
 
-.vaultguard-btn-action:hover {
+.keymask-btn-action:hover {
   background-color: var(--background-modifier-hover);
   border-color: var(--interactive-accent);
 }
 
-.vaultguard-btn-action.mod-cta {
+.keymask-btn-action.mod-cta {
   background-color: var(--interactive-accent);
   color: var(--text-on-accent);
   border-color: var(--interactive-accent);
   font-weight: 600;
 }
 
-.vaultguard-btn-action.mod-cta:hover {
+.keymask-btn-action.mod-cta:hover {
   opacity: 0.9;
 }
 
-.vaultguard-btn-action.mod-active {
+.keymask-btn-action.mod-active {
   background-color: rgba(var(--interactive-accent-rgb, 124, 58, 237), 0.15);
   color: var(--text-accent);
   border-color: var(--interactive-accent);
 }
 
-.vaultguard-btn-revert {
+.keymask-btn-revert {
   background: transparent;
   border: 1px solid var(--background-modifier-border);
   color: var(--text-muted);
@@ -1103,13 +1103,13 @@
   gap: 6px;
 }
 
-.vaultguard-btn-revert:hover {
+.keymask-btn-revert:hover {
   color: var(--text-error, #ef4444);
   background-color: rgba(239, 68, 68, 0.1);
   border-color: rgba(239, 68, 68, 0.35);
 }
 
-.vaultguard-file-preview-container {
+.keymask-file-preview-container {
   background-color: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
   border-radius: 8px;
@@ -1117,7 +1117,7 @@
   margin-top: 4px;
 }
 
-.vaultguard-file-preview-header {
+.keymask-file-preview-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1126,36 +1126,36 @@
   border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.vaultguard-preview-header-left {
+.keymask-preview-header-left {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.vaultguard-preview-icon {
+.keymask-preview-icon {
   display: flex;
   align-items: center;
   color: var(--text-accent);
 }
 
-.vaultguard-preview-icon svg {
+.keymask-preview-icon svg {
   width: 16px;
   height: 16px;
 }
 
-.vaultguard-preview-title {
+.keymask-preview-title {
   font-weight: 600;
   font-size: 0.88em;
   color: var(--text-normal);
 }
 
-.vaultguard-preview-actions {
+.keymask-preview-actions {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.vaultguard-btn-hide-preview {
+.keymask-btn-hide-preview {
   background: var(--background-modifier-form-field);
   border: 1px solid var(--background-modifier-border);
   padding: 3px 10px;
@@ -1165,12 +1165,12 @@
   color: var(--text-muted);
 }
 
-.vaultguard-btn-hide-preview:hover {
+.keymask-btn-hide-preview:hover {
   background: var(--background-modifier-hover);
   color: var(--text-normal);
 }
 
-.vaultguard-file-preview-content {
+.keymask-file-preview-content {
   margin: 0;
   padding: 14px 18px;
   font-family: var(--font-monospace);
@@ -1184,7 +1184,7 @@
   background-color: var(--background-primary);
 }
 
-.vaultguard-file-preview-footer {
+.keymask-file-preview-footer {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1195,19 +1195,19 @@
   border-top: 1px solid var(--background-modifier-border);
 }
 
-.vaultguard-footer-icon {
+.keymask-footer-icon {
   display: flex;
   align-items: center;
   color: var(--text-muted);
 }
 
-.vaultguard-footer-icon svg {
+.keymask-footer-icon svg {
   width: 12px;
   height: 12px;
 }
 
 /* 7d. Whole-File Encrypted View Manager & Banner */
-.vaultguard-whole-file-banner {
+.keymask-whole-file-banner {
   padding: 24px 28px;
   max-width: 900px;
   margin: 0 auto;
@@ -1215,33 +1215,33 @@
   box-sizing: border-box;
 }
 
-.vaultguard-file-encrypted-active .cm-editor,
-.vaultguard-file-encrypted-active .markdown-reading-view {
+.keymask-file-encrypted-active .cm-editor,
+.keymask-file-encrypted-active .markdown-reading-view {
   display: none !important;
 }
 
-.vaultguard-file-encrypted-active .view-content {
+.keymask-file-encrypted-active .view-content {
   overflow-y: auto !important;
 }
 
-.vaultguard-file-inspect-raw {
+.keymask-file-inspect-raw {
   margin-top: 10px;
   border-top: 1px dashed var(--background-modifier-border);
   padding-top: 8px;
 }
 
-.vaultguard-file-inspect-raw summary {
+.keymask-file-inspect-raw summary {
   font-size: 0.8em;
   color: var(--text-muted);
   cursor: pointer;
   user-select: none;
 }
 
-.vaultguard-file-inspect-raw summary:hover {
+.keymask-file-inspect-raw summary:hover {
   color: var(--text-normal);
 }
 
-.vaultguard-file-inspect-raw pre {
+.keymask-file-inspect-raw pre {
   margin-top: 8px;
   max-height: 180px;
   overflow-y: auto;
@@ -1253,120 +1253,120 @@
 }
 
 /* 7e. Confirmation Modal */
-.vaultguard-confirm-modal {
+.keymask-confirm-modal {
   max-width: 480px;
 }
 
-.vaultguard-confirm-message {
+.keymask-confirm-message {
   padding: 8px 0 16px 0;
   font-size: 0.95em;
   color: var(--text-normal);
   line-height: 1.5;
 }
 
-.vaultguard-btn-danger {
+.keymask-btn-danger {
   background-color: var(--text-error, #ef4444) !important;
   color: #fff !important;
   border-color: var(--text-error, #ef4444) !important;
   font-weight: 600;
 }
 
-.vaultguard-btn-danger:hover {
+.keymask-btn-danger:hover {
   opacity: 0.9;
 }
 
 /* 8. Mobile Responsive Adaptations */
 @media (max-width: 768px) {
-  .modal.mod-vaultguard-audit,
-  .modal:has(.vaultguard-audit-modal),
-  .modal.mod-vaultguard-modal {
+  .modal.mod-keymask-audit,
+  .modal:has(.keymask-audit-modal),
+  .modal.mod-keymask-modal {
     width: 95vw !important;
     max-width: 95vw !important;
   }
 
-  .vaultguard-audit-controls-card .setting-item {
+  .keymask-audit-controls-card .setting-item {
     flex-direction: column !important;
     align-items: flex-start !important;
     gap: 8px !important;
   }
 
-  .vaultguard-audit-controls-card .setting-item-control {
+  .keymask-audit-controls-card .setting-item-control {
     width: 100% !important;
     justify-content: flex-start !important;
   }
 
-  .vaultguard-audit-controls-card .setting-item-control select,
-  .vaultguard-audit-controls-card .setting-item-control .dropdown {
+  .keymask-audit-controls-card .setting-item-control select,
+  .keymask-audit-controls-card .setting-item-control .dropdown {
     max-width: 100% !important;
     width: 100% !important;
   }
 
-  .vaultguard-secrets-table {
+  .keymask-secrets-table {
     display: block;
     overflow-x: auto;
     white-space: nowrap;
   }
 
-  .vaultguard-modal input[type="text"],
-  .vaultguard-modal input[type="password"],
-  .vaultguard-secret-textarea,
-  .vaultguard-full-input {
+  .keymask-modal input[type="text"],
+  .keymask-modal input[type="password"],
+  .keymask-secret-textarea,
+  .keymask-full-input {
     font-size: 16px !important; /* Prevents auto-zoom on iOS WebKit */
   }
 
-  .vaultguard-audit-action-row {
+  .keymask-audit-action-row {
     flex-wrap: wrap;
   }
 
-  .vaultguard-batch-remediate-btn {
+  .keymask-batch-remediate-btn {
     width: 100%;
     margin-left: 0;
     margin-top: 8px;
   }
 
   /* Mobile Whole-File Security Card */
-  .vaultguard-whole-file-banner {
+  .keymask-whole-file-banner {
     padding: 10px 6px !important;
   }
 
-  .vaultguard-file-card-full {
+  .keymask-file-card-full {
     padding: 14px 12px !important;
     gap: 12px !important;
     margin: 6px 0 !important;
   }
 
-  .vaultguard-file-card-header {
+  .keymask-file-card-header {
     flex-direction: column !important;
     align-items: flex-start !important;
     gap: 10px !important;
   }
 
-  .vaultguard-file-header-left {
+  .keymask-file-header-left {
     width: 100% !important;
   }
 
-  .vaultguard-file-header-right {
+  .keymask-file-header-right {
     width: 100% !important;
     justify-content: flex-start !important;
     flex-wrap: wrap !important;
   }
 
-  .vaultguard-file-card-toolbar {
+  .keymask-file-card-toolbar {
     flex-direction: column !important;
     align-items: stretch !important;
     gap: 8px !important;
   }
 
-  .vaultguard-toolbar-left,
-  .vaultguard-toolbar-right {
+  .keymask-toolbar-left,
+  .keymask-toolbar-right {
     width: 100% !important;
     flex-direction: column !important;
     align-items: stretch !important;
     gap: 8px !important;
   }
 
-  .vaultguard-btn-action,
-  .vaultguard-btn-revert {
+  .keymask-btn-action,
+  .keymask-btn-revert {
     width: 100% !important;
     justify-content: center !important;
     padding: 10px 14px !important;
@@ -1375,25 +1375,25 @@
     box-sizing: border-box !important;
   }
 
-  .vaultguard-file-preview-content {
+  .keymask-file-preview-content {
     max-height: 280px !important;
     padding: 12px 14px !important;
     font-size: 0.84em !important;
     -webkit-overflow-scrolling: touch !important;
   }
 
-  .vaultguard-file-preview-header {
+  .keymask-file-preview-header {
     flex-direction: column !important;
     align-items: flex-start !important;
     gap: 8px !important;
   }
 
-  .vaultguard-preview-actions {
+  .keymask-preview-actions {
     width: 100% !important;
     justify-content: space-between !important;
   }
 
-  .vaultguard-target-stats-row {
+  .keymask-target-stats-row {
     flex-wrap: wrap !important;
     gap: 6px !important;
   }

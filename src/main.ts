@@ -1,18 +1,18 @@
 /**
- * VaultGuard Obsidian Plugin
+ * KeyMask Obsidian Plugin
  *
- * Plugin ID: obsidian-vaultguard
+ * Plugin ID: obsidian-keymask
  * Core Entry Point
  */
 
 import { Editor, MarkdownView, Notice, Plugin, TFile } from "obsidian";
 import {
   DEFAULT_SETTINGS,
-  VaultGuardSettings,
-  VaultGuardSettingTab,
+  KeyMaskSettings,
+  KeyMaskSettingTab,
 } from "./settings";
-import { VaultGuardSession } from "./crypto/session";
-import { createVaultGuardViewPlugin } from "./editor/viewPlugin";
+import { KeyMaskSession } from "./crypto/session";
+import { createKeyMaskViewPlugin } from "./editor/viewPlugin";
 import { registerPostProcessors } from "./editor/postProcessor";
 import { registerPasteHandler } from "./editor/pasteHandler";
 import { UnlockModal } from "./modals/unlockModal";
@@ -22,24 +22,24 @@ import { VaultAuditModal } from "./modals/vaultAuditModal";
 import { ExportSecretsModal } from "./modals/exportSecretsModal";
 import { BatchDecryptModal } from "./modals/batchDecryptModal";
 import { confirmAction } from "./modals/confirmModal";
-import { VaultGuardClipboard } from "./utils/clipboard";
+import { KeyMaskClipboard } from "./utils/clipboard";
 import {
   isWholeFileEncrypted,
   extractWholeFilePayload,
 } from "./crypto/serializer";
 import { EncryptedFileViewManager } from "./editor/fileViewManager";
 
-export default class VaultGuardPlugin extends Plugin {
-  settings: VaultGuardSettings = DEFAULT_SETTINGS;
-  session!: VaultGuardSession;
+export default class KeyMaskPlugin extends Plugin {
+  settings: KeyMaskSettings = DEFAULT_SETTINGS;
+  session!: KeyMaskSession;
   fileViewManager!: EncryptedFileViewManager;
   statusBarItemEl: HTMLElement | null = null;
 
   async onload() {
     await this.loadSettings();
 
-    // Initialize VaultGuard in-memory session manager
-    this.session = new VaultGuardSession({
+    // Initialize KeyMask in-memory session manager
+    this.session = new KeyMaskSession({
       getSalt: () => this.settings.salt,
       setSalt: async (saltB64) => {
         this.settings.salt = saltB64;
@@ -63,7 +63,7 @@ export default class VaultGuardPlugin extends Plugin {
     });
 
     // 2. Ribbon Icon
-    this.addRibbonIcon("shield-alert", "VaultGuard", () => {
+    this.addRibbonIcon("shield-alert", "KeyMask", () => {
       if (!this.settings.isInitialized) {
         new UnlockModal(this.app, this, { mode: "init" }).open();
       } else if (!this.session.isUnlocked()) {
@@ -75,7 +75,7 @@ export default class VaultGuardPlugin extends Plugin {
             editor: activeView.editor,
           }).open();
         } else {
-          new Notice("🔓 VaultGuard is unlocked. Open a note to insert secrets.");
+          new Notice("🔓 KeyMask is unlocked. Open a note to insert secrets.");
         }
       }
     });
@@ -125,7 +125,7 @@ export default class VaultGuardPlugin extends Plugin {
         if (!this.settings.isInitialized) {
           new UnlockModal(this.app, this, { mode: "init" }).open();
         } else if (this.session.isUnlocked()) {
-          new Notice("VaultGuard is already unlocked.");
+          new Notice("KeyMask is already unlocked.");
         } else {
           new UnlockModal(this.app, this, { mode: "unlock" }).open();
         }
@@ -137,10 +137,10 @@ export default class VaultGuardPlugin extends Plugin {
       name: "Lock Vault",
       callback: () => {
         if (!this.session.isUnlocked()) {
-          new Notice("VaultGuard is already locked.");
+          new Notice("KeyMask is already locked.");
         } else {
           this.session.lock();
-          new Notice("🔒 VaultGuard locked.");
+          new Notice("🔒 KeyMask locked.");
         }
       },
     });
@@ -177,8 +177,8 @@ export default class VaultGuardPlugin extends Plugin {
       id: "clear-ephemeral-clipboard",
       name: "Clear Ephemeral Clipboard Now",
       callback: async () => {
-        await VaultGuardClipboard.clearClipboard();
-        VaultGuardClipboard.cancelAutoWipe();
+        await KeyMaskClipboard.clearClipboard();
+        KeyMaskClipboard.cancelAutoWipe();
         new Notice("🔒 Ephemeral clipboard wiped.");
       },
     });
@@ -242,7 +242,7 @@ export default class VaultGuardPlugin extends Plugin {
         if (selection && selection.length > 0) {
           menu.addItem((item) => {
             item
-              .setTitle("VaultGuard: Encrypt Selection")
+              .setTitle("KeyMask: Encrypt Selection")
               .setIcon("lock")
               .onClick(() => {
                 new InsertSecretModal(this.app, this, {
@@ -257,7 +257,7 @@ export default class VaultGuardPlugin extends Plugin {
         if (activeFile && activeFile.extension === "md") {
           menu.addItem((item) => {
             item
-              .setTitle("VaultGuard: Encrypt Entire Note")
+              .setTitle("KeyMask: Encrypt Entire Note")
               .setIcon("lock")
               .onClick(async () => {
                 await this.encryptEntireFile(activeFile);
@@ -265,7 +265,7 @@ export default class VaultGuardPlugin extends Plugin {
           });
           menu.addItem((item) => {
             item
-              .setTitle("VaultGuard: Decrypt Note to Plaintext")
+              .setTitle("KeyMask: Decrypt Note to Plaintext")
               .setIcon("unlock")
               .onClick(async () => {
                 await this.decryptEntireFile(activeFile);
@@ -273,7 +273,7 @@ export default class VaultGuardPlugin extends Plugin {
           });
           menu.addItem((item) => {
             item
-              .setTitle("VaultGuard: Copy Note (Encrypted)")
+              .setTitle("KeyMask: Copy Note (Encrypted)")
               .setIcon("copy")
               .onClick(async () => {
                 await this.copyEncryptedFile(activeFile);
@@ -281,7 +281,7 @@ export default class VaultGuardPlugin extends Plugin {
           });
           menu.addItem((item) => {
             item
-              .setTitle("VaultGuard: Copy Note (Decrypted)")
+              .setTitle("KeyMask: Copy Note (Decrypted)")
               .setIcon("clipboard-check")
               .onClick(async () => {
                 await this.copyDecryptedFile(activeFile);
@@ -297,7 +297,7 @@ export default class VaultGuardPlugin extends Plugin {
         if (file instanceof TFile && file.extension === "md") {
           menu.addItem((item) => {
             item
-              .setTitle("VaultGuard: Encrypt Entire Note")
+              .setTitle("KeyMask: Encrypt Entire Note")
               .setIcon("lock")
               .onClick(async () => {
                 await this.encryptEntireFile(file);
@@ -305,7 +305,7 @@ export default class VaultGuardPlugin extends Plugin {
           });
           menu.addItem((item) => {
             item
-              .setTitle("VaultGuard: Decrypt Note to Plaintext")
+              .setTitle("KeyMask: Decrypt Note to Plaintext")
               .setIcon("unlock")
               .onClick(async () => {
                 await this.decryptEntireFile(file);
@@ -313,7 +313,7 @@ export default class VaultGuardPlugin extends Plugin {
           });
           menu.addItem((item) => {
             item
-              .setTitle("VaultGuard: Copy Note (Encrypted)")
+              .setTitle("KeyMask: Copy Note (Encrypted)")
               .setIcon("copy")
               .onClick(async () => {
                 await this.copyEncryptedFile(file);
@@ -321,7 +321,7 @@ export default class VaultGuardPlugin extends Plugin {
           });
           menu.addItem((item) => {
             item
-              .setTitle("VaultGuard: Copy Note (Decrypted)")
+              .setTitle("KeyMask: Copy Note (Decrypted)")
               .setIcon("clipboard-check")
               .onClick(async () => {
                 await this.copyDecryptedFile(file);
@@ -332,7 +332,7 @@ export default class VaultGuardPlugin extends Plugin {
     );
 
     // 5. CodeMirror 6 Live Preview Extension
-    this.registerEditorExtension(createVaultGuardViewPlugin(this));
+    this.registerEditorExtension(createKeyMaskViewPlugin(this));
 
     // 6. Markdown Post Processors (Reading View)
     registerPostProcessors(this);
@@ -341,7 +341,7 @@ export default class VaultGuardPlugin extends Plugin {
     registerPasteHandler(this);
 
     // 8. Settings Tab
-    this.addSettingTab(new VaultGuardSettingTab(this.app, this));
+    this.addSettingTab(new KeyMaskSettingTab(this.app, this));
 
     // 9. Whole-File Encrypted Note View Manager
     this.fileViewManager = new EncryptedFileViewManager(this);
@@ -351,10 +351,10 @@ export default class VaultGuardPlugin extends Plugin {
   updateStatusBar(): void {
     if (!this.statusBarItemEl) return;
     this.statusBarItemEl.empty();
-    this.statusBarItemEl.addClass("vaultguard-status-bar-item");
+    this.statusBarItemEl.addClass("keymask-status-bar-item");
 
     if (!this.settings.isInitialized) {
-      this.statusBarItemEl.setText("⚠️ VaultGuard: Unconfigured");
+      this.statusBarItemEl.setText("⚠️ KeyMask: Unconfigured");
       this.statusBarItemEl.setAttribute("title", "Click to initialize master passphrase");
       this.statusBarItemEl.onclick = () => {
         new UnlockModal(this.app, this, { mode: "init" }).open();
@@ -364,14 +364,14 @@ export default class VaultGuardPlugin extends Plugin {
 
     const unlocked = this.session.isUnlocked();
     if (unlocked) {
-      this.statusBarItemEl.setText("🔓 VaultGuard: Unlocked");
+      this.statusBarItemEl.setText("🔓 KeyMask: Unlocked");
       this.statusBarItemEl.setAttribute("title", "Click to lock vault");
       this.statusBarItemEl.onclick = () => {
         this.session.lock();
-        new Notice("🔒 VaultGuard locked.");
+        new Notice("🔒 KeyMask locked.");
       };
     } else {
-      this.statusBarItemEl.setText("🔒 VaultGuard: Locked");
+      this.statusBarItemEl.setText("🔒 KeyMask: Locked");
       this.statusBarItemEl.setAttribute("title", "Click to unlock vault");
       this.statusBarItemEl.onclick = () => {
         new UnlockModal(this.app, this, { mode: "unlock" }).open();
@@ -394,7 +394,7 @@ export default class VaultGuardPlugin extends Plugin {
 
     const content = await this.app.vault.read(file);
     if (isWholeFileEncrypted(content)) {
-      new Notice(`Note "${file.basename}" is already fully encrypted with VaultGuard.`);
+      new Notice(`Note "${file.basename}" is already fully encrypted with KeyMask.`);
       return;
     }
 
@@ -446,7 +446,7 @@ export default class VaultGuardPlugin extends Plugin {
   async copyEncryptedFile(file: TFile): Promise<void> {
     const content = await this.app.vault.read(file);
     if (isWholeFileEncrypted(content)) {
-      await navigator.clipboard.writeText(content);
+      await KeyMaskClipboard.writeText(content);
       new Notice(`📦 Copied encrypted note ciphertext to clipboard.`);
     } else {
       if (!this.settings.isInitialized) {
@@ -462,7 +462,7 @@ export default class VaultGuardPlugin extends Plugin {
       }
       try {
         const encrypted = await this.session.encryptSecret(content, file.basename, true, true);
-        await navigator.clipboard.writeText(encrypted);
+        await KeyMaskClipboard.writeText(encrypted);
         new Notice(`📦 Encrypted note and copied ciphertext to clipboard.`);
       } catch (err: any) {
         new Notice(`Failed to encrypt note: ${err.message}`);
@@ -474,7 +474,7 @@ export default class VaultGuardPlugin extends Plugin {
     const content = await this.app.vault.read(file);
     const payload = extractWholeFilePayload(content);
     if (!payload) {
-      await navigator.clipboard.writeText(content);
+      await KeyMaskClipboard.writeText(content);
       new Notice(`📋 Copied note content to clipboard.`);
       return;
     }
@@ -489,7 +489,7 @@ export default class VaultGuardPlugin extends Plugin {
 
     try {
       const plaintext = await this.session.decryptSecret(payload);
-      await VaultGuardClipboard.writeSecret(plaintext, {
+      await KeyMaskClipboard.writeSecret(plaintext, {
         timeoutSeconds: this.settings.clipboardWipeTimeoutSeconds,
       });
       new Notice(`📋 Decrypted note copied (auto-wipes in ${this.settings.clipboardWipeTimeoutSeconds}s).`);
@@ -505,7 +505,7 @@ export default class VaultGuardPlugin extends Plugin {
     }
     // Purge in-memory key on plugin unload
     this.session.lock();
-    VaultGuardClipboard.cancelAutoWipe();
+    KeyMaskClipboard.cancelAutoWipe();
   }
 
   async loadSettings() {
