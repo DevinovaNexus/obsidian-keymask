@@ -78,8 +78,7 @@ export class BatchDecryptModal extends Modal {
         });
       });
 
-    this.statusEl = contentEl.createDiv({ cls: "keymask-export-status" });
-    this.statusEl.style.display = "none";
+    this.statusEl = contentEl.createDiv({ cls: "keymask-export-status keymask-hidden" });
 
     const buttonContainer = contentEl.createDiv({ cls: "keymask-modal-buttons" });
 
@@ -135,7 +134,7 @@ export class BatchDecryptModal extends Modal {
 
     this.isProcessing = true;
     if (this.statusEl) {
-      this.statusEl.style.display = "block";
+      this.statusEl.removeClass("keymask-hidden");
       this.statusEl.textContent = "Decrypting all tokens in notes...";
     }
 

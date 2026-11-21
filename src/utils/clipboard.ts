@@ -163,9 +163,7 @@ export class KeyMaskClipboard {
       try {
         const textArea = document.createElement("textarea");
         textArea.value = text;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-9999px";
-        textArea.style.top = "-9999px";
+        textArea.className = "keymask-offscreen-textarea";
         textArea.setAttribute("readonly", "");
         document.body.appendChild(textArea);
         textArea.focus();

@@ -62,8 +62,7 @@ export class InterceptPasteModal extends Modal {
       text: "You are attempting to paste a confidential credential into your note. Pasting plaintext exposes it to note history, cloud sync engines, and other plugins. KeyMask can encrypt it immediately with zero plaintext exposure.",
     });
 
-    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message" });
-    this.errorEl.style.display = "none";
+    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message keymask-hidden" });
 
     // Optional Label customization
     new Setting(contentEl)
@@ -105,7 +104,7 @@ export class InterceptPasteModal extends Modal {
   private showError(msg: string): void {
     if (this.errorEl) {
       this.errorEl.textContent = msg;
-      this.errorEl.style.display = "block";
+      this.errorEl.removeClass("keymask-hidden");
     }
   }
 

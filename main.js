@@ -67,8 +67,7 @@ var UnlockModal = class extends import_obsidian.Modal {
     } else {
       descEl.textContent = "Enter your current master passphrase, followed by your new master passphrase.";
     }
-    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message" });
-    this.errorEl.style.display = "none";
+    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message keymask-hidden" });
     if (this.options.mode === "change") {
       new import_obsidian.Setting(contentEl).setName("Current Passphrase").addText((text) => {
         text.inputEl.type = "password";
@@ -128,13 +127,13 @@ var UnlockModal = class extends import_obsidian.Modal {
   showError(msg) {
     if (this.errorEl) {
       this.errorEl.textContent = msg;
-      this.errorEl.style.display = "block";
+      this.errorEl.removeClass("keymask-hidden");
     }
   }
   clearError() {
     if (this.errorEl) {
       this.errorEl.textContent = "";
-      this.errorEl.style.display = "none";
+      this.errorEl.addClass("keymask-hidden");
     }
   }
   async handleSubmit() {
@@ -576,9 +575,8 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
       this.runAuditScan();
     });
     this.progressContainer = this.containerElContent.createDiv({
-      cls: "keymask-audit-progress-container"
+      cls: "keymask-audit-progress-container keymask-hidden"
     });
-    this.progressContainer.style.display = "none";
     this.resultsContainer = this.containerElContent.createDiv({
       cls: "keymask-audit-results-container"
     });
@@ -612,7 +610,7 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
     this.selectedSecretIds.clear();
     this.remediatedSecretIds.clear();
     if (this.progressContainer) {
-      this.progressContainer.style.display = "block";
+      this.progressContainer.removeClass("keymask-hidden");
       this.progressContainer.empty();
     }
     if (this.resultsContainer) {
@@ -656,7 +654,7 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
     }
     this.isScanning = false;
     if (this.progressContainer) {
-      this.progressContainer.style.display = "none";
+      this.progressContainer.addClass("keymask-hidden");
     }
     this.renderAuditResults();
   }
@@ -726,8 +724,6 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
         card.removeClass("is-collapsed");
         const chevron = card.querySelector(".keymask-chevron-icon");
         if (chevron) chevron.textContent = "\u25BC";
-        const findings = card.querySelector(".keymask-file-findings");
-        if (findings) findings.style.display = "flex";
       });
     });
     const collapseAllBtn = actionRow.createEl("button", {
@@ -739,8 +735,6 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
         card.addClass("is-collapsed");
         const chevron = card.querySelector(".keymask-chevron-icon");
         if (chevron) chevron.textContent = "\u25B6";
-        const findings = card.querySelector(".keymask-file-findings");
-        if (findings) findings.style.display = "none";
       });
     });
     const remediateBtn = actionRow.createEl("button", {
@@ -796,11 +790,9 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
         if (isCollapsed) {
           fileCard.removeClass("is-collapsed");
           chevronIcon.textContent = "\u25BC";
-          findingsList.style.display = "flex";
         } else {
           fileCard.addClass("is-collapsed");
           chevronIcon.textContent = "\u25B6";
-          findingsList.style.display = "none";
         }
       });
       for (const secret of secrets) {
@@ -1525,8 +1517,7 @@ var ExportSecretsModal = class extends import_obsidian3.Modal {
       cls: "setting-item-description",
       text: "The generated export file will contain your credentials. Store it in a secure location or import it into MacPass/KeePass immediately, then delete the exported file."
     });
-    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message" });
-    this.errorEl.style.display = "none";
+    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message keymask-hidden" });
     new import_obsidian3.Setting(contentEl).setName("Export Format").setDesc("Choose your password manager export specification.").addDropdown((dropdown) => {
       dropdown.addOption("xml", "KeePass 2.x XML (.xml) - MacPass, KeePassXC, KeePass");
       dropdown.addOption("csv", "Universal CSV (.csv) - 1Password, Bitwarden, KeePass");
@@ -1546,8 +1537,7 @@ var ExportSecretsModal = class extends import_obsidian3.Modal {
         this.selectedFolder = val;
       });
     });
-    this.statusEl = contentEl.createDiv({ cls: "keymask-export-status" });
-    this.statusEl.style.display = "none";
+    this.statusEl = contentEl.createDiv({ cls: "keymask-export-status keymask-hidden" });
     const buttonContainer = contentEl.createDiv({ cls: "keymask-modal-buttons" });
     const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });
     cancelBtn.addEventListener("click", () => this.close());
@@ -1585,7 +1575,7 @@ var ExportSecretsModal = class extends import_obsidian3.Modal {
     }
     this.isExporting = true;
     if (this.statusEl) {
-      this.statusEl.style.display = "block";
+      this.statusEl.removeClass("keymask-hidden");
       this.statusEl.textContent = "Scanning notes and decrypting credentials in memory...";
     }
     try {
@@ -1675,7 +1665,7 @@ Storage Format: Fenced Code Block`
     } catch (err) {
       if (this.errorEl) {
         this.errorEl.textContent = `Export failed: ${err.message}`;
-        this.errorEl.style.display = "block";
+        this.errorEl.removeClass("keymask-hidden");
       }
     } finally {
       this.isExporting = false;
@@ -1691,7 +1681,7 @@ function downloadFile(content, filename, mimeType) {
   const link = document.createElement("a");
   link.setAttribute("href", url);
   link.setAttribute("download", filename);
-  link.style.display = "none";
+  link.className = "keymask-hidden";
   document.body.appendChild(link);
   link.click();
   setTimeout(() => {
@@ -1748,8 +1738,7 @@ var BatchDecryptModal = class extends import_obsidian4.Modal {
         this.confirmationInput = val.trim();
       });
     });
-    this.statusEl = contentEl.createDiv({ cls: "keymask-export-status" });
-    this.statusEl.style.display = "none";
+    this.statusEl = contentEl.createDiv({ cls: "keymask-export-status keymask-hidden" });
     const buttonContainer = contentEl.createDiv({ cls: "keymask-modal-buttons" });
     const cancelBtn = buttonContainer.createEl("button", { text: "Cancel" });
     cancelBtn.addEventListener("click", () => this.close());
@@ -1791,7 +1780,7 @@ var BatchDecryptModal = class extends import_obsidian4.Modal {
     }
     this.isProcessing = true;
     if (this.statusEl) {
-      this.statusEl.style.display = "block";
+      this.statusEl.removeClass("keymask-hidden");
       this.statusEl.textContent = "Decrypting all tokens in notes...";
     }
     try {
@@ -2410,9 +2399,7 @@ var KeyMaskClipboard = class {
       try {
         const textArea = document.createElement("textarea");
         textArea.value = text;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-9999px";
-        textArea.style.top = "-9999px";
+        textArea.className = "keymask-offscreen-textarea";
         textArea.setAttribute("readonly", "");
         document.body.appendChild(textArea);
         textArea.focus();
@@ -2497,8 +2484,7 @@ function createPillElement(options) {
   valueSpan.textContent = isCodeBlock ? "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" : "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
   valueSpan.title = "Click to reveal secret";
   const timerContainer = document.createElement("span");
-  timerContainer.className = "keymask-timer-ring-container";
-  timerContainer.style.display = "none";
+  timerContainer.className = "keymask-timer-ring-container keymask-hidden";
   const revealBtn = document.createElement("button");
   revealBtn.type = "button";
   revealBtn.className = "keymask-btn keymask-btn-reveal";
@@ -2531,7 +2517,8 @@ function createPillElement(options) {
     }
     valueSpan.textContent = isCodeBlock ? "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" : "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
     valueSpan.className = "keymask-pill-value masked";
-    timerContainer.style.display = "none";
+    timerContainer.addClass("keymask-hidden");
+    timerContainer.removeClass("keymask-visible-inline-flex");
     timerContainer.empty();
     revealBtn.innerHTML = `<span class="km-btn-icon">\u{1F441}\uFE0F</span>`;
     revealBtn.title = "Click to reveal";
@@ -2553,7 +2540,8 @@ function createPillElement(options) {
       revealBtn.innerHTML = `<span class="km-btn-icon">\u{1F648}</span>`;
       revealBtn.title = "Hide secret";
       renderCountdownRing(timerContainer, secondsRemaining, plugin.settings.revealTimeoutSeconds);
-      timerContainer.style.display = "inline-flex";
+      timerContainer.removeClass("keymask-hidden");
+      timerContainer.addClass("keymask-visible-inline-flex");
       if (countdownTimer !== null) {
         clearInterval(countdownTimer);
       }
@@ -2806,8 +2794,7 @@ function createWholeFileCardElement(options) {
     text: "\u{1F513} Decrypt to Plaintext",
     attr: { title: "Permanently decrypt note back to raw Markdown" }
   });
-  const previewContainer = card.createDiv({ cls: "keymask-file-preview-container" });
-  previewContainer.style.display = "none";
+  const previewContainer = card.createDiv({ cls: "keymask-file-preview-container keymask-hidden" });
   const previewHeader = previewContainer.createDiv({ cls: "keymask-file-preview-header" });
   const previewHeaderLeft = previewHeader.createDiv({ cls: "keymask-preview-header-left" });
   const previewIcon = previewHeaderLeft.createSpan({ cls: "keymask-preview-icon" });
@@ -2845,10 +2832,12 @@ function createWholeFileCardElement(options) {
       clearInterval(countdownTimer);
       countdownTimer = null;
     }
-    previewContainer.style.display = "none";
+    previewContainer.addClass("keymask-hidden");
+    previewContainer.removeClass("keymask-visible-block");
     previewContent.empty();
     timerRingSpan.empty();
-    timerRingSpan.style.display = "none";
+    timerRingSpan.addClass("keymask-hidden");
+    timerRingSpan.removeClass("keymask-visible-inline-flex");
     revealBtn.textContent = "\u{1F513} Decrypt & Read Note";
     revealBtn.classList.remove("mod-active");
     revealBtn.classList.add("mod-cta");
@@ -2866,12 +2855,14 @@ function createWholeFileCardElement(options) {
       isRevealed = true;
       secondsRemaining = timeoutSeconds;
       previewContent.textContent = plaintext;
-      previewContainer.style.display = "block";
+      previewContainer.removeClass("keymask-hidden");
+      previewContainer.addClass("keymask-visible-block");
       revealBtn.textContent = "\u{1F648} Hide Note";
       revealBtn.classList.remove("mod-cta");
       revealBtn.classList.add("mod-active");
       renderCountdownRing(timerRingSpan, secondsRemaining, timeoutSeconds);
-      timerRingSpan.style.display = "inline-flex";
+      timerRingSpan.removeClass("keymask-hidden");
+      timerRingSpan.addClass("keymask-visible-inline-flex");
       if (countdownTimer !== null) clearInterval(countdownTimer);
       countdownTimer = setInterval(() => {
         secondsRemaining -= 1;
@@ -3135,8 +3126,7 @@ var InterceptPasteModal = class extends import_obsidian9.Modal {
       cls: "setting-item-description",
       text: "You are attempting to paste a confidential credential into your note. Pasting plaintext exposes it to note history, cloud sync engines, and other plugins. KeyMask can encrypt it immediately with zero plaintext exposure."
     });
-    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message" });
-    this.errorEl.style.display = "none";
+    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message keymask-hidden" });
     new import_obsidian9.Setting(contentEl).setName("Label for Encrypted Token").setDesc("The display name shown on the masked UI pill.").addText((text) => {
       text.setValue(this.customLabel);
       text.onChange((val) => {
@@ -3164,7 +3154,7 @@ var InterceptPasteModal = class extends import_obsidian9.Modal {
   showError(msg) {
     if (this.errorEl) {
       this.errorEl.textContent = msg;
-      this.errorEl.style.display = "block";
+      this.errorEl.removeClass("keymask-hidden");
     }
   }
   async handleEncrypt() {
@@ -3305,8 +3295,7 @@ var InsertSecretModal = class extends import_obsidian11.Modal {
       cls: "setting-item-description",
       text: "The secret is encrypted with AES-256-GCM in memory and inserted as ciphertext. Plaintext never enters your editor buffer, undo history, or disk autosave."
     });
-    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message" });
-    this.errorEl.style.display = "none";
+    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message keymask-hidden" });
     new import_obsidian11.Setting(contentEl).setName("Secret Label (Optional)").setDesc("A non-sensitive descriptor shown on the UI pill (e.g. 'Stripe Live Key', 'Production DB').").addText((text) => {
       text.setPlaceholder("e.g. OpenAI Production Key");
       text.setValue(this.label);
@@ -3369,13 +3358,13 @@ var InsertSecretModal = class extends import_obsidian11.Modal {
   showError(msg) {
     if (this.errorEl) {
       this.errorEl.textContent = msg;
-      this.errorEl.style.display = "block";
+      this.errorEl.removeClass("keymask-hidden");
     }
   }
   clearError() {
     if (this.errorEl) {
       this.errorEl.textContent = "";
-      this.errorEl.style.display = "none";
+      this.errorEl.addClass("keymask-hidden");
     }
   }
   async handleEncryptAndInsert() {

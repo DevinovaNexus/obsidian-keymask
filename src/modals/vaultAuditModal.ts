@@ -106,9 +106,8 @@ export class VaultAuditModal extends Modal {
 
     // Placeholder for Progress and Results
     this.progressContainer = this.containerElContent.createDiv({
-      cls: "keymask-audit-progress-container",
+      cls: "keymask-audit-progress-container keymask-hidden",
     });
-    this.progressContainer.style.display = "none";
 
     this.resultsContainer = this.containerElContent.createDiv({
       cls: "keymask-audit-results-container",
@@ -156,7 +155,7 @@ export class VaultAuditModal extends Modal {
     this.remediatedSecretIds.clear();
 
     if (this.progressContainer) {
-      this.progressContainer.style.display = "block";
+      this.progressContainer.removeClass("keymask-hidden");
       this.progressContainer.empty();
     }
     if (this.resultsContainer) {
@@ -210,7 +209,7 @@ export class VaultAuditModal extends Modal {
 
     this.isScanning = false;
     if (this.progressContainer) {
-      this.progressContainer.style.display = "none";
+      this.progressContainer.addClass("keymask-hidden");
     }
 
     this.renderAuditResults();
@@ -294,8 +293,6 @@ export class VaultAuditModal extends Modal {
         card.removeClass("is-collapsed");
         const chevron = card.querySelector<HTMLElement>(".keymask-chevron-icon");
         if (chevron) chevron.textContent = "▼";
-        const findings = card.querySelector<HTMLElement>(".keymask-file-findings");
-        if (findings) findings.style.display = "flex";
       });
     });
 
@@ -308,8 +305,6 @@ export class VaultAuditModal extends Modal {
         card.addClass("is-collapsed");
         const chevron = card.querySelector<HTMLElement>(".keymask-chevron-icon");
         if (chevron) chevron.textContent = "▶";
-        const findings = card.querySelector<HTMLElement>(".keymask-file-findings");
-        if (findings) findings.style.display = "none";
       });
     });
 
@@ -381,11 +376,9 @@ export class VaultAuditModal extends Modal {
         if (isCollapsed) {
           fileCard.removeClass("is-collapsed");
           chevronIcon.textContent = "▼";
-          findingsList.style.display = "flex";
         } else {
           fileCard.addClass("is-collapsed");
           chevronIcon.textContent = "▶";
-          findingsList.style.display = "none";
         }
       });
 

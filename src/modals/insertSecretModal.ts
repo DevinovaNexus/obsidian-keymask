@@ -49,8 +49,7 @@ export class InsertSecretModal extends Modal {
       text: "The secret is encrypted with AES-256-GCM in memory and inserted as ciphertext. Plaintext never enters your editor buffer, undo history, or disk autosave.",
     });
 
-    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message" });
-    this.errorEl.style.display = "none";
+    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message keymask-hidden" });
 
     // 1. Label Input
     new Setting(contentEl)
@@ -139,14 +138,14 @@ export class InsertSecretModal extends Modal {
   private showError(msg: string): void {
     if (this.errorEl) {
       this.errorEl.textContent = msg;
-      this.errorEl.style.display = "block";
+      this.errorEl.removeClass("keymask-hidden");
     }
   }
 
   private clearError(): void {
     if (this.errorEl) {
       this.errorEl.textContent = "";
-      this.errorEl.style.display = "none";
+      this.errorEl.addClass("keymask-hidden");
     }
   }
 

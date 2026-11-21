@@ -120,8 +120,7 @@ export function createPillElement(options: PillOptions): HTMLElement {
 
   // 4. Countdown Progress Ring Container (hidden while masked)
   const timerContainer = document.createElement("span");
-  timerContainer.className = "keymask-timer-ring-container";
-  timerContainer.style.display = "none";
+  timerContainer.className = "keymask-timer-ring-container keymask-hidden";
 
   // 5. Reveal / Toggle Action Button
   const revealBtn = document.createElement("button");
@@ -166,7 +165,8 @@ export function createPillElement(options: PillOptions): HTMLElement {
       ? "••••••••••••••••••••••••••••••••"
       : "••••••••••••";
     valueSpan.className = "keymask-pill-value masked";
-    timerContainer.style.display = "none";
+    timerContainer.addClass("keymask-hidden");
+    timerContainer.removeClass("keymask-visible-inline-flex");
     timerContainer.empty();
     revealBtn.innerHTML = `<span class="km-btn-icon">👁️</span>`;
     revealBtn.title = "Click to reveal";
@@ -195,7 +195,8 @@ export function createPillElement(options: PillOptions): HTMLElement {
 
       // Render SVG Countdown Ring
       renderCountdownRing(timerContainer, secondsRemaining, plugin.settings.revealTimeoutSeconds);
-      timerContainer.style.display = "inline-flex";
+      timerContainer.removeClass("keymask-hidden");
+      timerContainer.addClass("keymask-visible-inline-flex");
 
       if (countdownTimer !== null) {
         clearInterval(countdownTimer);
@@ -542,8 +543,7 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
   });
 
   // 4. In-Memory Decrypted Note Preview Container
-  const previewContainer = card.createDiv({ cls: "keymask-file-preview-container" });
-  previewContainer.style.display = "none";
+  const previewContainer = card.createDiv({ cls: "keymask-file-preview-container keymask-hidden" });
 
   const previewHeader = previewContainer.createDiv({ cls: "keymask-file-preview-header" });
   const previewHeaderLeft = previewHeader.createDiv({ cls: "keymask-preview-header-left" });
@@ -589,10 +589,12 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
       clearInterval(countdownTimer);
       countdownTimer = null;
     }
-    previewContainer.style.display = "none";
+    previewContainer.addClass("keymask-hidden");
+    previewContainer.removeClass("keymask-visible-block");
     previewContent.empty();
     timerRingSpan.empty();
-    timerRingSpan.style.display = "none";
+    timerRingSpan.addClass("keymask-hidden");
+    timerRingSpan.removeClass("keymask-visible-inline-flex");
     revealBtn.textContent = "🔓 Decrypt & Read Note";
     revealBtn.classList.remove("mod-active");
     revealBtn.classList.add("mod-cta");
@@ -613,13 +615,15 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
       secondsRemaining = timeoutSeconds;
 
       previewContent.textContent = plaintext;
-      previewContainer.style.display = "block";
+      previewContainer.removeClass("keymask-hidden");
+      previewContainer.addClass("keymask-visible-block");
       revealBtn.textContent = "🙈 Hide Note";
       revealBtn.classList.remove("mod-cta");
       revealBtn.classList.add("mod-active");
 
       renderCountdownRing(timerRingSpan, secondsRemaining, timeoutSeconds);
-      timerRingSpan.style.display = "inline-flex";
+      timerRingSpan.removeClass("keymask-hidden");
+      timerRingSpan.addClass("keymask-visible-inline-flex");
 
       if (countdownTimer !== null) clearInterval(countdownTimer);
       countdownTimer = setInterval(() => {

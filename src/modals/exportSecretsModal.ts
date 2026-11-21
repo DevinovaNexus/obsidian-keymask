@@ -58,8 +58,7 @@ export class ExportSecretsModal extends Modal {
       text: "The generated export file will contain your credentials. Store it in a secure location or import it into MacPass/KeePass immediately, then delete the exported file.",
     });
 
-    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message" });
-    this.errorEl.style.display = "none";
+    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message keymask-hidden" });
 
     // 1. Export Format Selection
     new Setting(contentEl)
@@ -90,8 +89,7 @@ export class ExportSecretsModal extends Modal {
         });
       });
 
-    this.statusEl = contentEl.createDiv({ cls: "keymask-export-status" });
-    this.statusEl.style.display = "none";
+    this.statusEl = contentEl.createDiv({ cls: "keymask-export-status keymask-hidden" });
 
     // Action Buttons
     const buttonContainer = contentEl.createDiv({ cls: "keymask-modal-buttons" });
@@ -143,7 +141,7 @@ export class ExportSecretsModal extends Modal {
 
     this.isExporting = true;
     if (this.statusEl) {
-      this.statusEl.style.display = "block";
+      this.statusEl.removeClass("keymask-hidden");
       this.statusEl.textContent = "Scanning notes and decrypting credentials in memory...";
     }
 
@@ -248,7 +246,7 @@ export class ExportSecretsModal extends Modal {
     } catch (err: any) {
       if (this.errorEl) {
         this.errorEl.textContent = `Export failed: ${err.message}`;
-        this.errorEl.style.display = "block";
+        this.errorEl.removeClass("keymask-hidden");
       }
     } finally {
       this.isExporting = false;
@@ -269,7 +267,7 @@ function downloadFile(content: string, filename: string, mimeType: string): void
   const link = document.createElement("a");
   link.setAttribute("href", url);
   link.setAttribute("download", filename);
-  link.style.display = "none";
+  link.className = "keymask-hidden";
   document.body.appendChild(link);
   link.click();
   setTimeout(() => {

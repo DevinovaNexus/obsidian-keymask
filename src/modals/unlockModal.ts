@@ -52,8 +52,7 @@ export class UnlockModal extends Modal {
         "Enter your current master passphrase, followed by your new master passphrase.";
     }
 
-    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message" });
-    this.errorEl.style.display = "none";
+    this.errorEl = contentEl.createDiv({ cls: "keymask-error-message keymask-hidden" });
 
     if (this.options.mode === "change") {
       new Setting(contentEl)
@@ -132,14 +131,14 @@ export class UnlockModal extends Modal {
   private showError(msg: string): void {
     if (this.errorEl) {
       this.errorEl.textContent = msg;
-      this.errorEl.style.display = "block";
+      this.errorEl.removeClass("keymask-hidden");
     }
   }
 
   private clearError(): void {
     if (this.errorEl) {
       this.errorEl.textContent = "";
-      this.errorEl.style.display = "none";
+      this.errorEl.addClass("keymask-hidden");
     }
   }
 

@@ -1398,3 +1398,32 @@
     gap: 6px !important;
   }
 }
+
+/* Utility display classes for linter & theme compliance */
+.keymask-hidden {
+  display: none !important;
+}
+
+.keymask-visible-block {
+  display: block !important;
+}
+
+.keymask-visible-flex {
+  display: flex !important;
+}
+
+.keymask-visible-inline-flex {
+  display: inline-flex !important;
+}
+
+.keymask-offscreen-textarea {
+  position: fixed !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.keymask-file-card.is-collapsed .keymask-file-findings {
+  display: none !important;
+}
