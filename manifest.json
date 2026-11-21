@@ -1,7 +1,7 @@
 {
   "id": "keymask",
   "name": "KeyMask",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "minAppVersion": "1.5.0",
   "description": "Zero-plaintext credential protection & interactive UI masking for sensitive secrets.",
   "author": "DevinovaNexus",

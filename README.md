@@ -132,3 +132,14 @@ Generated bundle files:
 - `manifest.json`: Obsidian community plugin manifest
 - `styles.css`: Visual styling for masked pills, progress rings, and modals
 - `keymask-standalone-decryptor.html`: Offline HTML recovery tool
+
+---
+
+## 🏢 About Devinova Nexus
+
+**Nexus** is where Devinova developers build focused software, developer tools, and productivity plugins. We specialize in local-first tooling, zero-knowledge privacy systems, and extensions for platforms like Obsidian, VS Code, and IDEs.
+
+- 🌐 **Nexus Portal:** [nexus.devinova.in](https://nexus.devinova.in/)
+- 🏢 **Parent Company:** [devinova.in](https://devinova.in/)
+- 🐙 **GitHub:** [github.com/DevinovaNexus](https://github.com/DevinovaNexus)
+- ✉️ **Contact:** contact@devinova.in

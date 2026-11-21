@@ -1947,6 +1947,12 @@ var KeyMaskSettingTab = class extends import_obsidian6.PluginSettingTab {
     super(app, plugin);
     this.plugin = plugin;
   }
+  getSettingDefinitions() {
+    return [];
+  }
+  refresh() {
+    this.display();
+  }
   display() {
     const { containerEl } = this;
     containerEl.empty();
@@ -1967,7 +1973,7 @@ var KeyMaskSettingTab = class extends import_obsidian6.PluginSettingTab {
         (button) => button.setButtonText("Set Master Passphrase").setCta().onClick(() => {
           new UnlockModal(this.app, this.plugin, {
             mode: "init",
-            onSuccess: () => this.display()
+            onSuccess: () => this.refresh()
           }).open();
         })
       );
@@ -1985,13 +1991,13 @@ var KeyMaskSettingTab = class extends import_obsidian6.PluginSettingTab {
           button.setButtonText("Lock Vault Now").setClass("mod-warning").onClick(() => {
             this.plugin.session.lock();
             new import_obsidian6.Notice("KeyMask locked.");
-            this.display();
+            this.refresh();
           });
         } else {
           button.setButtonText("Unlock Vault").setCta().onClick(() => {
             new UnlockModal(this.app, this.plugin, {
               mode: "unlock",
-              onSuccess: () => this.display()
+              onSuccess: () => this.refresh()
             }).open();
           });
         }
@@ -2002,7 +2008,7 @@ var KeyMaskSettingTab = class extends import_obsidian6.PluginSettingTab {
             mode: "change",
             onSuccess: () => {
               new import_obsidian6.Notice("Master passphrase changed successfully.");
-              this.display();
+              this.refresh();
             }
           }).open();
         })
@@ -2088,7 +2094,7 @@ var KeyMaskSettingTab = class extends import_obsidian6.PluginSettingTab {
             await this.plugin.saveSettings();
             this.plugin.session.lock();
             new import_obsidian6.Notice("KeyMask configuration has been reset.");
-            this.display();
+            this.refresh();
           }
         })
       );

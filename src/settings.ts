@@ -2,7 +2,7 @@
  * KeyMask Configuration & Settings Tab
  */
 
-import { App, PluginSettingTab, Setting, Notice } from "obsidian";
+import { App, PluginSettingTab, Setting, Notice, SettingDefinitionItem } from "obsidian";
 import type KeyMaskPlugin from "./main";
 import { UnlockModal } from "./modals/unlockModal";
 import { VaultAuditModal } from "./modals/vaultAuditModal";
@@ -42,6 +42,14 @@ export class KeyMaskSettingTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [];
+  }
+
+  private refresh(): void {
+    this.display();
+  }
+
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
@@ -73,7 +81,7 @@ export class KeyMaskSettingTab extends PluginSettingTab {
             .onClick(() => {
               new UnlockModal(this.app, this.plugin, {
                 mode: "init",
-                onSuccess: () => this.display(),
+                onSuccess: () => this.refresh(),
               }).open();
             })
         );
@@ -101,7 +109,7 @@ export class KeyMaskSettingTab extends PluginSettingTab {
               .onClick(() => {
                 this.plugin.session.lock();
                 new Notice("KeyMask locked.");
-                this.display();
+                this.refresh();
               });
           } else {
             button
@@ -110,7 +118,7 @@ export class KeyMaskSettingTab extends PluginSettingTab {
               .onClick(() => {
                 new UnlockModal(this.app, this.plugin, {
                   mode: "unlock",
-                  onSuccess: () => this.display(),
+                  onSuccess: () => this.refresh(),
                 }).open();
               });
           }
@@ -125,7 +133,7 @@ export class KeyMaskSettingTab extends PluginSettingTab {
               mode: "change",
               onSuccess: () => {
                 new Notice("Master passphrase changed successfully.");
-                this.display();
+                this.refresh();
               },
             }).open();
           })
@@ -284,7 +292,7 @@ export class KeyMaskSettingTab extends PluginSettingTab {
                 await this.plugin.saveSettings();
                 this.plugin.session.lock();
                 new Notice("KeyMask configuration has been reset.");
-                this.display();
+                this.refresh();
               }
             })
         );
