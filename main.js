@@ -970,7 +970,9 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
    * Encrypt a single secret in a note
    */
   async remediateSingleSecret(file, secret) {
-    if (!this.checkVaultUnlocked(() => this.remediateSingleSecret(file, secret))) {
+    if (!this.checkVaultUnlocked(() => {
+      void this.remediateSingleSecret(file, secret);
+    })) {
       return;
     }
     try {
@@ -1008,7 +1010,9 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
       new import_obsidian2.Notice("No secrets selected for encryption.");
       return;
     }
-    if (!this.checkVaultUnlocked(() => this.executeBatchRemediation())) {
+    if (!this.checkVaultUnlocked(() => {
+      void this.executeBatchRemediation();
+    })) {
       return;
     }
     this.isRemediating = true;
@@ -1554,7 +1558,9 @@ var ExportSecretsModal = class extends import_obsidian3.Modal {
       cls: "mod-cta",
       text: "\u{1F4E4} Decrypt & Export File"
     });
-    exportBtn.addEventListener("click", () => this.handleExport());
+    exportBtn.addEventListener("click", () => {
+      void this.handleExport();
+    });
   }
   getVaultFolders() {
     const allFiles = this.app.vault.getAllLoadedFiles();
@@ -1578,7 +1584,9 @@ var ExportSecretsModal = class extends import_obsidian3.Modal {
     if (!this.plugin.session.isUnlocked()) {
       new UnlockModal(this.app, this.plugin, {
         mode: "unlock",
-        onSuccess: () => this.handleExport()
+        onSuccess: () => {
+          void this.handleExport();
+        }
       }).open();
       return;
     }
@@ -1757,7 +1765,9 @@ var BatchDecryptModal = class extends import_obsidian4.Modal {
       cls: "mod-warning",
       text: "\u{1F513} Decrypt All Notes to Plaintext"
     });
-    decryptBtn.addEventListener("click", () => this.executeBatchDecryption());
+    decryptBtn.addEventListener("click", () => {
+      void this.executeBatchDecryption();
+    });
   }
   getVaultFolders() {
     const allFiles = this.app.vault.getAllLoadedFiles();
@@ -1785,7 +1795,9 @@ var BatchDecryptModal = class extends import_obsidian4.Modal {
     if (!this.plugin.session.isUnlocked()) {
       new UnlockModal(this.app, this.plugin, {
         mode: "unlock",
-        onSuccess: () => this.executeBatchDecryption()
+        onSuccess: () => {
+          void this.executeBatchDecryption();
+        }
       }).open();
       return;
     }
@@ -2372,21 +2384,23 @@ var KeyMaskClipboard = class {
     this.lastSecretCopied = secret;
     await this.writeText(secret);
     if (timeoutSeconds > 0) {
-      this.activeWipeTimer = window.setTimeout(async () => {
-        try {
-          const currentText = await this.readText();
-          if (currentText === this.lastSecretCopied) {
-            await this.clearClipboard();
-            this.lastSecretCopied = null;
-            if (notifyOnWipe) {
-              new import_obsidian7.Notice("\u{1F512} KeyMask: Ephemeral clipboard cleared for security.");
+      this.activeWipeTimer = window.setTimeout(() => {
+        void (async () => {
+          try {
+            const currentText = await this.readText();
+            if (currentText === this.lastSecretCopied) {
+              await this.clearClipboard();
+              this.lastSecretCopied = null;
+              if (notifyOnWipe) {
+                new import_obsidian7.Notice("\u{1F512} KeyMask: Ephemeral clipboard cleared for security.");
+              }
             }
+          } catch (e) {
+            console.warn("KeyMask: Ephemeral clipboard wipe encountered error:", e);
+          } finally {
+            this.activeWipeTimer = null;
           }
-        } catch (e) {
-          console.warn("KeyMask: Ephemeral clipboard wipe encountered error:", e);
-        } finally {
-          this.activeWipeTimer = null;
-        }
+        })();
       }, timeoutSeconds * 1e3);
     }
   }
@@ -2549,7 +2563,9 @@ function createPillElement(options) {
     if (!plugin.session.isUnlocked()) {
       new UnlockModal(plugin.app, plugin, {
         mode: "unlock",
-        onSuccess: () => revealSecret()
+        onSuccess: () => {
+          void revealSecret();
+        }
       }).open();
       return;
     }
@@ -2597,16 +2613,18 @@ function createPillElement(options) {
       void revealSecret();
     }
   });
-  copyBtn.addEventListener("click", async (e) => {
+  copyBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     if (!plugin.session.isUnlocked()) {
       new UnlockModal(plugin.app, plugin, {
         mode: "unlock",
-        onSuccess: () => copySecret()
+        onSuccess: () => {
+          void copySecret();
+        }
       }).open();
       return;
     }
-    await copySecret();
+    void copySecret();
   });
   async function copySecret() {
     try {
@@ -2635,20 +2653,22 @@ function createPillElement(options) {
     e.stopPropagation();
     const menu = new import_obsidian8.Menu();
     menu.addItem((item) => {
-      item.setTitle("Copy Decrypted Password").setIcon("clipboard-check").onClick(async () => {
+      item.setTitle("Copy Decrypted Password").setIcon("clipboard-check").onClick(() => {
         if (!plugin.session.isUnlocked()) {
           new UnlockModal(plugin.app, plugin, {
             mode: "unlock",
-            onSuccess: () => copySecret()
+            onSuccess: () => {
+              void copySecret();
+            }
           }).open();
           return;
         }
-        await copySecret();
+        void copySecret();
       });
     });
     menu.addItem((item) => {
-      item.setTitle("Copy Encrypted Token (Ciphertext)").setIcon("copy").onClick(async () => {
-        await KeyMaskClipboard.writeText(rawText);
+      item.setTitle("Copy Encrypted Token (Ciphertext)").setIcon("copy").onClick(() => {
+        void KeyMaskClipboard.writeText(rawText);
         new import_obsidian8.Notice("\u{1F4E6} Encrypted secret token copied to clipboard.");
       });
     });
@@ -2875,7 +2895,9 @@ function createWholeFileCardElement(options) {
     if (!plugin.session.isUnlocked()) {
       new UnlockModal(plugin.app, plugin, {
         mode: "unlock",
-        onSuccess: () => revealNote()
+        onSuccess: () => {
+          void revealNote();
+        }
       }).open();
       return;
     }
@@ -2918,45 +2940,51 @@ function createWholeFileCardElement(options) {
     e.stopPropagation();
     maskPreview();
   });
-  copyDecryptedBtn.addEventListener("click", async (e) => {
+  copyDecryptedBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     if (!plugin.session.isUnlocked()) {
       new UnlockModal(plugin.app, plugin, {
         mode: "unlock",
-        onSuccess: () => copyDecryptedBtn.click()
+        onSuccess: () => {
+          copyDecryptedBtn.click();
+        }
       }).open();
       return;
     }
-    try {
-      const plaintext = await plugin.session.decryptSecret(payload);
-      await KeyMaskClipboard.writeSecret(plaintext, {
-        timeoutSeconds: plugin.settings.clipboardWipeTimeoutSeconds
-      });
-      copyDecryptedBtn.textContent = "\u2713 Copied Plaintext!";
-      window.setTimeout(() => {
-        copyDecryptedBtn.textContent = "\u{1F4CB} Copy Decrypted Note";
-      }, 2e3);
-      new import_obsidian8.Notice(`\u{1F4CB} Decrypted note copied (auto-wipes in ${plugin.settings.clipboardWipeTimeoutSeconds}s).`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      new import_obsidian8.Notice(`Failed to copy decrypted note: ${msg}`);
-    }
+    void (async () => {
+      try {
+        const plaintext = await plugin.session.decryptSecret(payload);
+        await KeyMaskClipboard.writeSecret(plaintext, {
+          timeoutSeconds: plugin.settings.clipboardWipeTimeoutSeconds
+        });
+        copyDecryptedBtn.textContent = "\u2713 Copied Plaintext!";
+        window.setTimeout(() => {
+          copyDecryptedBtn.textContent = "\u{1F4CB} Copy Decrypted Note";
+        }, 2e3);
+        new import_obsidian8.Notice(`\u{1F4CB} Decrypted note copied (auto-wipes in ${plugin.settings.clipboardWipeTimeoutSeconds}s).`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        new import_obsidian8.Notice(`Failed to copy decrypted note: ${msg}`);
+      }
+    })();
   });
-  copyEncryptedBtn.addEventListener("click", async (e) => {
+  copyEncryptedBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-    try {
-      await KeyMaskClipboard.writeText(rawText);
-      copyEncryptedBtn.textContent = "\u2713 Copied Ciphertext!";
-      window.setTimeout(() => {
-        copyEncryptedBtn.textContent = "\u{1F4E6} Copy Encrypted";
-      }, 2e3);
-      new import_obsidian8.Notice("\u{1F4E6} Encrypted note ciphertext copied to clipboard.");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      new import_obsidian8.Notice(`Failed to copy ciphertext: ${msg}`);
-    }
+    void (async () => {
+      try {
+        await KeyMaskClipboard.writeText(rawText);
+        copyEncryptedBtn.textContent = "\u2713 Copied Ciphertext!";
+        window.setTimeout(() => {
+          copyEncryptedBtn.textContent = "\u{1F4E6} Copy Encrypted";
+        }, 2e3);
+        new import_obsidian8.Notice("\u{1F4E6} Encrypted note ciphertext copied to clipboard.");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        new import_obsidian8.Notice(`Failed to copy ciphertext: ${msg}`);
+      }
+    })();
   });
-  revertBtn.addEventListener("click", async (e) => {
+  revertBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     const targetFile = currentFile || plugin.app.workspace.getActiveFile();
     if (!targetFile) {
@@ -2966,27 +2994,31 @@ function createWholeFileCardElement(options) {
     if (!plugin.session.isUnlocked()) {
       new UnlockModal(plugin.app, plugin, {
         mode: "unlock",
-        onSuccess: () => revertBtn.click()
+        onSuccess: () => {
+          revertBtn.click();
+        }
       }).open();
       return;
     }
-    const confirmed = await confirmAction(plugin.app, {
-      title: "Decrypt Note to Plaintext",
-      message: `Permanently decrypt "${noteTitle}" and restore unencrypted plaintext Markdown?`,
-      confirmText: "Decrypt Note",
-      danger: true
-    });
-    if (!confirmed) {
-      return;
-    }
-    try {
-      const plaintext = await plugin.session.decryptSecret(payload);
-      await plugin.app.vault.modify(targetFile, plaintext);
-      new import_obsidian8.Notice(`\u{1F513} Note "${targetFile.basename}" decrypted and restored to plaintext.`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      new import_obsidian8.Notice(`Failed to decrypt note: ${msg}`);
-    }
+    void (async () => {
+      const confirmed = await confirmAction(plugin.app, {
+        title: "Decrypt Note to Plaintext",
+        message: `Permanently decrypt "${noteTitle}" and restore unencrypted plaintext Markdown?`,
+        confirmText: "Decrypt Note",
+        danger: true
+      });
+      if (!confirmed) {
+        return;
+      }
+      try {
+        const plaintext = await plugin.session.decryptSecret(payload);
+        await plugin.app.vault.modify(targetFile, plaintext);
+        new import_obsidian8.Notice(`\u{1F513} Note "${targetFile.basename}" decrypted and restored to plaintext.`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        new import_obsidian8.Notice(`Failed to decrypt note: ${msg}`);
+      }
+    })();
   });
   plugin.session.onStateChange((unlocked) => {
     statusBadge.textContent = unlocked ? "\u{1F513} Unlocked" : "\u{1F512} Locked";
@@ -3183,7 +3215,9 @@ var InterceptPasteModal = class extends import_obsidian9.Modal {
       cls: "mod-cta",
       text: "\u{1F512} Encrypt & Mask to Note"
     });
-    encryptBtn.addEventListener("click", () => this.handleEncrypt());
+    encryptBtn.addEventListener("click", () => {
+      void this.handleEncrypt();
+    });
   }
   showError(msg) {
     if (this.errorEl) {
@@ -3195,14 +3229,18 @@ var InterceptPasteModal = class extends import_obsidian9.Modal {
     if (!this.plugin.settings.isInitialized) {
       new UnlockModal(this.app, this.plugin, {
         mode: "init",
-        onSuccess: () => this.handleEncrypt()
+        onSuccess: () => {
+          void this.handleEncrypt();
+        }
       }).open();
       return;
     }
     if (!this.plugin.session.isUnlocked()) {
       new UnlockModal(this.app, this.plugin, {
         mode: "unlock",
-        onSuccess: () => this.handleEncrypt()
+        onSuccess: () => {
+          void this.handleEncrypt();
+        }
       }).open();
       return;
     }
@@ -3392,7 +3430,9 @@ var InsertSecretModal = class extends import_obsidian11.Modal {
       cls: "mod-cta",
       text: "\u{1F512} Encrypt & Insert"
     });
-    insertBtn.addEventListener("click", () => this.handleEncryptAndInsert());
+    insertBtn.addEventListener("click", () => {
+      void this.handleEncryptAndInsert();
+    });
     window.setTimeout(() => {
       this.secretInputEl?.focus();
     }, 50);
@@ -3418,14 +3458,18 @@ var InsertSecretModal = class extends import_obsidian11.Modal {
     if (!this.plugin.settings.isInitialized) {
       new UnlockModal(this.app, this.plugin, {
         mode: "init",
-        onSuccess: () => this.handleEncryptAndInsert()
+        onSuccess: () => {
+          void this.handleEncryptAndInsert();
+        }
       }).open();
       return;
     }
     if (!this.plugin.session.isUnlocked()) {
       new UnlockModal(this.app, this.plugin, {
         mode: "unlock",
-        onSuccess: () => this.handleEncryptAndInsert()
+        onSuccess: () => {
+          void this.handleEncryptAndInsert();
+        }
       }).open();
       return;
     }
@@ -3545,8 +3589,8 @@ var EncryptFileModal = class extends import_obsidian12.Modal {
       text: "\u{1F512} Encrypt Entire Note",
       cls: "mod-cta keymask-btn-primary-action"
     });
-    encryptBtn.addEventListener("click", async () => {
-      await this.executeEncryption();
+    encryptBtn.addEventListener("click", () => {
+      void this.executeEncryption();
     });
   }
   async executeEncryption() {
@@ -3991,7 +4035,9 @@ var KeyMaskPlugin = class extends import_obsidian14.Plugin {
     if (!this.session.isUnlocked()) {
       new UnlockModal(this.app, this, {
         mode: "unlock",
-        onSuccess: () => this.encryptEntireFile(file)
+        onSuccess: () => {
+          void this.encryptEntireFile(file);
+        }
       }).open();
       return;
     }
@@ -4013,7 +4059,9 @@ var KeyMaskPlugin = class extends import_obsidian14.Plugin {
     if (!this.session.isUnlocked()) {
       new UnlockModal(this.app, this, {
         mode: "unlock",
-        onSuccess: () => this.decryptEntireFile(file)
+        onSuccess: () => {
+          void this.decryptEntireFile(file);
+        }
       }).open();
       return;
     }

@@ -180,7 +180,9 @@ export function createPillElement(options: PillOptions): HTMLElement {
     if (!plugin.session.isUnlocked()) {
       new UnlockModal(plugin.app, plugin, {
         mode: "unlock",
-        onSuccess: () => revealSecret(),
+        onSuccess: () => {
+          void revealSecret();
+        },
       }).open();
       return;
     }
@@ -239,19 +241,21 @@ export function createPillElement(options: PillOptions): HTMLElement {
   });
 
   // Handle Copy Button Click
-  copyBtn.addEventListener("click", async (e) => {
+  copyBtn.addEventListener("click", (e) => {
     e.stopPropagation();
 
     // If vault is locked, unlock first
     if (!plugin.session.isUnlocked()) {
       new UnlockModal(plugin.app, plugin, {
         mode: "unlock",
-        onSuccess: () => copySecret(),
+        onSuccess: () => {
+          void copySecret();
+        },
       }).open();
       return;
     }
 
-    await copySecret();
+    void copySecret();
   });
 
   async function copySecret() {
@@ -290,15 +294,17 @@ export function createPillElement(options: PillOptions): HTMLElement {
       item
         .setTitle("Copy Decrypted Password")
         .setIcon("clipboard-check")
-        .onClick(async () => {
+        .onClick(() => {
           if (!plugin.session.isUnlocked()) {
             new UnlockModal(plugin.app, plugin, {
               mode: "unlock",
-              onSuccess: () => copySecret(),
+              onSuccess: () => {
+                void copySecret();
+              },
             }).open();
             return;
           }
-          await copySecret();
+          void copySecret();
         });
     });
 
@@ -306,8 +312,8 @@ export function createPillElement(options: PillOptions): HTMLElement {
       item
         .setTitle("Copy Encrypted Token (Ciphertext)")
         .setIcon("copy")
-        .onClick(async () => {
-          await KeyMaskClipboard.writeText(rawText);
+        .onClick(() => {
+          void KeyMaskClipboard.writeText(rawText);
           new Notice("📦 Encrypted secret token copied to clipboard.");
         });
     });
@@ -613,7 +619,9 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
     if (!plugin.session.isUnlocked()) {
       new UnlockModal(plugin.app, plugin, {
         mode: "unlock",
-        onSuccess: () => revealNote(),
+        onSuccess: () => {
+          void revealNote();
+        },
       }).open();
       return;
     }
@@ -663,49 +671,55 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
     maskPreview();
   });
 
-  copyDecryptedBtn.addEventListener("click", async (e) => {
+  copyDecryptedBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     if (!plugin.session.isUnlocked()) {
       new UnlockModal(plugin.app, plugin, {
         mode: "unlock",
-        onSuccess: () => copyDecryptedBtn.click(),
+        onSuccess: () => {
+          copyDecryptedBtn.click();
+        },
       }).open();
       return;
     }
 
-    try {
-      const plaintext = await plugin.session.decryptSecret(payload);
-      await KeyMaskClipboard.writeSecret(plaintext, {
-        timeoutSeconds: plugin.settings.clipboardWipeTimeoutSeconds,
-      });
+    void (async () => {
+      try {
+        const plaintext = await plugin.session.decryptSecret(payload);
+        await KeyMaskClipboard.writeSecret(plaintext, {
+          timeoutSeconds: plugin.settings.clipboardWipeTimeoutSeconds,
+        });
 
-      copyDecryptedBtn.textContent = "✓ Copied Plaintext!";
-      window.setTimeout(() => {
-        copyDecryptedBtn.textContent = "📋 Copy Decrypted Note";
-      }, 2000);
-      new Notice(`📋 Decrypted note copied (auto-wipes in ${plugin.settings.clipboardWipeTimeoutSeconds}s).`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      new Notice(`Failed to copy decrypted note: ${msg}`);
-    }
+        copyDecryptedBtn.textContent = "✓ Copied Plaintext!";
+        window.setTimeout(() => {
+          copyDecryptedBtn.textContent = "📋 Copy Decrypted Note";
+        }, 2000);
+        new Notice(`📋 Decrypted note copied (auto-wipes in ${plugin.settings.clipboardWipeTimeoutSeconds}s).`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        new Notice(`Failed to copy decrypted note: ${msg}`);
+      }
+    })();
   });
 
-  copyEncryptedBtn.addEventListener("click", async (e) => {
+  copyEncryptedBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-    try {
-      await KeyMaskClipboard.writeText(rawText);
-      copyEncryptedBtn.textContent = "✓ Copied Ciphertext!";
-      window.setTimeout(() => {
-        copyEncryptedBtn.textContent = "📦 Copy Encrypted";
-      }, 2000);
-      new Notice("📦 Encrypted note ciphertext copied to clipboard.");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      new Notice(`Failed to copy ciphertext: ${msg}`);
-    }
+    void (async () => {
+      try {
+        await KeyMaskClipboard.writeText(rawText);
+        copyEncryptedBtn.textContent = "✓ Copied Ciphertext!";
+        window.setTimeout(() => {
+          copyEncryptedBtn.textContent = "📦 Copy Encrypted";
+        }, 2000);
+        new Notice("📦 Encrypted note ciphertext copied to clipboard.");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        new Notice(`Failed to copy ciphertext: ${msg}`);
+      }
+    })();
   });
 
-  revertBtn.addEventListener("click", async (e) => {
+  revertBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     const targetFile = currentFile || plugin.app.workspace.getActiveFile();
     if (!targetFile) {
@@ -716,29 +730,33 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
     if (!plugin.session.isUnlocked()) {
       new UnlockModal(plugin.app, plugin, {
         mode: "unlock",
-        onSuccess: () => revertBtn.click(),
+        onSuccess: () => {
+          revertBtn.click();
+        },
       }).open();
       return;
     }
 
-    const confirmed = await confirmAction(plugin.app, {
-      title: "Decrypt Note to Plaintext",
-      message: `Permanently decrypt "${noteTitle}" and restore unencrypted plaintext Markdown?`,
-      confirmText: "Decrypt Note",
-      danger: true,
-    });
-    if (!confirmed) {
-      return;
-    }
+    void (async () => {
+      const confirmed = await confirmAction(plugin.app, {
+        title: "Decrypt Note to Plaintext",
+        message: `Permanently decrypt "${noteTitle}" and restore unencrypted plaintext Markdown?`,
+        confirmText: "Decrypt Note",
+        danger: true,
+      });
+      if (!confirmed) {
+        return;
+      }
 
-    try {
-      const plaintext = await plugin.session.decryptSecret(payload);
-      await plugin.app.vault.modify(targetFile, plaintext);
-      new Notice(`🔓 Note "${targetFile.basename}" decrypted and restored to plaintext.`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      new Notice(`Failed to decrypt note: ${msg}`);
-    }
+      try {
+        const plaintext = await plugin.session.decryptSecret(payload);
+        await plugin.app.vault.modify(targetFile, plaintext);
+        new Notice(`🔓 Note "${targetFile.basename}" decrypted and restored to plaintext.`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        new Notice(`Failed to decrypt note: ${msg}`);
+      }
+    })();
   });
 
   // State changes

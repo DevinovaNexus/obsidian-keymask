@@ -128,22 +128,24 @@ export class KeyMaskClipboard {
 
     // 2. Schedule Ephemeral Auto-Wipe Timer
     if (timeoutSeconds > 0) {
-      this.activeWipeTimer = window.setTimeout(async () => {
-        try {
-          // Verify if clipboard still contains this exact secret before wiping
-          const currentText = await this.readText();
-          if (currentText === this.lastSecretCopied) {
-            await this.clearClipboard();
-            this.lastSecretCopied = null;
-            if (notifyOnWipe) {
-              new Notice("🔒 KeyMask: Ephemeral clipboard cleared for security.");
+      this.activeWipeTimer = window.setTimeout(() => {
+        void (async () => {
+          try {
+            // Verify if clipboard still contains this exact secret before wiping
+            const currentText = await this.readText();
+            if (currentText === this.lastSecretCopied) {
+              await this.clearClipboard();
+              this.lastSecretCopied = null;
+              if (notifyOnWipe) {
+                new Notice("🔒 KeyMask: Ephemeral clipboard cleared for security.");
+              }
             }
+          } catch (e) {
+            console.warn("KeyMask: Ephemeral clipboard wipe encountered error:", e);
+          } finally {
+            this.activeWipeTimer = null;
           }
-        } catch (e) {
-          console.warn("KeyMask: Ephemeral clipboard wipe encountered error:", e);
-        } finally {
-          this.activeWipeTimer = null;
-        }
+        })();
       }, timeoutSeconds * 1000);
     }
   }

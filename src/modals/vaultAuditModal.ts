@@ -590,7 +590,7 @@ export class VaultAuditModal extends Modal {
     file: TFile,
     secret: DiscoveredSecret
   ): Promise<void> {
-    if (!this.checkVaultUnlocked(() => this.remediateSingleSecret(file, secret))) {
+    if (!this.checkVaultUnlocked(() => { void this.remediateSingleSecret(file, secret); })) {
       return;
     }
 
@@ -641,7 +641,7 @@ export class VaultAuditModal extends Modal {
       return;
     }
 
-    if (!this.checkVaultUnlocked(() => this.executeBatchRemediation())) {
+    if (!this.checkVaultUnlocked(() => { void this.executeBatchRemediation(); })) {
       return;
     }
 

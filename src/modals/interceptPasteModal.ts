@@ -98,7 +98,9 @@ export class InterceptPasteModal extends Modal {
       cls: "mod-cta",
       text: "🔒 Encrypt & Mask to Note",
     });
-    encryptBtn.addEventListener("click", () => this.handleEncrypt());
+    encryptBtn.addEventListener("click", () => {
+      void this.handleEncrypt();
+    });
   }
 
   private showError(msg: string): void {
@@ -113,7 +115,9 @@ export class InterceptPasteModal extends Modal {
     if (!this.plugin.settings.isInitialized) {
       new UnlockModal(this.app, this.plugin, {
         mode: "init",
-        onSuccess: () => this.handleEncrypt(),
+        onSuccess: () => {
+          void this.handleEncrypt();
+        },
       }).open();
       return;
     }
@@ -122,7 +126,9 @@ export class InterceptPasteModal extends Modal {
     if (!this.plugin.session.isUnlocked()) {
       new UnlockModal(this.app, this.plugin, {
         mode: "unlock",
-        onSuccess: () => this.handleEncrypt(),
+        onSuccess: () => {
+          void this.handleEncrypt();
+        },
       }).open();
       return;
     }

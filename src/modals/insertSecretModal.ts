@@ -127,7 +127,9 @@ export class InsertSecretModal extends Modal {
       cls: "mod-cta",
       text: "🔒 Encrypt & Insert",
     });
-    insertBtn.addEventListener("click", () => this.handleEncryptAndInsert());
+    insertBtn.addEventListener("click", () => {
+      void this.handleEncryptAndInsert();
+    });
 
     // Focus input
     window.setTimeout(() => {
@@ -161,7 +163,9 @@ export class InsertSecretModal extends Modal {
     if (!this.plugin.settings.isInitialized) {
       new UnlockModal(this.app, this.plugin, {
         mode: "init",
-        onSuccess: () => this.handleEncryptAndInsert(),
+        onSuccess: () => {
+          void this.handleEncryptAndInsert();
+        },
       }).open();
       return;
     }
@@ -170,7 +174,9 @@ export class InsertSecretModal extends Modal {
     if (!this.plugin.session.isUnlocked()) {
       new UnlockModal(this.app, this.plugin, {
         mode: "unlock",
-        onSuccess: () => this.handleEncryptAndInsert(),
+        onSuccess: () => {
+          void this.handleEncryptAndInsert();
+        },
       }).open();
       return;
     }

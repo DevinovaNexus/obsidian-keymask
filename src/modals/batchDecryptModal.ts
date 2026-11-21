@@ -89,7 +89,9 @@ export class BatchDecryptModal extends Modal {
       cls: "mod-warning",
       text: "🔓 Decrypt All Notes to Plaintext",
     });
-    decryptBtn.addEventListener("click", () => this.executeBatchDecryption());
+    decryptBtn.addEventListener("click", () => {
+      void this.executeBatchDecryption();
+    });
   }
 
   private getVaultFolders(): TFolder[] {
@@ -127,7 +129,9 @@ export class BatchDecryptModal extends Modal {
     if (!this.plugin.session.isUnlocked()) {
       new UnlockModal(this.app, this.plugin, {
         mode: "unlock",
-        onSuccess: () => this.executeBatchDecryption(),
+        onSuccess: () => {
+          void this.executeBatchDecryption();
+        },
       }).open();
       return;
     }

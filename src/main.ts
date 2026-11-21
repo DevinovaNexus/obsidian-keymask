@@ -386,7 +386,9 @@ export default class KeyMaskPlugin extends Plugin {
     if (!this.session.isUnlocked()) {
       new UnlockModal(this.app, this, {
         mode: "unlock",
-        onSuccess: () => this.encryptEntireFile(file),
+        onSuccess: () => {
+          void this.encryptEntireFile(file);
+        },
       }).open();
       return;
     }
@@ -411,7 +413,9 @@ export default class KeyMaskPlugin extends Plugin {
     if (!this.session.isUnlocked()) {
       new UnlockModal(this.app, this, {
         mode: "unlock",
-        onSuccess: () => this.decryptEntireFile(file),
+        onSuccess: () => {
+          void this.decryptEntireFile(file);
+        },
       }).open();
       return;
     }

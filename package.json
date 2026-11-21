@@ -1,6 +1,6 @@
 {
   "name": "keymask",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Zero-plaintext credential protection & interactive UI masking for sensitive secrets.",
   "main": "main.js",
   "scripts": {

@@ -100,7 +100,9 @@ export class ExportSecretsModal extends Modal {
       cls: "mod-cta",
       text: "📤 Decrypt & Export File",
     });
-    exportBtn.addEventListener("click", () => this.handleExport());
+    exportBtn.addEventListener("click", () => {
+      void this.handleExport();
+    });
   }
 
   private getVaultFolders(): TFolder[] {
@@ -133,7 +135,9 @@ export class ExportSecretsModal extends Modal {
     if (!this.plugin.session.isUnlocked()) {
       new UnlockModal(this.app, this.plugin, {
         mode: "unlock",
-        onSuccess: () => this.handleExport(),
+        onSuccess: () => {
+          void this.handleExport();
+        },
       }).open();
       return;
     }

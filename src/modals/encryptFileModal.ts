@@ -125,8 +125,8 @@ export class EncryptFileModal extends Modal {
       text: "🔒 Encrypt Entire Note",
       cls: "mod-cta keymask-btn-primary-action",
     });
-    encryptBtn.addEventListener("click", async () => {
-      await this.executeEncryption();
+    encryptBtn.addEventListener("click", () => {
+      void this.executeEncryption();
     });
   }
 
