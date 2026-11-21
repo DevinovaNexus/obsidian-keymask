@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "minAppVersion": "1.5.0",
   "description": "Zero-plaintext credential protection & interactive UI masking for sensitive secrets in Obsidian.",
-  "author": "KeyMask",
-  "authorUrl": "https://github.com/keymask/keymask",
+  "author": "Devinova",
+  "authorUrl": "https://github.com/DevinovaNexus/obsidian-keymask",
   "isDesktopOnly": false
 }
