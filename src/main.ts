@@ -84,7 +84,6 @@ export default class KeyMaskPlugin extends Plugin {
     this.addCommand({
       id: "insert-encrypted-secret",
       name: "Insert Encrypted Secret",
-      hotkeys: [{ modifiers: ["Mod", "Shift"], key: "S" }],
       editorCallback: (editor: Editor) => {
         const selection = editor.getSelection();
         new InsertSecretModal(this.app, this, {
@@ -438,8 +437,9 @@ export default class KeyMaskPlugin extends Plugin {
       const plaintext = await this.session.decryptSecret(payload);
       await this.app.vault.modify(file, plaintext);
       new Notice(`🔓 Note "${file.basename}" decrypted back to plaintext.`);
-    } catch (err: any) {
-      new Notice(`Failed to decrypt note: ${err.message}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      new Notice(`Failed to decrypt note: ${msg}`);
     }
   }
 
@@ -456,7 +456,9 @@ export default class KeyMaskPlugin extends Plugin {
       if (!this.session.isUnlocked()) {
         new UnlockModal(this.app, this, {
           mode: "unlock",
-          onSuccess: () => this.copyEncryptedFile(file),
+          onSuccess: () => {
+            void this.copyEncryptedFile(file);
+          },
         }).open();
         return;
       }
@@ -464,8 +466,9 @@ export default class KeyMaskPlugin extends Plugin {
         const encrypted = await this.session.encryptSecret(content, file.basename, true, true);
         await KeyMaskClipboard.writeText(encrypted);
         new Notice(`📦 Encrypted note and copied ciphertext to clipboard.`);
-      } catch (err: any) {
-        new Notice(`Failed to encrypt note: ${err.message}`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        new Notice(`Failed to encrypt note: ${msg}`);
       }
     }
   }
@@ -482,7 +485,9 @@ export default class KeyMaskPlugin extends Plugin {
     if (!this.session.isUnlocked()) {
       new UnlockModal(this.app, this, {
         mode: "unlock",
-        onSuccess: () => this.copyDecryptedFile(file),
+        onSuccess: () => {
+          void this.copyDecryptedFile(file);
+        },
       }).open();
       return;
     }
@@ -493,8 +498,9 @@ export default class KeyMaskPlugin extends Plugin {
         timeoutSeconds: this.settings.clipboardWipeTimeoutSeconds,
       });
       new Notice(`📋 Decrypted note copied (auto-wipes in ${this.settings.clipboardWipeTimeoutSeconds}s).`);
-    } catch (err: any) {
-      new Notice(`Failed to decrypt note: ${err.message}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      new Notice(`Failed to decrypt note: ${msg}`);
     }
   }
 
@@ -509,7 +515,8 @@ export default class KeyMaskPlugin extends Plugin {
   }
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const loaded = (await this.loadData()) as Partial<KeyMaskSettings> | null;
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, loaded);
   }
 
   async saveSettings() {

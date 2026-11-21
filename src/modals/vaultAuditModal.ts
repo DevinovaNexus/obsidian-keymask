@@ -10,7 +10,6 @@ import { App, Modal, Setting, Notice, TFile, TFolder, MarkdownView } from "obsid
 import type KeyMaskPlugin from "../main";
 import {
   DiscoveredSecret,
-  maskForPreview,
   scanTextForSecrets,
   extractSecretSnippet,
 } from "../utils/heuristics";
@@ -101,7 +100,7 @@ export class VaultAuditModal extends Modal {
     });
 
     startScanBtn.addEventListener("click", () => {
-      this.runAuditScan();
+      void this.runAuditScan();
     });
 
     // Placeholder for Progress and Results
@@ -203,7 +202,7 @@ export class VaultAuditModal extends Modal {
 
       // Yield event loop every 10 files to keep UI responsive
       if (i % 10 === 0) {
-        await new Promise((r) => setTimeout(r, 0));
+        await new Promise((r) => window.setTimeout(r, 0));
       }
     }
 
@@ -229,7 +228,7 @@ export class VaultAuditModal extends Modal {
       const cleanBanner = this.resultsContainer.createDiv({
         cls: "keymask-clean-banner",
       });
-      cleanBanner.createEl("div", { cls: "clean-icon", text: "🎉" });
+      cleanBanner.createDiv({ cls: "clean-icon", text: "🎉" });
       cleanBanner.createEl("h3", { text: "No Exposed Secrets Found!" });
       cleanBanner.createEl("p", {
         cls: "setting-item-description",
@@ -314,7 +313,7 @@ export class VaultAuditModal extends Modal {
       text: `🔒 Encrypt & Mask Selected (${this.selectedSecretIds.size})`,
     });
     remediateBtn.addEventListener("click", () => {
-      this.executeBatchRemediation();
+      void this.executeBatchRemediation();
     });
 
     // Group Findings by Note
@@ -331,19 +330,19 @@ export class VaultAuditModal extends Modal {
       const fileHeader = fileCard.createDiv({ cls: "keymask-file-header" });
 
       const fileInfo = fileHeader.createDiv({ cls: "keymask-file-info" });
-      const fileTitle = fileInfo.createEl("span", {
+      fileInfo.createSpan({
         cls: "keymask-file-title",
         text: `📄 ${file.basename}`,
       });
       if (file.parent && file.parent.path !== "/") {
-        fileInfo.createEl("span", {
+        fileInfo.createSpan({
           cls: "keymask-file-path",
           text: `📁 ${file.path}`,
         });
       }
 
       const headerRight = fileHeader.createDiv({ cls: "keymask-header-actions" });
-      headerRight.createEl("span", {
+      headerRight.createSpan({
         cls: "keymask-file-badge",
         text: `${secrets.length} secret${secrets.length > 1 ? "s" : ""}`,
       });
@@ -355,10 +354,10 @@ export class VaultAuditModal extends Modal {
       });
       openNoteBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        this.openNoteAtLine(file, 1);
+        void this.openNoteAtLine(file, 1);
       });
 
-      const chevronIcon = headerRight.createEl("span", {
+      const chevronIcon = headerRight.createSpan({
         cls: "keymask-chevron-icon",
         text: "▼",
       });
@@ -408,16 +407,16 @@ export class VaultAuditModal extends Modal {
           this.updateRemediateButton(remediateBtn);
         });
 
-        const lineBadge = leftGroup.createEl("span", {
+        const lineBadge = leftGroup.createSpan({
           cls: "keymask-cell-line clickable-icon",
           text: `📍 Line ${secret.lineNumber}`,
           attr: { title: "Click to jump to line in note" },
         });
         lineBadge.addEventListener("click", () => {
-          this.openNoteAtLine(file, secret.lineNumber, secret.matchedText);
+          void this.openNoteAtLine(file, secret.lineNumber, secret.matchedText);
         });
 
-        leftGroup.createEl("span", {
+        leftGroup.createSpan({
           cls: "keymask-pattern-tag",
           text: secret.patternName,
         });
@@ -431,11 +430,11 @@ export class VaultAuditModal extends Modal {
         });
         jumpBtn.addEventListener("click", (e) => {
           e.stopPropagation();
-          this.openNoteAtLine(file, secret.lineNumber, secret.matchedText);
+          void this.openNoteAtLine(file, secret.lineNumber, secret.matchedText);
         });
 
         if (this.remediatedSecretIds.has(secret.id)) {
-          rightGroup.createEl("span", {
+          rightGroup.createSpan({
             cls: "keymask-remediated-badge",
             text: "✅ Encrypted",
           });
@@ -446,7 +445,7 @@ export class VaultAuditModal extends Modal {
           });
           singleEncryptBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            this.remediateSingleSecret(file, secret);
+            void this.remediateSingleSecret(file, secret);
           });
         }
 
@@ -456,7 +455,7 @@ export class VaultAuditModal extends Modal {
           attr: { title: "Click to jump to this secret in editor" },
         });
         snippetBox.addEventListener("click", () => {
-          this.openNoteAtLine(file, secret.lineNumber, secret.matchedText);
+          void this.openNoteAtLine(file, secret.lineNumber, secret.matchedText);
         });
 
         const codeSnippet = snippetBox.createEl("code");
@@ -475,7 +474,7 @@ export class VaultAuditModal extends Modal {
 
         // Bottom Row: Custom label input
         const bottomRow = itemCard.createDiv({ cls: "keymask-item-bottom-row" });
-        bottomRow.createEl("span", {
+        bottomRow.createSpan({
           cls: "keymask-label-caption",
           text: "Pill Label:",
         });
@@ -509,7 +508,7 @@ export class VaultAuditModal extends Modal {
       await leaf.openFile(file);
       this.app.workspace.setActiveLeaf(leaf, { focus: true });
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         const view = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (view && view.editor) {
           const lineIndex = Math.max(0, lineNumber - 1);
@@ -548,8 +547,9 @@ export class VaultAuditModal extends Modal {
       new Notice(
         `📍 Jumped to Line ${lineNumber} in "${file.basename}". Reopen Audit via Settings or Command Palette.`
       );
-    } catch (e: any) {
-      new Notice(`Could not open file: ${e.message}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      new Notice(`Could not open file: ${msg}`);
     }
   }
 
@@ -622,8 +622,9 @@ export class VaultAuditModal extends Modal {
       this.selectedSecretIds.delete(secret.id);
       new Notice(`🔒 Encrypted secret in "${file.basename}".`);
       this.renderAuditResults();
-    } catch (err: any) {
-      new Notice(`Failed to encrypt secret: ${err.message}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      new Notice(`Failed to encrypt secret: ${msg}`);
     }
   }
 
@@ -705,8 +706,9 @@ export class VaultAuditModal extends Modal {
       );
 
       this.renderAuditResults();
-    } catch (err: any) {
-      new Notice(`Error during batch encryption: ${err.message}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      new Notice(`Error during batch encryption: ${msg}`);
     } finally {
       this.isRemediating = false;
     }

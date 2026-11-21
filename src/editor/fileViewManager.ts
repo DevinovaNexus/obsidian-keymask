@@ -32,17 +32,17 @@ export class EncryptedFileViewManager {
     this.plugin.registerEvent(
       this.plugin.app.workspace.on("active-leaf-change", (leaf) => {
         if (leaf && leaf.view instanceof MarkdownView) {
-          this.checkAndUpdateView(leaf.view);
+          void this.checkAndUpdateView(leaf.view);
         }
       })
     );
 
     // 2. Listen for file open
     this.plugin.registerEvent(
-      this.plugin.app.workspace.on("file-open", (file) => {
+      this.plugin.app.workspace.on("file-open", () => {
         const view = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
         if (view) {
-          this.checkAndUpdateView(view);
+          void this.checkAndUpdateView(view);
         }
       })
     );
@@ -58,7 +58,7 @@ export class EncryptedFileViewManager {
     this.plugin.registerEvent(
       this.plugin.app.vault.on("modify", (file) => {
         if (file instanceof TFile && file.extension === "md") {
-          this.updateViewsForFile(file);
+          void this.updateViewsForFile(file);
         }
       })
     );
@@ -75,7 +75,7 @@ export class EncryptedFileViewManager {
   public checkAllOpenViews(): void {
     this.plugin.app.workspace.iterateAllLeaves((leaf) => {
       if (leaf.view instanceof MarkdownView) {
-        this.checkAndUpdateView(leaf.view);
+        void this.checkAndUpdateView(leaf.view);
       }
     });
   }
@@ -83,7 +83,7 @@ export class EncryptedFileViewManager {
   public async updateViewsForFile(file: TFile): Promise<void> {
     this.plugin.app.workspace.iterateAllLeaves((leaf) => {
       if (leaf.view instanceof MarkdownView && leaf.view.file?.path === file.path) {
-        this.checkAndUpdateView(leaf.view);
+        void this.checkAndUpdateView(leaf.view);
       }
     });
   }
@@ -135,7 +135,7 @@ export class EncryptedFileViewManager {
     view.containerEl.addClass("keymask-file-encrypted-active");
 
     // Create wrapper container
-    const bannerEl = document.createElement("div");
+    const bannerEl = createDiv();
     bannerEl.className = "keymask-whole-file-banner";
 
     // Create the interactive security card

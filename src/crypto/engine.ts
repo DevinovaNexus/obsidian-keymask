@@ -25,15 +25,23 @@ export interface EncryptedData {
   tag: Uint8Array;
 }
 
+function getCrypto(): Crypto {
+  if (typeof window !== "undefined" && window.crypto) {
+    return window.crypto;
+  }
+  if (typeof crypto !== "undefined") {
+    return crypto;
+  }
+  throw new Error("Web Cryptography API is not available.");
+}
+
 /**
  * Returns the Web Crypto SubtleCrypto instance across environments
  */
 export function getSubtleCrypto(): SubtleCrypto {
-  if (typeof window !== "undefined" && window.crypto && window.crypto.subtle) {
-    return window.crypto.subtle;
-  }
-  if (typeof globalThis !== "undefined" && globalThis.crypto && globalThis.crypto.subtle) {
-    return globalThis.crypto.subtle;
+  const cryptoObj = getCrypto();
+  if (cryptoObj.subtle) {
+    return cryptoObj.subtle;
   }
   throw new Error("Web Cryptography API (crypto.subtle) is not available in this environment.");
 }
@@ -43,8 +51,7 @@ export function getSubtleCrypto(): SubtleCrypto {
  */
 export function generateSalt(): Uint8Array {
   const salt = new Uint8Array(SALT_LENGTH_BYTES);
-  const cryptoObj = (typeof window !== "undefined" && window.crypto) || globalThis.crypto;
-  cryptoObj.getRandomValues(salt);
+  getCrypto().getRandomValues(salt);
   return salt;
 }
 
@@ -53,8 +60,7 @@ export function generateSalt(): Uint8Array {
  */
 export function generateIV(): Uint8Array {
   const iv = new Uint8Array(IV_LENGTH_BYTES);
-  const cryptoObj = (typeof window !== "undefined" && window.crypto) || globalThis.crypto;
-  cryptoObj.getRandomValues(iv);
+  getCrypto().getRandomValues(iv);
   return iv;
 }
 
@@ -129,7 +135,7 @@ export async function encrypt(
   const encryptedBuffer = await subtle.encrypt(
     {
       name: "AES-GCM",
-      iv: iv as BufferSource,
+      iv: iv,
       tagLength: AES_TAG_LENGTH,
     },
     key,
@@ -169,16 +175,16 @@ export async function decrypt(
     const decryptedBuffer = await subtle.decrypt(
       {
         name: "AES-GCM",
-        iv: encrypted.iv as BufferSource,
+        iv: encrypted.iv,
         tagLength: AES_TAG_LENGTH,
       },
       key,
-      combined as BufferSource
+      combined
     );
 
     const decoder = new TextDecoder();
     return decoder.decode(decryptedBuffer);
-  } catch (err) {
+  } catch {
     throw new Error("Decryption failed: integrity check or authentication tag mismatch. Data may be corrupted or key incorrect.");
   }
 }

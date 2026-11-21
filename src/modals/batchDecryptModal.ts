@@ -42,11 +42,11 @@ export class BatchDecryptModal extends Modal {
     });
 
     const dangerCard = contentEl.createDiv({ cls: "keymask-corrupted-block" });
-    dangerCard.createEl("div", {
+    dangerCard.createDiv({
       cls: "keymask-corrupted-header",
       text: "⚠️ Plaintext Warning",
     });
-    dangerCard.createEl("div", {
+    dangerCard.createDiv({
       cls: "keymask-corrupted-desc",
       text: "Decrypting all secrets will expose your API keys, credentials, and passwords to note history, cloud sync engines (iCloud, Obsidian Sync, Git), and any third-party plugins. Ensure your environment is secure before proceeding.",
     });
@@ -218,8 +218,9 @@ export class BatchDecryptModal extends Modal {
         } across ${modifiedFilesCount} note${modifiedFilesCount > 1 ? "s" : ""} back to plaintext.`
       );
       this.close();
-    } catch (err: any) {
-      new Notice(`Error during batch decryption: ${err.message}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      new Notice(`Error during batch decryption: ${msg}`);
     } finally {
       this.isProcessing = false;
     }

@@ -86,7 +86,7 @@ export function createPillElement(options: PillOptions): HTMLElement {
     return createWholeFileCardElement(options);
   }
 
-  const container = document.createElement(isCodeBlock ? "div" : "span");
+  const container = createEl(isCodeBlock ? "div" : "span");
   container.className = isCodeBlock
     ? "keymask-block-wrapper"
     : "keymask-pill-wrapper";
@@ -97,21 +97,21 @@ export function createPillElement(options: PillOptions): HTMLElement {
     return container;
   }
 
-  const pill = document.createElement("span");
+  const pill = createSpan();
   pill.className = `keymask-pill ${isCodeBlock ? "is-codeblock" : "is-inline"}`;
 
   // 1. Icon & Status Indicator
-  const iconSpan = document.createElement("span");
+  const iconSpan = createSpan();
   iconSpan.className = "keymask-pill-icon";
   updateIcon(iconSpan, plugin.session.isUnlocked());
 
   // 2. Optional Label
-  const labelSpan = document.createElement("span");
+  const labelSpan = createSpan();
   labelSpan.className = "keymask-pill-label";
   labelSpan.textContent = payload.label || (isCodeBlock ? "Encrypted Secret Block" : "Secret");
 
   // 3. Mask / Value Area
-  const valueSpan = document.createElement("span");
+  const valueSpan = createSpan();
   valueSpan.className = "keymask-pill-value masked";
   valueSpan.textContent = isCodeBlock
     ? "••••••••••••••••••••••••••••••••"
@@ -119,22 +119,23 @@ export function createPillElement(options: PillOptions): HTMLElement {
   valueSpan.title = "Click to reveal secret";
 
   // 4. Countdown Progress Ring Container (hidden while masked)
-  const timerContainer = document.createElement("span");
+  const timerContainer = createSpan();
   timerContainer.className = "keymask-timer-ring-container keymask-hidden";
 
   // 5. Reveal / Toggle Action Button
-  const revealBtn = document.createElement("button");
+  const revealBtn = createEl("button");
   revealBtn.type = "button";
   revealBtn.className = "keymask-btn keymask-btn-reveal";
   revealBtn.title = "Click to reveal";
-  revealBtn.innerHTML = `<span class="km-btn-icon">👁️</span>`;
+  revealBtn.createSpan({ cls: "km-btn-icon", text: "👁️" });
 
   // 6. Copy Action Button
-  const copyBtn = document.createElement("button");
+  const copyBtn = createEl("button");
   copyBtn.type = "button";
   copyBtn.className = "keymask-btn keymask-btn-copy";
   copyBtn.title = "Copy decrypted secret to clipboard (auto-wipes)";
-  copyBtn.innerHTML = `<span class="km-btn-icon">📋</span> <span class="km-btn-text">Copy</span>`;
+  copyBtn.createSpan({ cls: "km-btn-icon", text: "📋" });
+  copyBtn.createSpan({ cls: "km-btn-text", text: "Copy" });
 
   pill.appendChild(iconSpan);
   pill.appendChild(labelSpan);
@@ -158,7 +159,7 @@ export function createPillElement(options: PillOptions): HTMLElement {
   function maskSecret() {
     isRevealed = false;
     if (countdownTimer !== null) {
-      clearInterval(countdownTimer);
+      window.clearInterval(countdownTimer);
       countdownTimer = null;
     }
     valueSpan.textContent = isCodeBlock
@@ -168,7 +169,8 @@ export function createPillElement(options: PillOptions): HTMLElement {
     timerContainer.addClass("keymask-hidden");
     timerContainer.removeClass("keymask-visible-inline-flex");
     timerContainer.empty();
-    revealBtn.innerHTML = `<span class="km-btn-icon">👁️</span>`;
+    revealBtn.empty();
+    revealBtn.createSpan({ cls: "km-btn-icon", text: "👁️" });
     revealBtn.title = "Click to reveal";
   }
 
@@ -184,13 +186,14 @@ export function createPillElement(options: PillOptions): HTMLElement {
     }
 
     try {
-      const plaintext = await plugin.session.decryptSecret(payload!);
+      const plaintext = await plugin.session.decryptSecret(payload);
       isRevealed = true;
       secondsRemaining = plugin.settings.revealTimeoutSeconds;
 
       valueSpan.textContent = plaintext;
       valueSpan.className = `keymask-pill-value revealed ${isCodeBlock ? "multiline" : ""}`;
-      revealBtn.innerHTML = `<span class="km-btn-icon">🙈</span>`;
+      revealBtn.empty();
+      revealBtn.createSpan({ cls: "km-btn-icon", text: "🙈" });
       revealBtn.title = "Hide secret";
 
       // Render SVG Countdown Ring
@@ -199,10 +202,10 @@ export function createPillElement(options: PillOptions): HTMLElement {
       timerContainer.addClass("keymask-visible-inline-flex");
 
       if (countdownTimer !== null) {
-        clearInterval(countdownTimer);
+        window.clearInterval(countdownTimer);
       }
 
-      countdownTimer = setInterval(() => {
+      countdownTimer = window.setInterval(() => {
         secondsRemaining -= 1;
         if (secondsRemaining <= 0) {
           maskSecret();
@@ -210,8 +213,9 @@ export function createPillElement(options: PillOptions): HTMLElement {
           renderCountdownRing(timerContainer, secondsRemaining, plugin.settings.revealTimeoutSeconds);
         }
       }, 1000);
-    } catch (err: any) {
-      renderCorruptedBlock(container, err.message || "Decryption failed", rawText);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      renderCorruptedBlock(container, msg || "Decryption failed", rawText);
     }
   }
 
@@ -221,7 +225,7 @@ export function createPillElement(options: PillOptions): HTMLElement {
     if (isRevealed) {
       maskSecret();
     } else {
-      revealSecret();
+      void revealSecret();
     }
   });
 
@@ -230,7 +234,7 @@ export function createPillElement(options: PillOptions): HTMLElement {
     if (isRevealed) {
       maskSecret();
     } else {
-      revealSecret();
+      void revealSecret();
     }
   });
 
@@ -252,22 +256,27 @@ export function createPillElement(options: PillOptions): HTMLElement {
 
   async function copySecret() {
     try {
-      const plaintext = await plugin.session.decryptSecret(payload!);
+      const plaintext = await plugin.session.decryptSecret(payload);
       await KeyMaskClipboard.writeSecret(plaintext, {
         timeoutSeconds: plugin.settings.clipboardWipeTimeoutSeconds,
       });
 
       // Visual feedback on copy button
       copyBtn.classList.add("copied");
-      copyBtn.innerHTML = `<span class="km-btn-icon">✓</span> <span class="km-btn-text">Copied!</span>`;
+      copyBtn.empty();
+      copyBtn.createSpan({ cls: "km-btn-icon", text: "✓" });
+      copyBtn.createSpan({ cls: "km-btn-text", text: "Copied!" });
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         copyBtn.classList.remove("copied");
-        copyBtn.innerHTML = `<span class="km-btn-icon">📋</span> <span class="km-btn-text">Copy</span>`;
+        copyBtn.empty();
+        copyBtn.createSpan({ cls: "km-btn-icon", text: "📋" });
+        copyBtn.createSpan({ cls: "km-btn-text", text: "Copy" });
       }, 2000);
       new Notice(`📋 Decrypted secret copied to clipboard (auto-wipes in ${plugin.settings.clipboardWipeTimeoutSeconds}s).`);
-    } catch (err: any) {
-      renderCorruptedBlock(container, err.message || "Decryption failed on copy", rawText);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      renderCorruptedBlock(container, msg || "Decryption failed on copy", rawText);
     }
   }
 
@@ -311,7 +320,7 @@ export function createPillElement(options: PillOptions): HTMLElement {
           if (isRevealed) {
             maskSecret();
           } else {
-            revealSecret();
+            void revealSecret();
           }
         });
     });
@@ -333,7 +342,7 @@ export function createPillElement(options: PillOptions): HTMLElement {
   });
 
   // Listen to session lock/unlock events to update icon and re-mask if locked
-  const unsubscribe = plugin.session.onStateChange((unlocked) => {
+  plugin.session.onStateChange((unlocked) => {
     updateIcon(iconSpan, unlocked);
     if (!unlocked && isRevealed) {
       maskSecret();
@@ -366,14 +375,14 @@ function renderCountdownRing(
   const progressRatio = Math.max(0, current / total);
   const strokeDashoffset = circumference * (1 - progressRatio);
 
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const svg = createSvg("svg");
   svg.setAttribute("class", "keymask-progress-ring");
   svg.setAttribute("width", "22");
   svg.setAttribute("height", "22");
   svg.setAttribute("viewBox", "0 0 24 24");
 
   // Background track circle
-  const track = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  const track = createSvg("circle");
   track.setAttribute("class", "keymask-progress-track");
   track.setAttribute("cx", "12");
   track.setAttribute("cy", "12");
@@ -382,7 +391,7 @@ function renderCountdownRing(
   track.setAttribute("stroke-width", "2.5");
 
   // Animated progress circle
-  const progress = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  const progress = createSvg("circle");
   progress.setAttribute("class", "keymask-progress-indicator");
   progress.setAttribute("cx", "12");
   progress.setAttribute("cy", "12");
@@ -394,7 +403,7 @@ function renderCountdownRing(
   progress.setAttribute("transform", "rotate(-90 12 12)");
 
   // Seconds text inside ring
-  const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  const text = createSvg("text");
   text.setAttribute("x", "12");
   text.setAttribute("y", "15.5");
   text.setAttribute("text-anchor", "middle");
@@ -418,17 +427,17 @@ export function renderCorruptedBlock(
 ): void {
   container.empty();
 
-  const corruptEl = document.createElement("div");
+  const corruptEl = createDiv();
   corruptEl.className = "keymask-corrupted-block";
 
   const header = corruptEl.createDiv({ cls: "keymask-corrupted-header" });
-  header.createEl("span", { cls: "keymask-corrupted-icon", text: "⚠️" });
-  header.createEl("span", {
+  header.createSpan({ cls: "keymask-corrupted-icon", text: "⚠️" });
+  header.createSpan({
     cls: "keymask-corrupted-title",
     text: "Corrupted Ciphertext Block",
   });
 
-  corruptEl.createEl("div", {
+  corruptEl.createDiv({
     cls: "keymask-corrupted-desc",
     text: `${errorMsg}. Content may have suffered a merge conflict or key mismatch. Raw ciphertext preserved.`,
   });
@@ -451,7 +460,7 @@ export function renderCorruptedBlock(
 export function createWholeFileCardElement(options: PillOptions): HTMLElement {
   const { plugin, payload, rawText } = options;
 
-  const card = document.createElement("div");
+  const card = createDiv();
   card.className = "keymask-file-card-full";
 
   // Prevent Live Preview mousedown events from triggering CodeMirror raw code-block editing
@@ -489,7 +498,7 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
 
   const titleGroup = headerLeft.createDiv({ cls: "keymask-file-title-group" });
   const titleRow = titleGroup.createDiv({ cls: "keymask-file-title-row" });
-  titleRow.createEl("span", {
+  titleRow.createSpan({
     cls: "keymask-file-card-title",
     text: noteTitle,
   });
@@ -498,17 +507,17 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
   if (payload.label && fileBasename && payload.label !== fileBasename) {
     subtitleText = `File: ${fileBasename}.md • ${subtitleText}`;
   }
-  titleGroup.createEl("div", {
+  titleGroup.createDiv({
     cls: "keymask-file-card-subtitle",
     text: subtitleText,
   });
 
   const headerRight = header.createDiv({ cls: "keymask-file-header-right" });
-  headerRight.createEl("span", {
+  headerRight.createSpan({
     cls: "keymask-file-type-badge",
     text: "🔒 Encrypted Note",
   });
-  const statusBadge = headerRight.createEl("span", {
+  const statusBadge = headerRight.createSpan({
     cls: "keymask-status-badge",
     text: plugin.session.isUnlocked() ? "🔓 Unlocked" : "🔒 Locked",
   });
@@ -549,7 +558,7 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
   const previewHeaderLeft = previewHeader.createDiv({ cls: "keymask-preview-header-left" });
   const previewIcon = previewHeaderLeft.createSpan({ cls: "keymask-preview-icon" });
   setIcon(previewIcon, "file-text");
-  previewHeaderLeft.createEl("span", {
+  previewHeaderLeft.createSpan({
     cls: "keymask-preview-title",
     text: `Decrypted Note: ${noteTitle}`,
   });
@@ -568,7 +577,7 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
   const previewFooter = previewContainer.createDiv({ cls: "keymask-file-preview-footer" });
   const lockIcon = previewFooter.createSpan({ cls: "keymask-footer-icon" });
   setIcon(lockIcon, "lock");
-  previewFooter.createEl("span", {
+  previewFooter.createSpan({
     text: "In-memory zero-trace preview • Never written to disk • Auto-locks on blur or timeout",
   });
 
@@ -586,7 +595,7 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
   const maskPreview = () => {
     isRevealed = false;
     if (countdownTimer !== null) {
-      clearInterval(countdownTimer);
+      window.clearInterval(countdownTimer);
       countdownTimer = null;
     }
     previewContainer.addClass("keymask-hidden");
@@ -610,7 +619,7 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
     }
 
     try {
-      const plaintext = await plugin.session.decryptSecret(payload!);
+      const plaintext = await plugin.session.decryptSecret(payload);
       isRevealed = true;
       secondsRemaining = timeoutSeconds;
 
@@ -625,8 +634,8 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
       timerRingSpan.removeClass("keymask-hidden");
       timerRingSpan.addClass("keymask-visible-inline-flex");
 
-      if (countdownTimer !== null) clearInterval(countdownTimer);
-      countdownTimer = setInterval(() => {
+      if (countdownTimer !== null) window.clearInterval(countdownTimer);
+      countdownTimer = window.setInterval(() => {
         secondsRemaining -= 1;
         if (secondsRemaining <= 0) {
           maskPreview();
@@ -634,8 +643,9 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
           renderCountdownRing(timerRingSpan, secondsRemaining, timeoutSeconds);
         }
       }, 1000);
-    } catch (err: any) {
-      new Notice(`Decryption failed: ${err.message}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      new Notice(`Decryption failed: ${msg}`);
     }
   };
 
@@ -644,7 +654,7 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
     if (isRevealed) {
       maskPreview();
     } else {
-      revealNote();
+      void revealNote();
     }
   });
 
@@ -664,18 +674,19 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
     }
 
     try {
-      const plaintext = await plugin.session.decryptSecret(payload!);
+      const plaintext = await plugin.session.decryptSecret(payload);
       await KeyMaskClipboard.writeSecret(plaintext, {
         timeoutSeconds: plugin.settings.clipboardWipeTimeoutSeconds,
       });
 
       copyDecryptedBtn.textContent = "✓ Copied Plaintext!";
-      setTimeout(() => {
+      window.setTimeout(() => {
         copyDecryptedBtn.textContent = "📋 Copy Decrypted Note";
       }, 2000);
       new Notice(`📋 Decrypted note copied (auto-wipes in ${plugin.settings.clipboardWipeTimeoutSeconds}s).`);
-    } catch (err: any) {
-      new Notice(`Failed to copy decrypted note: ${err.message}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      new Notice(`Failed to copy decrypted note: ${msg}`);
     }
   });
 
@@ -684,12 +695,13 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
     try {
       await KeyMaskClipboard.writeText(rawText);
       copyEncryptedBtn.textContent = "✓ Copied Ciphertext!";
-      setTimeout(() => {
+      window.setTimeout(() => {
         copyEncryptedBtn.textContent = "📦 Copy Encrypted";
       }, 2000);
       new Notice("📦 Encrypted note ciphertext copied to clipboard.");
-    } catch (err: any) {
-      new Notice(`Failed to copy ciphertext: ${err.message}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      new Notice(`Failed to copy ciphertext: ${msg}`);
     }
   });
 
@@ -720,11 +732,12 @@ export function createWholeFileCardElement(options: PillOptions): HTMLElement {
     }
 
     try {
-      const plaintext = await plugin.session.decryptSecret(payload!);
+      const plaintext = await plugin.session.decryptSecret(payload);
       await plugin.app.vault.modify(targetFile, plaintext);
       new Notice(`🔓 Note "${targetFile.basename}" decrypted and restored to plaintext.`);
-    } catch (err: any) {
-      new Notice(`Failed to decrypt note: ${err.message}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      new Notice(`Failed to decrypt note: ${msg}`);
     }
   });
 

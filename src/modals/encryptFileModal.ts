@@ -53,30 +53,30 @@ export class EncryptFileModal extends Modal {
     const targetTitleGroup = targetTop.createDiv({ cls: "keymask-target-title-group" });
     const targetFileIcon = targetTitleGroup.createSpan({ cls: "keymask-target-icon" });
     setIcon(targetFileIcon, "file-text");
-    targetTitleGroup.createEl("span", {
+    targetTitleGroup.createSpan({
       cls: "keymask-target-filename",
       text: `${this.file.basename}.md`,
     });
 
-    targetTop.createEl("span", {
+    targetTop.createSpan({
       cls: "keymask-target-algo-pill",
       text: "AES-256-GCM",
     });
 
     // Row 2: File Stats (Lines, Characters, Folder Path)
     const statsRow = targetCard.createDiv({ cls: "keymask-target-stats-row" });
-    statsRow.createEl("span", {
+    statsRow.createSpan({
       cls: "keymask-stat-item",
       text: `📊 ${lines} ${lines === 1 ? "line" : "lines"}`,
     });
-    statsRow.createEl("span", { cls: "keymask-stat-bullet", text: "•" });
-    statsRow.createEl("span", {
+    statsRow.createSpan({ cls: "keymask-stat-bullet", text: "•" });
+    statsRow.createSpan({
       cls: "keymask-stat-item",
       text: `🔤 ${chars.toLocaleString()} characters`,
     });
     if (this.file.parent && this.file.parent.path !== "/") {
-      statsRow.createEl("span", { cls: "keymask-stat-bullet", text: "•" });
-      statsRow.createEl("span", {
+      statsRow.createSpan({ cls: "keymask-stat-bullet", text: "•" });
+      statsRow.createSpan({
         cls: "keymask-stat-item",
         text: `📁 ${this.file.parent.path}`,
       });
@@ -95,7 +95,7 @@ export class EncryptFileModal extends Modal {
       cls: "keymask-field-label",
       text: "Note Security Label",
     });
-    labelHeader.createEl("span", {
+    labelHeader.createSpan({
       cls: "keymask-field-hint",
       text: "Public title shown while note is locked",
     });
@@ -152,8 +152,9 @@ export class EncryptFileModal extends Modal {
       if (this.onSuccess) {
         this.onSuccess();
       }
-    } catch (err: any) {
-      new Notice(`Failed to encrypt note: ${err.message}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      new Notice(`Failed to encrypt note: ${msg}`);
     }
   }
 

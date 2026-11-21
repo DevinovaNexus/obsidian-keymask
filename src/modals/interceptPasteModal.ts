@@ -46,7 +46,7 @@ export class InterceptPasteModal extends Modal {
     contentEl.createEl("h2", { text: "⚠️ Sensitive Token Pattern Detected" });
 
     const banner = contentEl.createDiv({ cls: "keymask-intercept-banner" });
-    banner.createEl("span", {
+    banner.createSpan({
       cls: "keymask-badge-pattern",
       text: this.detectedToken.patternName,
     });
@@ -154,8 +154,9 @@ export class InterceptPasteModal extends Modal {
       this.editor.replaceSelection(finalTextToInsert);
       new Notice("🔒 Credential encrypted and masked in note.");
       this.close();
-    } catch (err: any) {
-      this.showError(err.message || "Encryption failed.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.showError(msg || "Encryption failed.");
     }
   }
 

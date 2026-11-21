@@ -46,7 +46,7 @@ export class KeyMaskSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl("h2", { text: "KeyMask Settings" });
+    new Setting(containerEl).setName("Security & Vault Status").setHeading();
 
     // 1. Vault Status Banner
     const statusDiv = containerEl.createDiv({ cls: "keymask-status-banner" });
@@ -54,7 +54,7 @@ export class KeyMaskSettingTab extends PluginSettingTab {
     const isInitialized = this.plugin.settings.isInitialized;
 
     if (!isInitialized) {
-      statusDiv.createEl("div", {
+      statusDiv.createDiv({
         cls: "keymask-status-pill unconfigured",
         text: "⚠️ Vault Not Initialized",
       });
@@ -81,7 +81,7 @@ export class KeyMaskSettingTab extends PluginSettingTab {
       const statusText = isUnlocked ? "🔓 Vault Unlocked" : "🔒 Vault Locked";
       const statusCls = isUnlocked ? "unlocked" : "locked";
 
-      statusDiv.createEl("div", {
+      statusDiv.createDiv({
         cls: `keymask-status-pill ${statusCls}`,
         text: statusText,
       });
@@ -97,7 +97,7 @@ export class KeyMaskSettingTab extends PluginSettingTab {
           if (isUnlocked) {
             button
               .setButtonText("Lock Vault Now")
-              .setWarning()
+              .setClass("mod-warning")
               .onClick(() => {
                 this.plugin.session.lock();
                 new Notice("KeyMask locked.");
@@ -133,7 +133,7 @@ export class KeyMaskSettingTab extends PluginSettingTab {
     }
 
     // 2. Session & Auto-Lock Options
-    containerEl.createEl("h3", { text: "Session & Key Lifecycle" });
+    new Setting(containerEl).setName("Session & Key Lifecycle").setHeading();
 
     new Setting(containerEl)
       .setName("Auto-Lock Inactivity Timeout")
@@ -142,7 +142,6 @@ export class KeyMaskSettingTab extends PluginSettingTab {
         slider
           .setLimits(0, 120, 5)
           .setValue(this.plugin.settings.autoLockTimeoutMinutes)
-          .setDynamicTooltip()
           .onChange(async (val) => {
             this.plugin.settings.autoLockTimeoutMinutes = val;
             await this.plugin.saveSettings();
@@ -165,7 +164,7 @@ export class KeyMaskSettingTab extends PluginSettingTab {
       );
 
     // 3. UI & Masking Options
-    containerEl.createEl("h3", { text: "Interactive Masking & Clipboard" });
+    new Setting(containerEl).setName("Interactive Masking & Clipboard").setHeading();
 
     new Setting(containerEl)
       .setName("Click-to-Reveal Timeout")
@@ -174,7 +173,6 @@ export class KeyMaskSettingTab extends PluginSettingTab {
         slider
           .setLimits(3, 30, 1)
           .setValue(this.plugin.settings.revealTimeoutSeconds)
-          .setDynamicTooltip()
           .onChange(async (val) => {
             this.plugin.settings.revealTimeoutSeconds = val;
             await this.plugin.saveSettings();
@@ -188,7 +186,6 @@ export class KeyMaskSettingTab extends PluginSettingTab {
         slider
           .setLimits(15, 60, 5)
           .setValue(this.plugin.settings.clipboardWipeTimeoutSeconds)
-          .setDynamicTooltip()
           .onChange(async (val) => {
             this.plugin.settings.clipboardWipeTimeoutSeconds = val;
             await this.plugin.saveSettings();
@@ -196,7 +193,7 @@ export class KeyMaskSettingTab extends PluginSettingTab {
       );
 
     // 4. Reactive Leak Prevention
-    containerEl.createEl("h3", { text: "Reactive Leak Prevention" });
+    new Setting(containerEl).setName("Reactive Leak Prevention").setHeading();
 
     new Setting(containerEl)
       .setName("Intercept Sensitive Pastes")
@@ -213,7 +210,7 @@ export class KeyMaskSettingTab extends PluginSettingTab {
       );
 
     // 5. Vault Security Audit & Leak Scanner
-    containerEl.createEl("h3", { text: "Vault Security Audit & Leak Scanner" });
+    new Setting(containerEl).setName("Vault Security Audit & Leak Scanner").setHeading();
 
     new Setting(containerEl)
       .setName("Audit Notes for Plaintext Secrets")
@@ -230,7 +227,7 @@ export class KeyMaskSettingTab extends PluginSettingTab {
       );
 
     // 6. Data Ownership, Portability & Offboarding
-    containerEl.createEl("h3", { text: "Data Ownership, Portability & Offboarding" });
+    new Setting(containerEl).setName("Data Ownership, Portability & Offboarding").setHeading();
 
     containerEl.createEl("p", {
       cls: "setting-item-description",
@@ -254,7 +251,7 @@ export class KeyMaskSettingTab extends PluginSettingTab {
       .addButton((button) =>
         button
           .setButtonText("Revert All to Plaintext")
-          .setWarning()
+          .setClass("mod-warning")
           .onClick(() => {
             new BatchDecryptModal(this.app, this.plugin).open();
           })
@@ -262,7 +259,7 @@ export class KeyMaskSettingTab extends PluginSettingTab {
 
     // 7. Danger Zone / Vault Reset
     if (isInitialized) {
-      containerEl.createEl("h3", { text: "Advanced / Danger Zone" });
+      new Setting(containerEl).setName("Advanced / Danger Zone").setHeading();
 
       new Setting(containerEl)
         .setName("Reset KeyMask Configuration")
@@ -272,7 +269,7 @@ export class KeyMaskSettingTab extends PluginSettingTab {
         .addButton((button) =>
           button
             .setButtonText("Reset Vault Configuration")
-            .setWarning()
+            .setClass("mod-warning")
             .onClick(async () => {
               const confirmed = await confirmAction(this.app, {
                 title: "Reset KeyMask Configuration",

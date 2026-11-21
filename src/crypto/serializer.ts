@@ -33,7 +33,7 @@ export interface SecretPayload {
  * %%km:v1:label=<LABEL>:iv=<IV>:data=<DATA>:tag=<TAG>%%
  */
 export const INLINE_SECRET_REGEX =
-  /%%(?:km|vg):v1:((?:(?:label|iv|data|tag)=[A-Za-z0-9_\-\/+=]*:?)+)%%/g;
+  /%%(?:km|vg):v1:((?:(?:label|iv|data|tag)=[A-Za-z0-9_/\-+=]*:?)+)%%/g;
 
 /**
  * Regex matching fenced code block KeyMask secrets:
@@ -129,7 +129,7 @@ export function parseInline(raw: string): SecretPayload | null {
       rawText: trimmed,
       isCodeBlock: false,
     };
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -255,7 +255,7 @@ export function parseCodeBlock(raw: string): SecretPayload | null {
     const tag = base64ToUint8Array(tagStr);
 
     return {
-      version: 1,
+      version: version || 1,
       label,
       iv,
       data,
@@ -264,7 +264,7 @@ export function parseCodeBlock(raw: string): SecretPayload | null {
       isCodeBlock: true,
       isFilePayload,
     };
-  } catch (err) {
+  } catch {
     return null;
   }
 }

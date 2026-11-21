@@ -11,7 +11,7 @@
 
 import { Editor, MarkdownView } from "obsidian";
 import type KeyMaskPlugin from "../main";
-import { detectSensitiveToken, DetectedToken } from "../utils/heuristics";
+import { detectSensitiveToken } from "../utils/heuristics";
 import { InterceptPasteModal } from "../modals/interceptPasteModal";
 
 export function registerPasteHandler(plugin: KeyMaskPlugin): void {
@@ -44,14 +44,14 @@ export function registerPasteHandler(plugin: KeyMaskPlugin): void {
     if (isHandlingPaste) return true;
     isHandlingPaste = true;
 
-    setTimeout(() => {
+    window.setTimeout(() => {
       new InterceptPasteModal(plugin.app, plugin, {
         editor,
         pastedText: rawText,
         detectedToken: detected,
       }).open();
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         isHandlingPaste = false;
       }, 500);
     }, 10);
@@ -66,9 +66,14 @@ export function registerPasteHandler(plugin: KeyMaskPlugin): void {
     let text = evt.clipboardData?.getData("text/plain") || "";
     if (!text) {
       try {
-        const electron = (window as any).require?.("electron");
-        text = electron?.clipboard?.readText() || "";
-      } catch {}
+        const req = (window as unknown as { require?: (mod: string) => unknown }).require;
+        if (typeof req === "function") {
+          const electron = req("electron") as { clipboard?: { readText: () => string } } | undefined;
+          text = electron?.clipboard?.readText() || "";
+        }
+      } catch (_err) {
+        void _err;
+      }
     }
     return text;
   };
@@ -95,10 +100,13 @@ export function registerPasteHandler(plugin: KeyMaskPlugin): void {
     plugin.app.workspace.on(
       "editor-paste",
       (evt: ClipboardEvent, editor: Editor, view: MarkdownView) => {
+        if (evt.defaultPrevented) return;
         const pastedText = getPastedText(evt);
         if (!pastedText) return;
 
-        processPaste(pastedText, evt, editor);
+        if (processPaste(pastedText, evt, editor)) {
+          evt.preventDefault();
+        }
       }
     )
   );

@@ -87,7 +87,7 @@ export function isFalsePositiveSecret(str: string): boolean {
   const clean = str.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
   if (NON_PASSWORD_WORDS.has(clean)) return true;
   // <placeholder>, [placeholder], {placeholder}
-  if (/^<[^>]+>$/.test(str) || /^\[[^\]]+\]$/.test(str) || /^\{[^\}]+\}$/.test(str)) return true;
+  if (/^<[^>]+>$/.test(str) || /^\[[^\]]+\]$/.test(str) || /^\{[^}]+\}$/.test(str)) return true;
   // Env var expansions: $VAR, ${VAR}
   if (/^\$\{?[A-Za-z0-9_]+\}?$/.test(str)) return true;
   // Code expressions: process.env.X, env('X'), os.environ[...]

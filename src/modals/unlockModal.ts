@@ -67,7 +67,7 @@ export class UnlockModal extends Modal {
         });
     }
 
-    const passSetting = new Setting(contentEl)
+    new Setting(contentEl)
       .setName(this.options.mode === "change" ? "New Passphrase" : "Master Passphrase")
       .addText((text) => {
         text.inputEl.type = "password";
@@ -79,7 +79,7 @@ export class UnlockModal extends Modal {
         });
         text.inputEl.addEventListener("keydown", (e) => {
           if (e.key === "Enter" && !this.isBusy) {
-            this.handleSubmit();
+            void this.handleSubmit();
           }
         });
       });
@@ -96,7 +96,7 @@ export class UnlockModal extends Modal {
           });
           text.inputEl.addEventListener("keydown", (e) => {
             if (e.key === "Enter" && !this.isBusy) {
-              this.handleSubmit();
+              void this.handleSubmit();
             }
           });
         });
@@ -123,7 +123,7 @@ export class UnlockModal extends Modal {
     });
     this.submitButton.addEventListener("click", () => {
       if (!this.isBusy) {
-        this.handleSubmit();
+        void this.handleSubmit();
       }
     });
   }
@@ -196,8 +196,9 @@ export class UnlockModal extends Modal {
 
       this.close();
       this.options.onSuccess?.();
-    } catch (err: any) {
-      this.showError(err.message || "Authentication failed. Check your passphrase.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.showError(msg || "Authentication failed. Check your passphrase.");
     } finally {
       this.setBusy(false);
     }

@@ -150,7 +150,7 @@ export class KeyMaskSession {
       if (decrypted !== CANARY_PLAINTEXT && decrypted !== LEGACY_CANARY_PLAINTEXT) {
         throw new Error("Invalid canary plaintext.");
       }
-    } catch (err) {
+    } catch {
       throw new Error("Incorrect master passphrase.");
     }
 
@@ -262,20 +262,20 @@ export class KeyMaskSession {
     const timeoutMinutes = this.config.getAutoLockTimeoutMinutes();
     if (timeoutMinutes <= 0) return; // 0 disables auto-lock
 
-    this.autoLockTimer = setTimeout(() => {
+    this.autoLockTimer = window.setTimeout(() => {
       this.lock();
     }, timeoutMinutes * 60 * 1000);
   }
 
   private clearAutoLockTimer(): void {
     if (this.autoLockTimer !== null) {
-      clearTimeout(this.autoLockTimer);
+      window.clearTimeout(this.autoLockTimer);
       this.autoLockTimer = null;
     }
   }
 
   private setupWindowListeners(): void {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || typeof window.addEventListener !== "function") return;
 
     // Window blur / app suspension
     window.addEventListener("blur", () => {

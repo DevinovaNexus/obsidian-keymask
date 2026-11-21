@@ -18,6 +18,16 @@ export interface ClipboardOptions {
   notifyOnWipe?: boolean;
 }
 
+interface ElectronClipboard {
+  readText(): string;
+  writeText(text: string): void;
+  clear(): void;
+}
+
+interface ElectronModule {
+  clipboard?: ElectronClipboard;
+}
+
 export class KeyMaskClipboard {
   private static activeWipeTimer: ReturnType<typeof setTimeout> | null = null;
   private static lastSecretCopied: string | null = null;
@@ -25,14 +35,17 @@ export class KeyMaskClipboard {
   /**
    * Safely obtain Electron clipboard module if running in Obsidian Desktop
    */
-  private static getElectronClipboard(): any {
+  private static getElectronClipboard(): ElectronClipboard | null {
     try {
-      if (typeof window !== "undefined" && (window as any).require) {
-        const electron = (window as any).require("electron");
-        return electron?.clipboard || null;
+      if (typeof window !== "undefined") {
+        const req = (window as unknown as { require?: (mod: string) => unknown }).require;
+        if (typeof req === "function") {
+          const electron = req("electron") as ElectronModule | undefined;
+          return electron?.clipboard || null;
+        }
       }
-    } catch (e) {
-      // In mobile or non-electron environments, this safely throws or returns null
+    } catch (_err) {
+      void _err;
     }
     return null;
   }
@@ -45,7 +58,9 @@ export class KeyMaskClipboard {
     if (electronClipboard) {
       try {
         return electronClipboard.readText();
-      } catch {}
+      } catch (_err) {
+        void _err;
+      }
     }
 
     if (
@@ -55,7 +70,9 @@ export class KeyMaskClipboard {
     ) {
       try {
         return await navigator.clipboard.readText();
-      } catch {}
+      } catch (_err) {
+        void _err;
+      }
     }
 
     return null;
@@ -70,7 +87,9 @@ export class KeyMaskClipboard {
       try {
         electronClipboard.clear();
         return;
-      } catch {}
+      } catch (_err) {
+        void _err;
+      }
     }
 
     if (
@@ -80,7 +99,9 @@ export class KeyMaskClipboard {
     ) {
       try {
         await navigator.clipboard.writeText("");
-      } catch {}
+      } catch {
+        // Fall through
+      }
     }
   }
 
@@ -97,7 +118,7 @@ export class KeyMaskClipboard {
 
     // 1. Clear any prior auto-wipe timer
     if (this.activeWipeTimer !== null) {
-      clearTimeout(this.activeWipeTimer);
+      window.clearTimeout(this.activeWipeTimer);
       this.activeWipeTimer = null;
     }
     this.lastSecretCopied = secret;
@@ -107,7 +128,7 @@ export class KeyMaskClipboard {
 
     // 2. Schedule Ephemeral Auto-Wipe Timer
     if (timeoutSeconds > 0) {
-      this.activeWipeTimer = setTimeout(async () => {
+      this.activeWipeTimer = window.setTimeout(async () => {
         try {
           // Verify if clipboard still contains this exact secret before wiping
           const currentText = await this.readText();
@@ -161,21 +182,22 @@ export class KeyMaskClipboard {
     if (!written) {
       // Fallback for iOS/mobile webviews where navigator.clipboard requires direct sync user gesture
       try {
-        const textArea = document.createElement("textarea");
+        const textArea = createEl("textarea");
         textArea.value = text;
         textArea.className = "keymask-offscreen-textarea";
         textArea.setAttribute("readonly", "");
-        document.body.appendChild(textArea);
+        const doc = typeof activeDocument !== "undefined" ? activeDocument : document;
+        doc.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
         textArea.setSelectionRange(0, text.length);
-        const success = document.execCommand("copy");
-        document.body.removeChild(textArea);
+        const success = doc.execCommand("copy");
+        doc.body.removeChild(textArea);
         if (!success) {
           throw new Error("execCommand copy returned false");
         }
         written = true;
-      } catch (execErr) {
+      } catch {
         throw new Error("Unable to access clipboard in this environment.");
       }
     }
@@ -186,7 +208,7 @@ export class KeyMaskClipboard {
    */
   public static cancelAutoWipe(): void {
     if (this.activeWipeTimer !== null) {
-      clearTimeout(this.activeWipeTimer);
+      window.clearTimeout(this.activeWipeTimer);
       this.activeWipeTimer = null;
       this.lastSecretCopied = null;
     }

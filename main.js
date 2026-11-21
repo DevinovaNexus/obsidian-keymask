@@ -78,7 +78,7 @@ var UnlockModal = class extends import_obsidian.Modal {
         });
       });
     }
-    const passSetting = new import_obsidian.Setting(contentEl).setName(this.options.mode === "change" ? "New Passphrase" : "Master Passphrase").addText((text) => {
+    new import_obsidian.Setting(contentEl).setName(this.options.mode === "change" ? "New Passphrase" : "Master Passphrase").addText((text) => {
       text.inputEl.type = "password";
       text.inputEl.placeholder = "Enter passphrase";
       text.inputEl.focus();
@@ -88,7 +88,7 @@ var UnlockModal = class extends import_obsidian.Modal {
       });
       text.inputEl.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && !this.isBusy) {
-          this.handleSubmit();
+          void this.handleSubmit();
         }
       });
     });
@@ -102,7 +102,7 @@ var UnlockModal = class extends import_obsidian.Modal {
         });
         text.inputEl.addEventListener("keydown", (e) => {
           if (e.key === "Enter" && !this.isBusy) {
-            this.handleSubmit();
+            void this.handleSubmit();
           }
         });
       });
@@ -120,7 +120,7 @@ var UnlockModal = class extends import_obsidian.Modal {
     });
     this.submitButton.addEventListener("click", () => {
       if (!this.isBusy) {
-        this.handleSubmit();
+        void this.handleSubmit();
       }
     });
   }
@@ -187,7 +187,8 @@ var UnlockModal = class extends import_obsidian.Modal {
       this.close();
       this.options.onSuccess?.();
     } catch (err) {
-      this.showError(err.message || "Authentication failed. Check your passphrase.");
+      const msg = err instanceof Error ? err.message : String(err);
+      this.showError(msg || "Authentication failed. Check your passphrase.");
     } finally {
       this.setBusy(false);
     }
@@ -246,7 +247,7 @@ function isFalsePositiveSecret(str) {
   if (!str) return true;
   const clean = str.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
   if (NON_PASSWORD_WORDS.has(clean)) return true;
-  if (/^<[^>]+>$/.test(str) || /^\[[^\]]+\]$/.test(str) || /^\{[^\}]+\}$/.test(str)) return true;
+  if (/^<[^>]+>$/.test(str) || /^\[[^\]]+\]$/.test(str) || /^\{[^}]+\}$/.test(str)) return true;
   if (/^\$\{?[A-Za-z0-9_]+\}?$/.test(str)) return true;
   if (/^(?:process\.env|os\.environ|env\(|getenv)/i.test(str)) return true;
   return false;
@@ -572,7 +573,7 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
       text: "\u{1F50D} Start Secret Audit"
     });
     startScanBtn.addEventListener("click", () => {
-      this.runAuditScan();
+      void this.runAuditScan();
     });
     this.progressContainer = this.containerElContent.createDiv({
       cls: "keymask-audit-progress-container keymask-hidden"
@@ -649,7 +650,7 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
         progressLabel.textContent = `Scanning note ${scannedCount}/${totalFiles}... (${exposedCount} exposed secrets found)`;
       }
       if (i % 10 === 0) {
-        await new Promise((r) => setTimeout(r, 0));
+        await new Promise((r) => window.setTimeout(r, 0));
       }
     }
     this.isScanning = false;
@@ -669,7 +670,7 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
       const cleanBanner = this.resultsContainer.createDiv({
         cls: "keymask-clean-banner"
       });
-      cleanBanner.createEl("div", { cls: "clean-icon", text: "\u{1F389}" });
+      cleanBanner.createDiv({ cls: "clean-icon", text: "\u{1F389}" });
       cleanBanner.createEl("h3", { text: "No Exposed Secrets Found!" });
       cleanBanner.createEl("p", {
         cls: "setting-item-description",
@@ -742,7 +743,7 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
       text: `\u{1F512} Encrypt & Mask Selected (${this.selectedSecretIds.size})`
     });
     remediateBtn.addEventListener("click", () => {
-      this.executeBatchRemediation();
+      void this.executeBatchRemediation();
     });
     const filesList = this.resultsContainer.createDiv({
       cls: "keymask-audit-files-list"
@@ -752,18 +753,18 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
       const fileCard = filesList.createDiv({ cls: "keymask-file-card" });
       const fileHeader = fileCard.createDiv({ cls: "keymask-file-header" });
       const fileInfo = fileHeader.createDiv({ cls: "keymask-file-info" });
-      const fileTitle = fileInfo.createEl("span", {
+      fileInfo.createSpan({
         cls: "keymask-file-title",
         text: `\u{1F4C4} ${file.basename}`
       });
       if (file.parent && file.parent.path !== "/") {
-        fileInfo.createEl("span", {
+        fileInfo.createSpan({
           cls: "keymask-file-path",
           text: `\u{1F4C1} ${file.path}`
         });
       }
       const headerRight = fileHeader.createDiv({ cls: "keymask-header-actions" });
-      headerRight.createEl("span", {
+      headerRight.createSpan({
         cls: "keymask-file-badge",
         text: `${secrets.length} secret${secrets.length > 1 ? "s" : ""}`
       });
@@ -774,9 +775,9 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
       });
       openNoteBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        this.openNoteAtLine(file, 1);
+        void this.openNoteAtLine(file, 1);
       });
-      const chevronIcon = headerRight.createEl("span", {
+      const chevronIcon = headerRight.createSpan({
         cls: "keymask-chevron-icon",
         text: "\u25BC"
       });
@@ -815,15 +816,15 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
           }
           this.updateRemediateButton(remediateBtn);
         });
-        const lineBadge = leftGroup.createEl("span", {
+        const lineBadge = leftGroup.createSpan({
           cls: "keymask-cell-line clickable-icon",
           text: `\u{1F4CD} Line ${secret.lineNumber}`,
           attr: { title: "Click to jump to line in note" }
         });
         lineBadge.addEventListener("click", () => {
-          this.openNoteAtLine(file, secret.lineNumber, secret.matchedText);
+          void this.openNoteAtLine(file, secret.lineNumber, secret.matchedText);
         });
-        leftGroup.createEl("span", {
+        leftGroup.createSpan({
           cls: "keymask-pattern-tag",
           text: secret.patternName
         });
@@ -835,10 +836,10 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
         });
         jumpBtn.addEventListener("click", (e) => {
           e.stopPropagation();
-          this.openNoteAtLine(file, secret.lineNumber, secret.matchedText);
+          void this.openNoteAtLine(file, secret.lineNumber, secret.matchedText);
         });
         if (this.remediatedSecretIds.has(secret.id)) {
-          rightGroup.createEl("span", {
+          rightGroup.createSpan({
             cls: "keymask-remediated-badge",
             text: "\u2705 Encrypted"
           });
@@ -849,7 +850,7 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
           });
           singleEncryptBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            this.remediateSingleSecret(file, secret);
+            void this.remediateSingleSecret(file, secret);
           });
         }
         const snippetBox = itemCard.createDiv({
@@ -857,7 +858,7 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
           attr: { title: "Click to jump to this secret in editor" }
         });
         snippetBox.addEventListener("click", () => {
-          this.openNoteAtLine(file, secret.lineNumber, secret.matchedText);
+          void this.openNoteAtLine(file, secret.lineNumber, secret.matchedText);
         });
         const codeSnippet = snippetBox.createEl("code");
         const snippet = extractSecretSnippet(secret.lineContent, secret.matchedText, 40);
@@ -872,7 +873,7 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
           codeSnippet.createSpan({ text: snippet.after, cls: "keymask-snippet-context" });
         }
         const bottomRow = itemCard.createDiv({ cls: "keymask-item-bottom-row" });
-        bottomRow.createEl("span", {
+        bottomRow.createSpan({
           cls: "keymask-label-caption",
           text: "Pill Label:"
         });
@@ -897,7 +898,7 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
       const leaf = this.app.workspace.getLeaf(false);
       await leaf.openFile(file);
       this.app.workspace.setActiveLeaf(leaf, { focus: true });
-      setTimeout(() => {
+      window.setTimeout(() => {
         const view = this.app.workspace.getActiveViewOfType(import_obsidian2.MarkdownView);
         if (view && view.editor) {
           const lineIndex = Math.max(0, lineNumber - 1);
@@ -934,7 +935,8 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
         `\u{1F4CD} Jumped to Line ${lineNumber} in "${file.basename}". Reopen Audit via Settings or Command Palette.`
       );
     } catch (e) {
-      new import_obsidian2.Notice(`Could not open file: ${e.message}`);
+      const msg = e instanceof Error ? e.message : String(e);
+      new import_obsidian2.Notice(`Could not open file: ${msg}`);
     }
   }
   updateSelectionCounts() {
@@ -991,7 +993,8 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
       new import_obsidian2.Notice(`\u{1F512} Encrypted secret in "${file.basename}".`);
       this.renderAuditResults();
     } catch (err) {
-      new import_obsidian2.Notice(`Failed to encrypt secret: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      new import_obsidian2.Notice(`Failed to encrypt secret: ${msg}`);
     }
   }
   /**
@@ -1044,7 +1047,8 @@ var VaultAuditModal = class extends import_obsidian2.Modal {
       );
       this.renderAuditResults();
     } catch (err) {
-      new import_obsidian2.Notice(`Error during batch encryption: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      new import_obsidian2.Notice(`Error during batch encryption: ${msg}`);
     } finally {
       this.isRemediating = false;
     }
@@ -1082,25 +1086,30 @@ var AES_KEY_LENGTH = 256;
 var AES_TAG_LENGTH = 128;
 var IV_LENGTH_BYTES = 12;
 var SALT_LENGTH_BYTES = 16;
-function getSubtleCrypto() {
-  if (typeof window !== "undefined" && window.crypto && window.crypto.subtle) {
-    return window.crypto.subtle;
+function getCrypto() {
+  if (typeof window !== "undefined" && window.crypto) {
+    return window.crypto;
   }
-  if (typeof globalThis !== "undefined" && globalThis.crypto && globalThis.crypto.subtle) {
-    return globalThis.crypto.subtle;
+  if (typeof crypto !== "undefined") {
+    return crypto;
+  }
+  throw new Error("Web Cryptography API is not available.");
+}
+function getSubtleCrypto() {
+  const cryptoObj = getCrypto();
+  if (cryptoObj.subtle) {
+    return cryptoObj.subtle;
   }
   throw new Error("Web Cryptography API (crypto.subtle) is not available in this environment.");
 }
 function generateSalt() {
   const salt = new Uint8Array(SALT_LENGTH_BYTES);
-  const cryptoObj = typeof window !== "undefined" && window.crypto || globalThis.crypto;
-  cryptoObj.getRandomValues(salt);
+  getCrypto().getRandomValues(salt);
   return salt;
 }
 function generateIV() {
   const iv = new Uint8Array(IV_LENGTH_BYTES);
-  const cryptoObj = typeof window !== "undefined" && window.crypto || globalThis.crypto;
-  cryptoObj.getRandomValues(iv);
+  getCrypto().getRandomValues(iv);
   return iv;
 }
 async function deriveKeyFromPassphrase(passphrase, salt, iterations = DEFAULT_KDF_ITERATIONS) {
@@ -1183,7 +1192,7 @@ async function decrypt(encrypted, key) {
     );
     const decoder = new TextDecoder();
     return decoder.decode(decryptedBuffer);
-  } catch (err) {
+  } catch {
     throw new Error("Decryption failed: integrity check or authentication tag mismatch. Data may be corrupted or key incorrect.");
   }
 }
@@ -1224,7 +1233,7 @@ function base64UrlToString(base64url) {
 }
 
 // src/crypto/serializer.ts
-var INLINE_SECRET_REGEX = /%%(?:km|vg):v1:((?:(?:label|iv|data|tag)=[A-Za-z0-9_\-\/+=]*:?)+)%%/g;
+var INLINE_SECRET_REGEX = /%%(?:km|vg):v1:((?:(?:label|iv|data|tag)=[A-Za-z0-9_/\-+=]*:?)+)%%/g;
 var CODE_BLOCK_SECRET_REGEX = /```(?:keymask|vaultguard)\s*\n([\s\S]*?)\n```/g;
 function serializeInline(payload) {
   const parts = ["km:v1"];
@@ -1288,7 +1297,7 @@ function parseInline(raw) {
       rawText: trimmed,
       isCodeBlock: false
     };
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -1372,7 +1381,7 @@ function parseCodeBlock(raw) {
     const data = base64ToUint8Array(dataStr);
     const tag = base64ToUint8Array(tagStr);
     return {
-      version: 1,
+      version: version || 1,
       label,
       iv,
       data,
@@ -1381,7 +1390,7 @@ function parseCodeBlock(raw) {
       isCodeBlock: true,
       isFilePayload
     };
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -1512,8 +1521,8 @@ var ExportSecretsModal = class extends import_obsidian3.Modal {
       text: "Decrypt and export your secrets into standard KeePass XML or CSV format. The exported file can be opened directly with MacPass, KeePassXC, KeePass, or imported into 1Password / Bitwarden."
     });
     const warningBox = contentEl.createDiv({ cls: "keymask-intercept-banner" });
-    warningBox.createEl("span", { cls: "keymask-badge-pattern", text: "Security Notice" });
-    warningBox.createEl("span", {
+    warningBox.createSpan({ cls: "keymask-badge-pattern", text: "Security Notice" });
+    warningBox.createSpan({
       cls: "setting-item-description",
       text: "The generated export file will contain your credentials. Store it in a secure location or import it into MacPass/KeePass immediately, then delete the exported file."
     });
@@ -1664,7 +1673,8 @@ Storage Format: Fenced Code Block`
       this.close();
     } catch (err) {
       if (this.errorEl) {
-        this.errorEl.textContent = `Export failed: ${err.message}`;
+        const msg = err instanceof Error ? err.message : String(err);
+        this.errorEl.textContent = `Export failed: ${msg}`;
         this.errorEl.removeClass("keymask-hidden");
       }
     } finally {
@@ -1678,14 +1688,15 @@ Storage Format: Fenced Code Block`
 function downloadFile(content, filename, mimeType) {
   const blob = new Blob([content], { type: `${mimeType};charset=utf-8;` });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
+  const link = createEl("a");
   link.setAttribute("href", url);
   link.setAttribute("download", filename);
   link.className = "keymask-hidden";
-  document.body.appendChild(link);
+  const doc = typeof activeDocument !== "undefined" ? activeDocument : document;
+  doc.body.appendChild(link);
   link.click();
-  setTimeout(() => {
-    document.body.removeChild(link);
+  window.setTimeout(() => {
+    doc.body.removeChild(link);
     URL.revokeObjectURL(url);
   }, 100);
 }
@@ -1713,11 +1724,11 @@ var BatchDecryptModal = class extends import_obsidian4.Modal {
       text: "This operation will decrypt all KeyMask tokens (%%km:v1:...%%) in your notes back into raw plaintext. Use this if you are planning to disable or remove the KeyMask plugin and want your notes restored to standard unencrypted Markdown."
     });
     const dangerCard = contentEl.createDiv({ cls: "keymask-corrupted-block" });
-    dangerCard.createEl("div", {
+    dangerCard.createDiv({
       cls: "keymask-corrupted-header",
       text: "\u26A0\uFE0F Plaintext Warning"
     });
-    dangerCard.createEl("div", {
+    dangerCard.createDiv({
       cls: "keymask-corrupted-desc",
       text: "Decrypting all secrets will expose your API keys, credentials, and passwords to note history, cloud sync engines (iCloud, Obsidian Sync, Git), and any third-party plugins. Ensure your environment is secure before proceeding."
     });
@@ -1841,7 +1852,8 @@ var BatchDecryptModal = class extends import_obsidian4.Modal {
       );
       this.close();
     } catch (err) {
-      new import_obsidian4.Notice(`Error during batch decryption: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      new import_obsidian4.Notice(`Error during batch decryption: ${msg}`);
     } finally {
       this.isProcessing = false;
     }
@@ -1925,12 +1937,12 @@ var KeyMaskSettingTab = class extends import_obsidian6.PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "KeyMask Settings" });
+    new import_obsidian6.Setting(containerEl).setName("Security & Vault Status").setHeading();
     const statusDiv = containerEl.createDiv({ cls: "keymask-status-banner" });
     const isUnlocked = this.plugin.session.isUnlocked();
     const isInitialized = this.plugin.settings.isInitialized;
     if (!isInitialized) {
-      statusDiv.createEl("div", {
+      statusDiv.createDiv({
         cls: "keymask-status-pill unconfigured",
         text: "\u26A0\uFE0F Vault Not Initialized"
       });
@@ -1949,7 +1961,7 @@ var KeyMaskSettingTab = class extends import_obsidian6.PluginSettingTab {
     } else {
       const statusText = isUnlocked ? "\u{1F513} Vault Unlocked" : "\u{1F512} Vault Locked";
       const statusCls = isUnlocked ? "unlocked" : "locked";
-      statusDiv.createEl("div", {
+      statusDiv.createDiv({
         cls: `keymask-status-pill ${statusCls}`,
         text: statusText
       });
@@ -1957,7 +1969,7 @@ var KeyMaskSettingTab = class extends import_obsidian6.PluginSettingTab {
         isUnlocked ? "Purge in-memory decryption key immediately." : "Authenticate with your master passphrase to enable decryption."
       ).addButton((button) => {
         if (isUnlocked) {
-          button.setButtonText("Lock Vault Now").setWarning().onClick(() => {
+          button.setButtonText("Lock Vault Now").setClass("mod-warning").onClick(() => {
             this.plugin.session.lock();
             new import_obsidian6.Notice("KeyMask locked.");
             this.display();
@@ -1983,9 +1995,9 @@ var KeyMaskSettingTab = class extends import_obsidian6.PluginSettingTab {
         })
       );
     }
-    containerEl.createEl("h3", { text: "Session & Key Lifecycle" });
+    new import_obsidian6.Setting(containerEl).setName("Session & Key Lifecycle").setHeading();
     new import_obsidian6.Setting(containerEl).setName("Auto-Lock Inactivity Timeout").setDesc("Minutes of idle inactivity before purging the in-memory key (0 to disable).").addSlider(
-      (slider) => slider.setLimits(0, 120, 5).setValue(this.plugin.settings.autoLockTimeoutMinutes).setDynamicTooltip().onChange(async (val) => {
+      (slider) => slider.setLimits(0, 120, 5).setValue(this.plugin.settings.autoLockTimeoutMinutes).onChange(async (val) => {
         this.plugin.settings.autoLockTimeoutMinutes = val;
         await this.plugin.saveSettings();
         this.plugin.session.recordActivity();
@@ -1999,20 +2011,20 @@ var KeyMaskSettingTab = class extends import_obsidian6.PluginSettingTab {
         await this.plugin.saveSettings();
       })
     );
-    containerEl.createEl("h3", { text: "Interactive Masking & Clipboard" });
+    new import_obsidian6.Setting(containerEl).setName("Interactive Masking & Clipboard").setHeading();
     new import_obsidian6.Setting(containerEl).setName("Click-to-Reveal Timeout").setDesc("Seconds before unmasked secrets automatically snap back to masked state.").addSlider(
-      (slider) => slider.setLimits(3, 30, 1).setValue(this.plugin.settings.revealTimeoutSeconds).setDynamicTooltip().onChange(async (val) => {
+      (slider) => slider.setLimits(3, 30, 1).setValue(this.plugin.settings.revealTimeoutSeconds).onChange(async (val) => {
         this.plugin.settings.revealTimeoutSeconds = val;
         await this.plugin.saveSettings();
       })
     );
     new import_obsidian6.Setting(containerEl).setName("Ephemeral Clipboard Auto-Wipe").setDesc("Seconds before copied secrets are securely wiped from the OS clipboard (15-60s).").addSlider(
-      (slider) => slider.setLimits(15, 60, 5).setValue(this.plugin.settings.clipboardWipeTimeoutSeconds).setDynamicTooltip().onChange(async (val) => {
+      (slider) => slider.setLimits(15, 60, 5).setValue(this.plugin.settings.clipboardWipeTimeoutSeconds).onChange(async (val) => {
         this.plugin.settings.clipboardWipeTimeoutSeconds = val;
         await this.plugin.saveSettings();
       })
     );
-    containerEl.createEl("h3", { text: "Reactive Leak Prevention" });
+    new import_obsidian6.Setting(containerEl).setName("Reactive Leak Prevention").setHeading();
     new import_obsidian6.Setting(containerEl).setName("Intercept Sensitive Pastes").setDesc(
       "Inspect editor paste events for OpenAI/Anthropic keys, AWS tokens, GitHub PATs, and private keys, offering one-click encryption."
     ).addToggle(
@@ -2021,7 +2033,7 @@ var KeyMaskSettingTab = class extends import_obsidian6.PluginSettingTab {
         await this.plugin.saveSettings();
       })
     );
-    containerEl.createEl("h3", { text: "Vault Security Audit & Leak Scanner" });
+    new import_obsidian6.Setting(containerEl).setName("Vault Security Audit & Leak Scanner").setHeading();
     new import_obsidian6.Setting(containerEl).setName("Audit Notes for Plaintext Secrets").setDesc(
       "Inspect all existing notes or choose specific folders to detect exposed API keys, credentials, and passwords, and batch encrypt them in-place."
     ).addButton(
@@ -2029,7 +2041,7 @@ var KeyMaskSettingTab = class extends import_obsidian6.PluginSettingTab {
         new VaultAuditModal(this.app, this.plugin).open();
       })
     );
-    containerEl.createEl("h3", { text: "Data Ownership, Portability & Offboarding" });
+    new import_obsidian6.Setting(containerEl).setName("Data Ownership, Portability & Offboarding").setHeading();
     containerEl.createEl("p", {
       cls: "setting-item-description",
       text: "KeyMask enforces zero vendor lock-in. If you ever plan to disable or remove the plugin, you can export your secrets to an external password manager or restore all your notes back to plaintext."
@@ -2040,16 +2052,16 @@ var KeyMaskSettingTab = class extends import_obsidian6.PluginSettingTab {
       })
     );
     new import_obsidian6.Setting(containerEl).setName("Revert Vault to Plaintext (Offboarding)").setDesc("Batch decrypt all KeyMask tokens in your notes back into raw Markdown text. Use this before disabling or uninstalling KeyMask if you want your notes unencrypted.").addButton(
-      (button) => button.setButtonText("Revert All to Plaintext").setWarning().onClick(() => {
+      (button) => button.setButtonText("Revert All to Plaintext").setClass("mod-warning").onClick(() => {
         new BatchDecryptModal(this.app, this.plugin).open();
       })
     );
     if (isInitialized) {
-      containerEl.createEl("h3", { text: "Advanced / Danger Zone" });
+      new import_obsidian6.Setting(containerEl).setName("Advanced / Danger Zone").setHeading();
       new import_obsidian6.Setting(containerEl).setName("Reset KeyMask Configuration").setDesc(
         "Warning: Clears the master salt and verification canary. Existing encrypted tokens in notes will become indecipherable unless you know the previous passphrase."
       ).addButton(
-        (button) => button.setButtonText("Reset Vault Configuration").setWarning().onClick(async () => {
+        (button) => button.setButtonText("Reset Vault Configuration").setClass("mod-warning").onClick(async () => {
           const confirmed = await confirmAction(this.app, {
             title: "Reset KeyMask Configuration",
             message: "Are you sure you want to reset KeyMask? Any secrets encrypted with the current key cannot be decrypted without the original salt and passphrase!",
@@ -2158,7 +2170,7 @@ var KeyMaskSession = class {
       if (decrypted !== CANARY_PLAINTEXT && decrypted !== LEGACY_CANARY_PLAINTEXT) {
         throw new Error("Invalid canary plaintext.");
       }
-    } catch (err) {
+    } catch {
       throw new Error("Incorrect master passphrase.");
     }
     this.derivedKey = candidateKey;
@@ -2243,18 +2255,18 @@ var KeyMaskSession = class {
     this.clearAutoLockTimer();
     const timeoutMinutes = this.config.getAutoLockTimeoutMinutes();
     if (timeoutMinutes <= 0) return;
-    this.autoLockTimer = setTimeout(() => {
+    this.autoLockTimer = window.setTimeout(() => {
       this.lock();
     }, timeoutMinutes * 60 * 1e3);
   }
   clearAutoLockTimer() {
     if (this.autoLockTimer !== null) {
-      clearTimeout(this.autoLockTimer);
+      window.clearTimeout(this.autoLockTimer);
       this.autoLockTimer = null;
     }
   }
   setupWindowListeners() {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || typeof window.addEventListener !== "function") return;
     window.addEventListener("blur", () => {
       if (this.config.getLockOnBlur()) {
         this.lock();
@@ -2293,11 +2305,15 @@ var KeyMaskClipboard = class {
    */
   static getElectronClipboard() {
     try {
-      if (typeof window !== "undefined" && window.require) {
-        const electron = window.require("electron");
-        return electron?.clipboard || null;
+      if (typeof window !== "undefined") {
+        const req = window.require;
+        if (typeof req === "function") {
+          const electron = req("electron");
+          return electron?.clipboard || null;
+        }
       }
-    } catch (e) {
+    } catch (_err) {
+      void _err;
     }
     return null;
   }
@@ -2309,13 +2325,15 @@ var KeyMaskClipboard = class {
     if (electronClipboard) {
       try {
         return electronClipboard.readText();
-      } catch {
+      } catch (_err) {
+        void _err;
       }
     }
     if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.readText) {
       try {
         return await navigator.clipboard.readText();
-      } catch {
+      } catch (_err) {
+        void _err;
       }
     }
     return null;
@@ -2329,7 +2347,8 @@ var KeyMaskClipboard = class {
       try {
         electronClipboard.clear();
         return;
-      } catch {
+      } catch (_err) {
+        void _err;
       }
     }
     if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
@@ -2347,13 +2366,13 @@ var KeyMaskClipboard = class {
     const timeoutSeconds = options.timeoutSeconds ?? 30;
     const notifyOnWipe = options.notifyOnWipe ?? true;
     if (this.activeWipeTimer !== null) {
-      clearTimeout(this.activeWipeTimer);
+      window.clearTimeout(this.activeWipeTimer);
       this.activeWipeTimer = null;
     }
     this.lastSecretCopied = secret;
     await this.writeText(secret);
     if (timeoutSeconds > 0) {
-      this.activeWipeTimer = setTimeout(async () => {
+      this.activeWipeTimer = window.setTimeout(async () => {
         try {
           const currentText = await this.readText();
           if (currentText === this.lastSecretCopied) {
@@ -2397,21 +2416,22 @@ var KeyMaskClipboard = class {
     }
     if (!written) {
       try {
-        const textArea = document.createElement("textarea");
+        const textArea = createEl("textarea");
         textArea.value = text;
         textArea.className = "keymask-offscreen-textarea";
         textArea.setAttribute("readonly", "");
-        document.body.appendChild(textArea);
+        const doc = typeof activeDocument !== "undefined" ? activeDocument : document;
+        doc.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
         textArea.setSelectionRange(0, text.length);
-        const success = document.execCommand("copy");
-        document.body.removeChild(textArea);
+        const success = doc.execCommand("copy");
+        doc.body.removeChild(textArea);
         if (!success) {
           throw new Error("execCommand copy returned false");
         }
         written = true;
-      } catch (execErr) {
+      } catch {
         throw new Error("Unable to access clipboard in this environment.");
       }
     }
@@ -2421,7 +2441,7 @@ var KeyMaskClipboard = class {
    */
   static cancelAutoWipe() {
     if (this.activeWipeTimer !== null) {
-      clearTimeout(this.activeWipeTimer);
+      window.clearTimeout(this.activeWipeTimer);
       this.activeWipeTimer = null;
       this.lastSecretCopied = null;
     }
@@ -2465,36 +2485,37 @@ function createPillElement(options) {
   if (payload && payload.isFilePayload) {
     return createWholeFileCardElement(options);
   }
-  const container = document.createElement(isCodeBlock ? "div" : "span");
+  const container = createEl(isCodeBlock ? "div" : "span");
   container.className = isCodeBlock ? "keymask-block-wrapper" : "keymask-pill-wrapper";
   if (!payload) {
     renderCorruptedBlock(container, "Invalid secret syntax or damaged payload", rawText);
     return container;
   }
-  const pill = document.createElement("span");
+  const pill = createSpan();
   pill.className = `keymask-pill ${isCodeBlock ? "is-codeblock" : "is-inline"}`;
-  const iconSpan = document.createElement("span");
+  const iconSpan = createSpan();
   iconSpan.className = "keymask-pill-icon";
   updateIcon(iconSpan, plugin.session.isUnlocked());
-  const labelSpan = document.createElement("span");
+  const labelSpan = createSpan();
   labelSpan.className = "keymask-pill-label";
   labelSpan.textContent = payload.label || (isCodeBlock ? "Encrypted Secret Block" : "Secret");
-  const valueSpan = document.createElement("span");
+  const valueSpan = createSpan();
   valueSpan.className = "keymask-pill-value masked";
   valueSpan.textContent = isCodeBlock ? "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" : "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
   valueSpan.title = "Click to reveal secret";
-  const timerContainer = document.createElement("span");
+  const timerContainer = createSpan();
   timerContainer.className = "keymask-timer-ring-container keymask-hidden";
-  const revealBtn = document.createElement("button");
+  const revealBtn = createEl("button");
   revealBtn.type = "button";
   revealBtn.className = "keymask-btn keymask-btn-reveal";
   revealBtn.title = "Click to reveal";
-  revealBtn.innerHTML = `<span class="km-btn-icon">\u{1F441}\uFE0F</span>`;
-  const copyBtn = document.createElement("button");
+  revealBtn.createSpan({ cls: "km-btn-icon", text: "\u{1F441}\uFE0F" });
+  const copyBtn = createEl("button");
   copyBtn.type = "button";
   copyBtn.className = "keymask-btn keymask-btn-copy";
   copyBtn.title = "Copy decrypted secret to clipboard (auto-wipes)";
-  copyBtn.innerHTML = `<span class="km-btn-icon">\u{1F4CB}</span> <span class="km-btn-text">Copy</span>`;
+  copyBtn.createSpan({ cls: "km-btn-icon", text: "\u{1F4CB}" });
+  copyBtn.createSpan({ cls: "km-btn-text", text: "Copy" });
   pill.appendChild(iconSpan);
   pill.appendChild(labelSpan);
   pill.appendChild(valueSpan);
@@ -2512,7 +2533,7 @@ function createPillElement(options) {
   function maskSecret() {
     isRevealed = false;
     if (countdownTimer !== null) {
-      clearInterval(countdownTimer);
+      window.clearInterval(countdownTimer);
       countdownTimer = null;
     }
     valueSpan.textContent = isCodeBlock ? "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" : "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
@@ -2520,7 +2541,8 @@ function createPillElement(options) {
     timerContainer.addClass("keymask-hidden");
     timerContainer.removeClass("keymask-visible-inline-flex");
     timerContainer.empty();
-    revealBtn.innerHTML = `<span class="km-btn-icon">\u{1F441}\uFE0F</span>`;
+    revealBtn.empty();
+    revealBtn.createSpan({ cls: "km-btn-icon", text: "\u{1F441}\uFE0F" });
     revealBtn.title = "Click to reveal";
   }
   async function revealSecret() {
@@ -2537,15 +2559,16 @@ function createPillElement(options) {
       secondsRemaining = plugin.settings.revealTimeoutSeconds;
       valueSpan.textContent = plaintext;
       valueSpan.className = `keymask-pill-value revealed ${isCodeBlock ? "multiline" : ""}`;
-      revealBtn.innerHTML = `<span class="km-btn-icon">\u{1F648}</span>`;
+      revealBtn.empty();
+      revealBtn.createSpan({ cls: "km-btn-icon", text: "\u{1F648}" });
       revealBtn.title = "Hide secret";
       renderCountdownRing(timerContainer, secondsRemaining, plugin.settings.revealTimeoutSeconds);
       timerContainer.removeClass("keymask-hidden");
       timerContainer.addClass("keymask-visible-inline-flex");
       if (countdownTimer !== null) {
-        clearInterval(countdownTimer);
+        window.clearInterval(countdownTimer);
       }
-      countdownTimer = setInterval(() => {
+      countdownTimer = window.setInterval(() => {
         secondsRemaining -= 1;
         if (secondsRemaining <= 0) {
           maskSecret();
@@ -2554,7 +2577,8 @@ function createPillElement(options) {
         }
       }, 1e3);
     } catch (err) {
-      renderCorruptedBlock(container, err.message || "Decryption failed", rawText);
+      const msg = err instanceof Error ? err.message : String(err);
+      renderCorruptedBlock(container, msg || "Decryption failed", rawText);
     }
   }
   valueSpan.addEventListener("click", (e) => {
@@ -2562,7 +2586,7 @@ function createPillElement(options) {
     if (isRevealed) {
       maskSecret();
     } else {
-      revealSecret();
+      void revealSecret();
     }
   });
   revealBtn.addEventListener("click", (e) => {
@@ -2570,7 +2594,7 @@ function createPillElement(options) {
     if (isRevealed) {
       maskSecret();
     } else {
-      revealSecret();
+      void revealSecret();
     }
   });
   copyBtn.addEventListener("click", async (e) => {
@@ -2591,14 +2615,19 @@ function createPillElement(options) {
         timeoutSeconds: plugin.settings.clipboardWipeTimeoutSeconds
       });
       copyBtn.classList.add("copied");
-      copyBtn.innerHTML = `<span class="km-btn-icon">\u2713</span> <span class="km-btn-text">Copied!</span>`;
-      setTimeout(() => {
+      copyBtn.empty();
+      copyBtn.createSpan({ cls: "km-btn-icon", text: "\u2713" });
+      copyBtn.createSpan({ cls: "km-btn-text", text: "Copied!" });
+      window.setTimeout(() => {
         copyBtn.classList.remove("copied");
-        copyBtn.innerHTML = `<span class="km-btn-icon">\u{1F4CB}</span> <span class="km-btn-text">Copy</span>`;
+        copyBtn.empty();
+        copyBtn.createSpan({ cls: "km-btn-icon", text: "\u{1F4CB}" });
+        copyBtn.createSpan({ cls: "km-btn-text", text: "Copy" });
       }, 2e3);
       new import_obsidian8.Notice(`\u{1F4CB} Decrypted secret copied to clipboard (auto-wipes in ${plugin.settings.clipboardWipeTimeoutSeconds}s).`);
     } catch (err) {
-      renderCorruptedBlock(container, err.message || "Decryption failed on copy", rawText);
+      const msg = err instanceof Error ? err.message : String(err);
+      renderCorruptedBlock(container, msg || "Decryption failed on copy", rawText);
     }
   }
   pill.addEventListener("contextmenu", (e) => {
@@ -2628,7 +2657,7 @@ function createPillElement(options) {
         if (isRevealed) {
           maskSecret();
         } else {
-          revealSecret();
+          void revealSecret();
         }
       });
     });
@@ -2645,7 +2674,7 @@ function createPillElement(options) {
       plugin.session.lock();
     }
   });
-  const unsubscribe = plugin.session.onStateChange((unlocked) => {
+  plugin.session.onStateChange((unlocked) => {
     updateIcon(iconSpan, unlocked);
     if (!unlocked && isRevealed) {
       maskSecret();
@@ -2665,19 +2694,19 @@ function renderCountdownRing(container, current, total) {
   const circumference = 2 * Math.PI * radius;
   const progressRatio = Math.max(0, current / total);
   const strokeDashoffset = circumference * (1 - progressRatio);
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const svg = createSvg("svg");
   svg.setAttribute("class", "keymask-progress-ring");
   svg.setAttribute("width", "22");
   svg.setAttribute("height", "22");
   svg.setAttribute("viewBox", "0 0 24 24");
-  const track = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  const track = createSvg("circle");
   track.setAttribute("class", "keymask-progress-track");
   track.setAttribute("cx", "12");
   track.setAttribute("cy", "12");
   track.setAttribute("r", radius.toString());
   track.setAttribute("fill", "none");
   track.setAttribute("stroke-width", "2.5");
-  const progress = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  const progress = createSvg("circle");
   progress.setAttribute("class", "keymask-progress-indicator");
   progress.setAttribute("cx", "12");
   progress.setAttribute("cy", "12");
@@ -2687,7 +2716,7 @@ function renderCountdownRing(container, current, total) {
   progress.setAttribute("stroke-dasharray", circumference.toString());
   progress.setAttribute("stroke-dashoffset", strokeDashoffset.toString());
   progress.setAttribute("transform", "rotate(-90 12 12)");
-  const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  const text = createSvg("text");
   text.setAttribute("x", "12");
   text.setAttribute("y", "15.5");
   text.setAttribute("text-anchor", "middle");
@@ -2700,15 +2729,15 @@ function renderCountdownRing(container, current, total) {
 }
 function renderCorruptedBlock(container, errorMsg, rawText) {
   container.empty();
-  const corruptEl = document.createElement("div");
+  const corruptEl = createDiv();
   corruptEl.className = "keymask-corrupted-block";
   const header = corruptEl.createDiv({ cls: "keymask-corrupted-header" });
-  header.createEl("span", { cls: "keymask-corrupted-icon", text: "\u26A0\uFE0F" });
-  header.createEl("span", {
+  header.createSpan({ cls: "keymask-corrupted-icon", text: "\u26A0\uFE0F" });
+  header.createSpan({
     cls: "keymask-corrupted-title",
     text: "Corrupted Ciphertext Block"
   });
-  corruptEl.createEl("div", {
+  corruptEl.createDiv({
     cls: "keymask-corrupted-desc",
     text: `${errorMsg}. Content may have suffered a merge conflict or key mismatch. Raw ciphertext preserved.`
   });
@@ -2722,7 +2751,7 @@ function renderCorruptedBlock(container, errorMsg, rawText) {
 }
 function createWholeFileCardElement(options) {
   const { plugin, payload, rawText } = options;
-  const card = document.createElement("div");
+  const card = createDiv();
   card.className = "keymask-file-card-full";
   card.addEventListener("mousedown", (e) => {
     e.stopPropagation();
@@ -2750,7 +2779,7 @@ function createWholeFileCardElement(options) {
   (0, import_obsidian8.setIcon)(shieldIcon, "shield-check");
   const titleGroup = headerLeft.createDiv({ cls: "keymask-file-title-group" });
   const titleRow = titleGroup.createDiv({ cls: "keymask-file-title-row" });
-  titleRow.createEl("span", {
+  titleRow.createSpan({
     cls: "keymask-file-card-title",
     text: noteTitle
   });
@@ -2758,16 +2787,16 @@ function createWholeFileCardElement(options) {
   if (payload.label && fileBasename && payload.label !== fileBasename) {
     subtitleText = `File: ${fileBasename}.md \u2022 ${subtitleText}`;
   }
-  titleGroup.createEl("div", {
+  titleGroup.createDiv({
     cls: "keymask-file-card-subtitle",
     text: subtitleText
   });
   const headerRight = header.createDiv({ cls: "keymask-file-header-right" });
-  headerRight.createEl("span", {
+  headerRight.createSpan({
     cls: "keymask-file-type-badge",
     text: "\u{1F512} Encrypted Note"
   });
-  const statusBadge = headerRight.createEl("span", {
+  const statusBadge = headerRight.createSpan({
     cls: "keymask-status-badge",
     text: plugin.session.isUnlocked() ? "\u{1F513} Unlocked" : "\u{1F512} Locked"
   });
@@ -2799,7 +2828,7 @@ function createWholeFileCardElement(options) {
   const previewHeaderLeft = previewHeader.createDiv({ cls: "keymask-preview-header-left" });
   const previewIcon = previewHeaderLeft.createSpan({ cls: "keymask-preview-icon" });
   (0, import_obsidian8.setIcon)(previewIcon, "file-text");
-  previewHeaderLeft.createEl("span", {
+  previewHeaderLeft.createSpan({
     cls: "keymask-preview-title",
     text: `Decrypted Note: ${noteTitle}`
   });
@@ -2815,7 +2844,7 @@ function createWholeFileCardElement(options) {
   const previewFooter = previewContainer.createDiv({ cls: "keymask-file-preview-footer" });
   const lockIcon = previewFooter.createSpan({ cls: "keymask-footer-icon" });
   (0, import_obsidian8.setIcon)(lockIcon, "lock");
-  previewFooter.createEl("span", {
+  previewFooter.createSpan({
     text: "In-memory zero-trace preview \u2022 Never written to disk \u2022 Auto-locks on blur or timeout"
   });
   const rawToggle = card.createEl("details", { cls: "keymask-file-inspect-raw" });
@@ -2829,7 +2858,7 @@ function createWholeFileCardElement(options) {
   const maskPreview = () => {
     isRevealed = false;
     if (countdownTimer !== null) {
-      clearInterval(countdownTimer);
+      window.clearInterval(countdownTimer);
       countdownTimer = null;
     }
     previewContainer.addClass("keymask-hidden");
@@ -2863,8 +2892,8 @@ function createWholeFileCardElement(options) {
       renderCountdownRing(timerRingSpan, secondsRemaining, timeoutSeconds);
       timerRingSpan.removeClass("keymask-hidden");
       timerRingSpan.addClass("keymask-visible-inline-flex");
-      if (countdownTimer !== null) clearInterval(countdownTimer);
-      countdownTimer = setInterval(() => {
+      if (countdownTimer !== null) window.clearInterval(countdownTimer);
+      countdownTimer = window.setInterval(() => {
         secondsRemaining -= 1;
         if (secondsRemaining <= 0) {
           maskPreview();
@@ -2873,7 +2902,8 @@ function createWholeFileCardElement(options) {
         }
       }, 1e3);
     } catch (err) {
-      new import_obsidian8.Notice(`Decryption failed: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      new import_obsidian8.Notice(`Decryption failed: ${msg}`);
     }
   };
   revealBtn.addEventListener("click", (e) => {
@@ -2881,7 +2911,7 @@ function createWholeFileCardElement(options) {
     if (isRevealed) {
       maskPreview();
     } else {
-      revealNote();
+      void revealNote();
     }
   });
   hideBtn.addEventListener("click", (e) => {
@@ -2903,12 +2933,13 @@ function createWholeFileCardElement(options) {
         timeoutSeconds: plugin.settings.clipboardWipeTimeoutSeconds
       });
       copyDecryptedBtn.textContent = "\u2713 Copied Plaintext!";
-      setTimeout(() => {
+      window.setTimeout(() => {
         copyDecryptedBtn.textContent = "\u{1F4CB} Copy Decrypted Note";
       }, 2e3);
       new import_obsidian8.Notice(`\u{1F4CB} Decrypted note copied (auto-wipes in ${plugin.settings.clipboardWipeTimeoutSeconds}s).`);
     } catch (err) {
-      new import_obsidian8.Notice(`Failed to copy decrypted note: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      new import_obsidian8.Notice(`Failed to copy decrypted note: ${msg}`);
     }
   });
   copyEncryptedBtn.addEventListener("click", async (e) => {
@@ -2916,12 +2947,13 @@ function createWholeFileCardElement(options) {
     try {
       await KeyMaskClipboard.writeText(rawText);
       copyEncryptedBtn.textContent = "\u2713 Copied Ciphertext!";
-      setTimeout(() => {
+      window.setTimeout(() => {
         copyEncryptedBtn.textContent = "\u{1F4E6} Copy Encrypted";
       }, 2e3);
       new import_obsidian8.Notice("\u{1F4E6} Encrypted note ciphertext copied to clipboard.");
     } catch (err) {
-      new import_obsidian8.Notice(`Failed to copy ciphertext: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      new import_obsidian8.Notice(`Failed to copy ciphertext: ${msg}`);
     }
   });
   revertBtn.addEventListener("click", async (e) => {
@@ -2952,7 +2984,8 @@ function createWholeFileCardElement(options) {
       await plugin.app.vault.modify(targetFile, plaintext);
       new import_obsidian8.Notice(`\u{1F513} Note "${targetFile.basename}" decrypted and restored to plaintext.`);
     } catch (err) {
-      new import_obsidian8.Notice(`Failed to decrypt note: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      new import_obsidian8.Notice(`Failed to decrypt note: ${msg}`);
     }
   });
   plugin.session.onStateChange((unlocked) => {
@@ -3043,7 +3076,8 @@ ${source.trim()}
   plugin.registerMarkdownCodeBlockProcessor("vaultguard", handleCodeBlock("vaultguard"));
   plugin.registerMarkdownPostProcessor(
     (el, ctx) => {
-      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      const doc = el.ownerDocument;
+      const walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT);
       const nodesToReplace = [];
       let currentNode = walker.nextNode();
       while (currentNode) {
@@ -3060,7 +3094,7 @@ ${source.trim()}
         const fragments = [];
         while ((match = INLINE_SECRET_REGEX.exec(text)) !== null) {
           if (match.index > lastIndex) {
-            fragments.push(document.createTextNode(text.slice(lastIndex, match.index)));
+            fragments.push(doc.createTextNode(text.slice(lastIndex, match.index)));
           }
           const rawToken = match[0];
           const payload = parseInline(rawToken);
@@ -3074,7 +3108,7 @@ ${source.trim()}
           lastIndex = INLINE_SECRET_REGEX.lastIndex;
         }
         if (lastIndex < text.length) {
-          fragments.push(document.createTextNode(text.slice(lastIndex)));
+          fragments.push(doc.createTextNode(text.slice(lastIndex)));
         }
         if (fragments.length > 0 && node.parentNode) {
           for (const frag of fragments) {
@@ -3113,7 +3147,7 @@ var InterceptPasteModal = class extends import_obsidian9.Modal {
     contentEl.addClass("keymask-modal", "keymask-intercept-modal");
     contentEl.createEl("h2", { text: "\u26A0\uFE0F Sensitive Token Pattern Detected" });
     const banner = contentEl.createDiv({ cls: "keymask-intercept-banner" });
-    banner.createEl("span", {
+    banner.createSpan({
       cls: "keymask-badge-pattern",
       text: this.detectedToken.patternName
     });
@@ -3194,7 +3228,8 @@ ${token}
       new import_obsidian9.Notice("\u{1F512} Credential encrypted and masked in note.");
       this.close();
     } catch (err) {
-      this.showError(err.message || "Encryption failed.");
+      const msg = err instanceof Error ? err.message : String(err);
+      this.showError(msg || "Encryption failed.");
     }
   }
   onClose() {
@@ -3221,13 +3256,13 @@ function registerPasteHandler(plugin) {
     }
     if (isHandlingPaste) return true;
     isHandlingPaste = true;
-    setTimeout(() => {
+    window.setTimeout(() => {
       new InterceptPasteModal(plugin.app, plugin, {
         editor,
         pastedText: rawText,
         detectedToken: detected
       }).open();
-      setTimeout(() => {
+      window.setTimeout(() => {
         isHandlingPaste = false;
       }, 500);
     }, 10);
@@ -3237,9 +3272,13 @@ function registerPasteHandler(plugin) {
     let text = evt.clipboardData?.getData("text/plain") || "";
     if (!text) {
       try {
-        const electron = window.require?.("electron");
-        text = electron?.clipboard?.readText() || "";
-      } catch {
+        const req = window.require;
+        if (typeof req === "function") {
+          const electron = req("electron");
+          text = electron?.clipboard?.readText() || "";
+        }
+      } catch (_err) {
+        void _err;
       }
     }
     return text;
@@ -3260,9 +3299,12 @@ function registerPasteHandler(plugin) {
     plugin.app.workspace.on(
       "editor-paste",
       (evt, editor, view) => {
+        if (evt.defaultPrevented) return;
         const pastedText = getPastedText(evt);
         if (!pastedText) return;
-        processPaste(pastedText, evt, editor);
+        if (processPaste(pastedText, evt, editor)) {
+          evt.preventDefault();
+        }
       }
     )
   );
@@ -3303,7 +3345,7 @@ var InsertSecretModal = class extends import_obsidian11.Modal {
         this.label = val;
       });
     });
-    const secretSetting = new import_obsidian11.Setting(contentEl).setName("Secret Value").setDesc("The confidential credential, API key, or certificate.");
+    new import_obsidian11.Setting(contentEl).setName("Secret Value").setDesc("The confidential credential, API key, or certificate.");
     const secretWrapper = contentEl.createDiv({ cls: "keymask-secret-input-wrapper" });
     this.secretInputEl = secretWrapper.createEl("textarea", {
       cls: "keymask-secret-textarea masked",
@@ -3351,7 +3393,7 @@ var InsertSecretModal = class extends import_obsidian11.Modal {
       text: "\u{1F512} Encrypt & Insert"
     });
     insertBtn.addEventListener("click", () => this.handleEncryptAndInsert());
-    setTimeout(() => {
+    window.setTimeout(() => {
       this.secretInputEl?.focus();
     }, 50);
   }
@@ -3402,7 +3444,8 @@ ${token}
       new import_obsidian11.Notice("\u{1F512} Encrypted secret inserted safely.");
       this.close();
     } catch (err) {
-      this.showError(err.message || "Failed to encrypt secret.");
+      const msg = err instanceof Error ? err.message : String(err);
+      this.showError(msg || "Failed to encrypt secret.");
     }
   }
   onClose() {
@@ -3442,27 +3485,27 @@ var EncryptFileModal = class extends import_obsidian12.Modal {
     const targetTitleGroup = targetTop.createDiv({ cls: "keymask-target-title-group" });
     const targetFileIcon = targetTitleGroup.createSpan({ cls: "keymask-target-icon" });
     (0, import_obsidian12.setIcon)(targetFileIcon, "file-text");
-    targetTitleGroup.createEl("span", {
+    targetTitleGroup.createSpan({
       cls: "keymask-target-filename",
       text: `${this.file.basename}.md`
     });
-    targetTop.createEl("span", {
+    targetTop.createSpan({
       cls: "keymask-target-algo-pill",
       text: "AES-256-GCM"
     });
     const statsRow = targetCard.createDiv({ cls: "keymask-target-stats-row" });
-    statsRow.createEl("span", {
+    statsRow.createSpan({
       cls: "keymask-stat-item",
       text: `\u{1F4CA} ${lines} ${lines === 1 ? "line" : "lines"}`
     });
-    statsRow.createEl("span", { cls: "keymask-stat-bullet", text: "\u2022" });
-    statsRow.createEl("span", {
+    statsRow.createSpan({ cls: "keymask-stat-bullet", text: "\u2022" });
+    statsRow.createSpan({
       cls: "keymask-stat-item",
       text: `\u{1F524} ${chars.toLocaleString()} characters`
     });
     if (this.file.parent && this.file.parent.path !== "/") {
-      statsRow.createEl("span", { cls: "keymask-stat-bullet", text: "\u2022" });
-      statsRow.createEl("span", {
+      statsRow.createSpan({ cls: "keymask-stat-bullet", text: "\u2022" });
+      statsRow.createSpan({
         cls: "keymask-stat-item",
         text: `\u{1F4C1} ${this.file.parent.path}`
       });
@@ -3477,7 +3520,7 @@ var EncryptFileModal = class extends import_obsidian12.Modal {
       cls: "keymask-field-label",
       text: "Note Security Label"
     });
-    labelHeader.createEl("span", {
+    labelHeader.createSpan({
       cls: "keymask-field-hint",
       text: "Public title shown while note is locked"
     });
@@ -3528,7 +3571,8 @@ var EncryptFileModal = class extends import_obsidian12.Modal {
         this.onSuccess();
       }
     } catch (err) {
-      new import_obsidian12.Notice(`Failed to encrypt note: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      new import_obsidian12.Notice(`Failed to encrypt note: ${msg}`);
     }
   }
   onClose() {
@@ -3548,15 +3592,15 @@ var EncryptedFileViewManager = class {
     this.plugin.registerEvent(
       this.plugin.app.workspace.on("active-leaf-change", (leaf) => {
         if (leaf && leaf.view instanceof import_obsidian13.MarkdownView) {
-          this.checkAndUpdateView(leaf.view);
+          void this.checkAndUpdateView(leaf.view);
         }
       })
     );
     this.plugin.registerEvent(
-      this.plugin.app.workspace.on("file-open", (file) => {
+      this.plugin.app.workspace.on("file-open", () => {
         const view = this.plugin.app.workspace.getActiveViewOfType(import_obsidian13.MarkdownView);
         if (view) {
-          this.checkAndUpdateView(view);
+          void this.checkAndUpdateView(view);
         }
       })
     );
@@ -3568,7 +3612,7 @@ var EncryptedFileViewManager = class {
     this.plugin.registerEvent(
       this.plugin.app.vault.on("modify", (file) => {
         if (file instanceof import_obsidian13.TFile && file.extension === "md") {
-          this.updateViewsForFile(file);
+          void this.updateViewsForFile(file);
         }
       })
     );
@@ -3580,14 +3624,14 @@ var EncryptedFileViewManager = class {
   checkAllOpenViews() {
     this.plugin.app.workspace.iterateAllLeaves((leaf) => {
       if (leaf.view instanceof import_obsidian13.MarkdownView) {
-        this.checkAndUpdateView(leaf.view);
+        void this.checkAndUpdateView(leaf.view);
       }
     });
   }
   async updateViewsForFile(file) {
     this.plugin.app.workspace.iterateAllLeaves((leaf) => {
       if (leaf.view instanceof import_obsidian13.MarkdownView && leaf.view.file?.path === file.path) {
-        this.checkAndUpdateView(leaf.view);
+        void this.checkAndUpdateView(leaf.view);
       }
     });
   }
@@ -3622,7 +3666,7 @@ var EncryptedFileViewManager = class {
     }
     this.removeBanner(view);
     view.containerEl.addClass("keymask-file-encrypted-active");
-    const bannerEl = document.createElement("div");
+    const bannerEl = createDiv();
     bannerEl.className = "keymask-whole-file-banner";
     const cardEl = createWholeFileCardElement({
       plugin: this.plugin,
@@ -3703,7 +3747,6 @@ var KeyMaskPlugin = class extends import_obsidian14.Plugin {
     this.addCommand({
       id: "insert-encrypted-secret",
       name: "Insert Encrypted Secret",
-      hotkeys: [{ modifiers: ["Mod", "Shift"], key: "S" }],
       editorCallback: (editor) => {
         const selection = editor.getSelection();
         new InsertSecretModal(this.app, this, {
@@ -3994,7 +4037,8 @@ var KeyMaskPlugin = class extends import_obsidian14.Plugin {
       await this.app.vault.modify(file, plaintext);
       new import_obsidian14.Notice(`\u{1F513} Note "${file.basename}" decrypted back to plaintext.`);
     } catch (err) {
-      new import_obsidian14.Notice(`Failed to decrypt note: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      new import_obsidian14.Notice(`Failed to decrypt note: ${msg}`);
     }
   }
   async copyEncryptedFile(file) {
@@ -4010,7 +4054,9 @@ var KeyMaskPlugin = class extends import_obsidian14.Plugin {
       if (!this.session.isUnlocked()) {
         new UnlockModal(this.app, this, {
           mode: "unlock",
-          onSuccess: () => this.copyEncryptedFile(file)
+          onSuccess: () => {
+            void this.copyEncryptedFile(file);
+          }
         }).open();
         return;
       }
@@ -4019,7 +4065,8 @@ var KeyMaskPlugin = class extends import_obsidian14.Plugin {
         await KeyMaskClipboard.writeText(encrypted);
         new import_obsidian14.Notice(`\u{1F4E6} Encrypted note and copied ciphertext to clipboard.`);
       } catch (err) {
-        new import_obsidian14.Notice(`Failed to encrypt note: ${err.message}`);
+        const msg = err instanceof Error ? err.message : String(err);
+        new import_obsidian14.Notice(`Failed to encrypt note: ${msg}`);
       }
     }
   }
@@ -4034,7 +4081,9 @@ var KeyMaskPlugin = class extends import_obsidian14.Plugin {
     if (!this.session.isUnlocked()) {
       new UnlockModal(this.app, this, {
         mode: "unlock",
-        onSuccess: () => this.copyDecryptedFile(file)
+        onSuccess: () => {
+          void this.copyDecryptedFile(file);
+        }
       }).open();
       return;
     }
@@ -4045,7 +4094,8 @@ var KeyMaskPlugin = class extends import_obsidian14.Plugin {
       });
       new import_obsidian14.Notice(`\u{1F4CB} Decrypted note copied (auto-wipes in ${this.settings.clipboardWipeTimeoutSeconds}s).`);
     } catch (err) {
-      new import_obsidian14.Notice(`Failed to decrypt note: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      new import_obsidian14.Notice(`Failed to decrypt note: ${msg}`);
     }
   }
   onunload() {
@@ -4056,7 +4106,8 @@ var KeyMaskPlugin = class extends import_obsidian14.Plugin {
     KeyMaskClipboard.cancelAutoWipe();
   }
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const loaded = await this.loadData();
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, loaded);
   }
   async saveSettings() {
     await this.saveData(this.settings);

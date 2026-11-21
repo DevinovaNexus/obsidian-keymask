@@ -1,25 +1,19 @@
 import obsidianmd from "eslint-plugin-obsidianmd";
-import tsParser from "@typescript-eslint/parser";
 
 export default [
+  ...obsidianmd.configs.recommended,
   {
     files: ["src/**/*.ts"],
     languageOptions: {
-      parser: tsParser,
       parserOptions: {
-        ecmaVersion: "latest",
-        sourceType: "module",
+        project: "./tsconfig.json",
+        tsconfigRootDir: import.meta.dirname,
       },
     },
-    plugins: {
-      obsidianmd,
-    },
     rules: {
-      "obsidianmd/no-static-styles-assignment": "error",
-      "obsidianmd/no-forbidden-elements": "error",
-      "obsidianmd/no-nodejs-modules": "error",
-      "obsidianmd/commands/no-plugin-id-in-command-id": "error",
-      "obsidianmd/commands/no-plugin-name-in-command-name": "error",
+      "@typescript-eslint/no-misused-promises": "off",
+      "obsidianmd/ui/sentence-case": "off",
+      "@typescript-eslint/no-deprecated": "off",
     },
   },
 ];

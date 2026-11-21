@@ -64,7 +64,7 @@ export class InsertSecretModal extends Modal {
       });
 
     // 2. Secret Input Area
-    const secretSetting = new Setting(contentEl)
+    new Setting(contentEl)
       .setName("Secret Value")
       .setDesc("The confidential credential, API key, or certificate.");
 
@@ -112,8 +112,8 @@ export class InsertSecretModal extends Modal {
         dropdown.addOption("inline", "Inline Comment (%%km:v1:...%%)");
         dropdown.addOption("codeblock", "Fenced Code Block (```keymask)");
         dropdown.setValue(this.format);
-        dropdown.onChange((val: any) => {
-          this.format = val;
+        dropdown.onChange((val: string) => {
+          this.format = val as "auto" | "inline" | "codeblock";
         });
       });
 
@@ -130,7 +130,7 @@ export class InsertSecretModal extends Modal {
     insertBtn.addEventListener("click", () => this.handleEncryptAndInsert());
 
     // Focus input
-    setTimeout(() => {
+    window.setTimeout(() => {
       this.secretInputEl?.focus();
     }, 50);
   }
@@ -194,8 +194,9 @@ export class InsertSecretModal extends Modal {
 
       new Notice("🔒 Encrypted secret inserted safely.");
       this.close();
-    } catch (err: any) {
-      this.showError(err.message || "Failed to encrypt secret.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.showError(msg || "Failed to encrypt secret.");
     }
   }
 

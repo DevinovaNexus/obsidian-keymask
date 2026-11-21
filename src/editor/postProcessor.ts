@@ -46,8 +46,9 @@ export function registerPostProcessors(plugin: KeyMaskPlugin): void {
   // 2. Inline Comment Secret Post Processor (%%km:v1:...%% and legacy %%vg:v1:...%%)
   plugin.registerMarkdownPostProcessor(
     (el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
+      const doc = el.ownerDocument;
       // Find all text nodes that might contain %%km:v1: or %%vg:v1:
-      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      const walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT);
       const nodesToReplace: { node: Text; text: string }[] = [];
 
       let currentNode = walker.nextNode();
@@ -71,7 +72,7 @@ export function registerPostProcessors(plugin: KeyMaskPlugin): void {
         while ((match = INLINE_SECRET_REGEX.exec(text)) !== null) {
           // Text before match
           if (match.index > lastIndex) {
-            fragments.push(document.createTextNode(text.slice(lastIndex, match.index)));
+            fragments.push(doc.createTextNode(text.slice(lastIndex, match.index)));
           }
 
           const rawToken = match[0];
@@ -89,7 +90,7 @@ export function registerPostProcessors(plugin: KeyMaskPlugin): void {
 
         // Remaining text after last match
         if (lastIndex < text.length) {
-          fragments.push(document.createTextNode(text.slice(lastIndex)));
+          fragments.push(doc.createTextNode(text.slice(lastIndex)));
         }
 
         if (fragments.length > 0 && node.parentNode) {

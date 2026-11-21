@@ -14,7 +14,6 @@ import {
   parseCodeBlock,
   INLINE_SECRET_REGEX,
   CODE_BLOCK_SECRET_REGEX,
-  SecretPayload,
 } from "../crypto/serializer";
 import {
   DecryptedExportEntry,
@@ -52,8 +51,8 @@ export class ExportSecretsModal extends Modal {
     });
 
     const warningBox = contentEl.createDiv({ cls: "keymask-intercept-banner" });
-    warningBox.createEl("span", { cls: "keymask-badge-pattern", text: "Security Notice" });
-    warningBox.createEl("span", {
+    warningBox.createSpan({ cls: "keymask-badge-pattern", text: "Security Notice" });
+    warningBox.createSpan({
       cls: "setting-item-description",
       text: "The generated export file will contain your credentials. Store it in a secure location or import it into MacPass/KeePass immediately, then delete the exported file.",
     });
@@ -68,8 +67,8 @@ export class ExportSecretsModal extends Modal {
         dropdown.addOption("xml", "KeePass 2.x XML (.xml) - MacPass, KeePassXC, KeePass");
         dropdown.addOption("csv", "Universal CSV (.csv) - 1Password, Bitwarden, KeePass");
         dropdown.setValue(this.format);
-        dropdown.onChange((val: any) => {
-          this.format = val;
+        dropdown.onChange((val: string) => {
+          this.format = val as "xml" | "csv";
         });
       });
 
@@ -243,9 +242,10 @@ export class ExportSecretsModal extends Modal {
         );
       }
       this.close();
-    } catch (err: any) {
+    } catch (err) {
       if (this.errorEl) {
-        this.errorEl.textContent = `Export failed: ${err.message}`;
+        const msg = err instanceof Error ? err.message : String(err);
+        this.errorEl.textContent = `Export failed: ${msg}`;
         this.errorEl.removeClass("keymask-hidden");
       }
     } finally {
@@ -264,14 +264,15 @@ export class ExportSecretsModal extends Modal {
 function downloadFile(content: string, filename: string, mimeType: string): void {
   const blob = new Blob([content], { type: `${mimeType};charset=utf-8;` });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
+  const link = createEl("a");
   link.setAttribute("href", url);
   link.setAttribute("download", filename);
   link.className = "keymask-hidden";
-  document.body.appendChild(link);
+  const doc = typeof activeDocument !== "undefined" ? activeDocument : document;
+  doc.body.appendChild(link);
   link.click();
-  setTimeout(() => {
-    document.body.removeChild(link);
+  window.setTimeout(() => {
+    doc.body.removeChild(link);
     URL.revokeObjectURL(url);
   }, 100);
 }
