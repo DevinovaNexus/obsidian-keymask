@@ -175,33 +175,14 @@ export class KeyMaskClipboard {
         try {
           await navigator.clipboard.writeText(text);
           written = true;
-        } catch (clipErr) {
-          console.warn("KeyMask: navigator.clipboard.writeText failed, trying execCommand fallback", clipErr);
+        } catch (_err) {
+          void _err;
         }
       }
     }
 
     if (!written) {
-      // Fallback for iOS/mobile webviews where navigator.clipboard requires direct sync user gesture
-      try {
-        const textArea = createEl("textarea");
-        textArea.value = text;
-        textArea.className = "keymask-offscreen-textarea";
-        textArea.setAttribute("readonly", "");
-        const doc = typeof activeDocument !== "undefined" ? activeDocument : document;
-        doc.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        textArea.setSelectionRange(0, text.length);
-        const success = doc.execCommand("copy");
-        doc.body.removeChild(textArea);
-        if (!success) {
-          throw new Error("execCommand copy returned false");
-        }
-        written = true;
-      } catch {
-        throw new Error("Unable to access clipboard in this environment.");
-      }
+      throw new Error("Unable to access clipboard in this environment.");
     }
   }
 

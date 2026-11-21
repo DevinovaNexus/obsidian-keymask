@@ -28,6 +28,7 @@ export class UnlockModal extends Modal {
   }
 
   onOpen(): void {
+    this.modalEl.addClass("mod-keymask-modal");
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("keymask-modal");

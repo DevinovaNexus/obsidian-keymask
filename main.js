@@ -50,6 +50,7 @@ var UnlockModal = class extends import_obsidian.Modal {
     this.options = options;
   }
   onOpen() {
+    this.modalEl.addClass("mod-keymask-modal");
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("keymask-modal");
@@ -2423,31 +2424,13 @@ var KeyMaskClipboard = class {
         try {
           await navigator.clipboard.writeText(text);
           written = true;
-        } catch (clipErr) {
-          console.warn("KeyMask: navigator.clipboard.writeText failed, trying execCommand fallback", clipErr);
+        } catch (_err) {
+          void _err;
         }
       }
     }
     if (!written) {
-      try {
-        const textArea = createEl("textarea");
-        textArea.value = text;
-        textArea.className = "keymask-offscreen-textarea";
-        textArea.setAttribute("readonly", "");
-        const doc = typeof activeDocument !== "undefined" ? activeDocument : document;
-        doc.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        textArea.setSelectionRange(0, text.length);
-        const success = doc.execCommand("copy");
-        doc.body.removeChild(textArea);
-        if (!success) {
-          throw new Error("execCommand copy returned false");
-        }
-        written = true;
-      } catch {
-        throw new Error("Unable to access clipboard in this environment.");
-      }
+      throw new Error("Unable to access clipboard in this environment.");
     }
   }
   /**
@@ -3174,6 +3157,7 @@ var InterceptPasteModal = class extends import_obsidian9.Modal {
     this.customLabel = options.detectedToken.suggestedLabel;
   }
   onOpen() {
+    this.modalEl.addClass("mod-keymask-modal");
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("keymask-modal", "keymask-intercept-modal");
@@ -3367,6 +3351,7 @@ var InsertSecretModal = class extends import_obsidian11.Modal {
     this.label = options.initialLabel || "";
   }
   onOpen() {
+    this.modalEl.addClass("mod-keymask-modal");
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("keymask-modal");

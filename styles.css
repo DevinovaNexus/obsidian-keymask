@@ -316,39 +316,33 @@
 }
 
 /* 7. Vault Secret Audit & Leak Scanner UI */
-.modal.mod-keymask-audit,
-.modal:has(.keymask-audit-modal) {
-  width: min(880px, 92vw) !important;
-  max-width: 880px !important;
-  max-height: 85vh !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
+.modal-container .modal.mod-keymask-audit {
+  width: min(880px, 92vw);
+  max-width: 880px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.modal.mod-keymask-modal,
-.modal:has(.keymask-export-modal),
-.modal:has(.keymask-decrypt-all-modal),
-.modal:has(.keymask-encrypt-file-modal),
-.modal.keymask-encrypt-file-modal {
-  width: min(580px, 92vw) !important;
-  max-width: 580px !important;
+.modal-container .modal.mod-keymask-modal {
+  width: min(580px, 92vw);
+  max-width: 580px;
 }
 
-.modal.mod-keymask-audit .modal-content,
-.modal:has(.keymask-audit-modal) .modal-content {
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  padding: 16px 20px !important;
-  flex: 1 1 auto !important;
-  box-sizing: border-box !important;
+.modal-container .modal.mod-keymask-audit .modal-content {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 20px;
+  flex: 1 1 auto;
+  box-sizing: border-box;
 }
 
 .keymask-audit-modal {
-  width: 100% !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-  overflow-x: hidden !important;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .keymask-audit-controls-card {
@@ -891,9 +885,9 @@
 }
 
 .keymask-full-input {
-  width: 100% !important;
-  box-sizing: border-box !important;
-  padding: 9px 12px !important;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
   font-size: 0.92em;
   border-radius: 6px;
   background-color: var(--background-modifier-form-field);
@@ -903,9 +897,9 @@
 }
 
 .keymask-full-input:focus {
-  border-color: var(--interactive-accent) !important;
-  outline: none !important;
-  box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb, 124, 58, 237), 0.2) !important;
+  border-color: var(--interactive-accent);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb, 124, 58, 237), 0.2);
 }
 
 .keymask-btn-primary-action {
@@ -1214,13 +1208,13 @@
   box-sizing: border-box;
 }
 
-.keymask-file-encrypted-active .cm-editor,
-.keymask-file-encrypted-active .markdown-reading-view {
-  display: none !important;
+.workspace-leaf .keymask-file-encrypted-active .cm-editor,
+.workspace-leaf .keymask-file-encrypted-active .markdown-reading-view {
+  display: none;
 }
 
-.keymask-file-encrypted-active .view-content {
-  overflow-y: auto !important;
+.workspace-leaf .keymask-file-encrypted-active .view-content {
+  overflow-y: auto;
 }
 
 .keymask-file-inspect-raw {
@@ -1263,10 +1257,10 @@
   line-height: 1.5;
 }
 
-.keymask-btn-danger {
-  background-color: var(--text-error, #ef4444) !important;
-  color: #fff !important;
-  border-color: var(--text-error, #ef4444) !important;
+.modal-container .keymask-btn-danger {
+  background-color: var(--text-error, #ef4444);
+  color: #fff;
+  border-color: var(--text-error, #ef4444);
   font-weight: 600;
 }
 
@@ -1276,28 +1270,27 @@
 
 /* 8. Mobile Responsive Adaptations */
 @media (max-width: 768px) {
-  .modal.mod-keymask-audit,
-  .modal:has(.keymask-audit-modal),
-  .modal.mod-keymask-modal {
-    width: 95vw !important;
-    max-width: 95vw !important;
+  .modal-container .modal.mod-keymask-audit,
+  .modal-container .modal.mod-keymask-modal {
+    width: 95vw;
+    max-width: 95vw;
   }
 
   .keymask-audit-controls-card .setting-item {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 8px !important;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
 
   .keymask-audit-controls-card .setting-item-control {
-    width: 100% !important;
-    justify-content: flex-start !important;
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .keymask-audit-controls-card .setting-item-control select,
   .keymask-audit-controls-card .setting-item-control .dropdown {
-    max-width: 100% !important;
-    width: 100% !important;
+    max-width: 100%;
+    width: 100%;
   }
 
   .keymask-secrets-table {
@@ -1310,7 +1303,7 @@
   .keymask-modal input[type="password"],
   .keymask-secret-textarea,
   .keymask-full-input {
-    font-size: 16px !important; /* Prevents auto-zoom on iOS WebKit */
+    font-size: 16px; /* Prevents auto-zoom on iOS WebKit */
   }
 
   .keymask-audit-action-row {
@@ -1325,104 +1318,96 @@
 
   /* Mobile Whole-File Security Card */
   .keymask-whole-file-banner {
-    padding: 10px 6px !important;
+    padding: 10px 6px;
   }
 
   .keymask-file-card-full {
-    padding: 14px 12px !important;
-    gap: 12px !important;
-    margin: 6px 0 !important;
+    padding: 14px 12px;
+    gap: 12px;
+    margin: 6px 0;
   }
 
   .keymask-file-card-header {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 10px !important;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
 
   .keymask-file-header-left {
-    width: 100% !important;
+    width: 100%;
   }
 
   .keymask-file-header-right {
-    width: 100% !important;
-    justify-content: flex-start !important;
-    flex-wrap: wrap !important;
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .keymask-file-card-toolbar {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 8px !important;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
   }
 
   .keymask-toolbar-left,
   .keymask-toolbar-right {
-    width: 100% !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 8px !important;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
   }
 
   .keymask-btn-action,
   .keymask-btn-revert {
-    width: 100% !important;
-    justify-content: center !important;
-    padding: 10px 14px !important;
-    font-size: 0.9em !important;
-    min-height: 42px !important; /* Touch target accessibility */
-    box-sizing: border-box !important;
+    width: 100%;
+    justify-content: center;
+    padding: 10px 14px;
+    font-size: 0.9em;
+    min-height: 42px; /* Touch target accessibility */
+    box-sizing: border-box;
   }
 
   .keymask-file-preview-content {
-    max-height: 280px !important;
-    padding: 12px 14px !important;
-    font-size: 0.84em !important;
-    -webkit-overflow-scrolling: touch !important;
+    max-height: 280px;
+    padding: 12px 14px;
+    font-size: 0.84em;
+    -webkit-overflow-scrolling: touch;
   }
 
   .keymask-file-preview-header {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 8px !important;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
 
   .keymask-preview-actions {
-    width: 100% !important;
-    justify-content: space-between !important;
+    width: 100%;
+    justify-content: space-between;
   }
 
   .keymask-target-stats-row {
-    flex-wrap: wrap !important;
-    gap: 6px !important;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 }
 
 /* Utility display classes for linter & theme compliance */
 .keymask-hidden {
-  display: none !important;
+  display: none;
 }
 
 .keymask-visible-block {
-  display: block !important;
+  display: block;
 }
 
 .keymask-visible-flex {
-  display: flex !important;
+  display: flex;
 }
 
 .keymask-visible-inline-flex {
-  display: inline-flex !important;
-}
-
-.keymask-offscreen-textarea {
-  position: fixed !important;
-  left: -9999px !important;
-  top: -9999px !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
+  display: inline-flex;
 }
 
 .keymask-file-card.is-collapsed .keymask-file-findings {
-  display: none !important;
+  display: none;
 }
